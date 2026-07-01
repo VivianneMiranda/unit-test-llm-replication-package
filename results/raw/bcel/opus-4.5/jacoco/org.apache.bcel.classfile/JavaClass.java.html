@@ -1,0 +1,1083 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JavaClass.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">JavaClass.java</span></div><h1>JavaClass.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.classfile;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.StringTokenizer;
+import java.util.TreeSet;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.generic.Type;
+import org.apache.bcel.util.BCELComparator;
+import org.apache.bcel.util.ClassQueue;
+import org.apache.bcel.util.SyntheticRepository;
+import org.apache.commons.lang3.ArrayUtils;
+
+/**
+ * Represents a Java class, that is, the data structures, constant pool, fields, methods and commands contained in a Java
+ * .class file. See &lt;a href=&quot;https://docs.oracle.com/javase/specs/&quot;&gt;JVM specification&lt;/a&gt; for details. The intent of
+ * this class is to represent a parsed or otherwise existing class file. Those interested in programmatically generating
+ * classes should see the &lt;a href=&quot;../generic/ClassGen.html&quot;&gt;ClassGen&lt;/a&gt; class.
+ *
+ * @see org.apache.bcel.generic.ClassGen
+ */
+public class JavaClass extends AccessFlags implements Cloneable, Node, Comparable&lt;JavaClass&gt; {
+
+    private static final String CLASS_NAME_OBJECT = &quot;java.lang.Object&quot;;
+
+    /**
+     * The standard class file extension.
+     *
+     * @since 6.7.0
+     */
+    public static final String EXTENSION = &quot;.class&quot;;
+
+    /**
+     * Empty array.
+     *
+     * @since 6.6.0
+     */
+<span class="fc" id="L67">    public static final JavaClass[] EMPTY_ARRAY = {};</span>
+
+    /** Source was read from heap. */
+    public static final byte HEAP = 1;
+
+    /** Source was read from file. */
+    public static final byte FILE = 2;
+
+    /** Source was read from ZIP. */
+    public static final byte ZIP = 3;
+
+<span class="fc" id="L78">    private static final boolean debug = Boolean.getBoolean(&quot;JavaClass.debug&quot;); // Debugging on/off</span>
+
+<span class="fc" id="L80">    private static BCELComparator&lt;JavaClass&gt; bcelComparator = new BCELComparator&lt;JavaClass&gt;() {</span>
+
+        @Override
+        public boolean equals(final JavaClass a, final JavaClass b) {
+<span class="pc bpc" id="L84" title="3 of 8 branches missed.">            return a == b || a != null &amp;&amp; b != null &amp;&amp; Objects.equals(a.getClassName(), b.getClassName());</span>
+        }
+
+        @Override
+        public int hashCode(final JavaClass o) {
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">            return o != null ? Objects.hashCode(o.getClassName()) : 0;</span>
+        }
+    };
+
+    /*
+     * Print debug information depending on 'JavaClass.debug'
+     */
+    static void Debug(final String str) {
+<span class="nc bnc" id="L97" title="All 2 branches missed.">        if (debug) {</span>
+<span class="nc" id="L98">            System.out.println(str);</span>
+        }
+<span class="nc" id="L100">    }</span>
+
+    /**
+     * Gets the comparison strategy object.
+     *
+     * @return Comparison strategy object.
+     */
+    public static BCELComparator&lt;JavaClass&gt; getComparator() {
+<span class="nc" id="L108">        return bcelComparator;</span>
+    }
+
+    private static String indent(final Object obj) {
+<span class="fc" id="L112">        final StringTokenizer tokenizer = new StringTokenizer(obj.toString(), &quot;\n&quot;);</span>
+<span class="fc" id="L113">        final StringBuilder buf = new StringBuilder();</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        while (tokenizer.hasMoreTokens()) {</span>
+<span class="fc" id="L115">            buf.append(&quot;\t&quot;).append(tokenizer.nextToken()).append(&quot;\n&quot;);</span>
+        }
+<span class="fc" id="L117">        return buf.toString();</span>
+    }
+
+    /**
+     * Sets the comparison strategy object.
+     *
+     * @param comparator Comparison strategy object.
+     */
+    public static void setComparator(final BCELComparator&lt;JavaClass&gt; comparator) {
+<span class="nc" id="L126">        bcelComparator = comparator;</span>
+<span class="nc" id="L127">    }</span>
+
+    private String fileName;
+    private final String packageName;
+<span class="fc" id="L131">    private String sourceFileName = &quot;&lt;Unknown&gt;&quot;;</span>
+    private int classNameIndex;
+    private int superclassNameIndex;
+    private String className;
+    private String superclassName;
+    private int major;
+    private int minor; // Compiler version
+    private ConstantPool constantPool; // Constant pool
+    private int[] interfaces; // implemented interfaces
+    private String[] interfaceNames;
+    private Field[] fields; // Fields, that is, variables of class
+    private Method[] methods; // methods defined in the class
+    private Attribute[] attributes; // attributes defined in the class
+
+    private AnnotationEntry[] annotations; // annotations defined on the class
+<span class="fc" id="L146">    private byte source = HEAP; // Generated in memory</span>
+
+    private boolean isAnonymous;
+
+    private boolean isNested;
+    private boolean isRecord;
+
+    private boolean computedNestedTypeStatus;
+    private boolean computedRecord;
+
+    /**
+     * In cases where we go ahead and create something, use the default SyntheticRepository, because we don't know any
+     * better.
+     */
+<span class="fc" id="L160">    private transient org.apache.bcel.util.Repository repository = SyntheticRepository.getInstance();</span>
+
+    /**
+     * Constructor gets all contents as arguments.
+     *
+     * @param classNameIndex Class name.
+     * @param superclassNameIndex Superclass name.
+     * @param fileName File name.
+     * @param major Major compiler version.
+     * @param minor Minor compiler version.
+     * @param accessFlags Access rights defined by bit flags.
+     * @param constantPool Array of constants.
+     * @param interfaces Implemented interfaces.
+     * @param fields Class fields.
+     * @param methods Class methods.
+     * @param attributes Class attributes.
+     */
+    public JavaClass(final int classNameIndex, final int superclassNameIndex, final String fileName, final int major, final int minor, final int accessFlags,
+        final ConstantPool constantPool, final int[] interfaces, final Field[] fields, final Method[] methods, final Attribute[] attributes) {
+<span class="fc" id="L179">        this(classNameIndex, superclassNameIndex, fileName, major, minor, accessFlags, constantPool, interfaces, fields, methods, attributes, HEAP);</span>
+<span class="fc" id="L180">    }</span>
+
+    /**
+     * Constructor gets all contents as arguments.
+     *
+     * @param classNameIndex      Index into constant pool referencing a ConstantClass that represents this class.
+     * @param superclassNameIndex Index into constant pool referencing a ConstantClass that represents this class's superclass.
+     * @param fileName            File name.
+     * @param major               Major compiler version.
+     * @param minor               Minor compiler version.
+     * @param accessFlags         Access rights defined by bit flags.
+     * @param constantPool        Array of constants.
+     * @param interfaces          Implemented interfaces.
+     * @param fields              Class fields.
+     * @param methods             Class methods.
+     * @param attributes          Class attributes.
+     * @param source              Read from file or generated in memory.
+     */
+    public JavaClass(final int classNameIndex, final int superclassNameIndex, final String fileName, final int major, final int minor, final int accessFlags,
+        final ConstantPool constantPool, int[] interfaces, Field[] fields, Method[] methods, Attribute[] attributes, final byte source) {
+<span class="fc" id="L200">        super(accessFlags);</span>
+<span class="fc" id="L201">        interfaces = ArrayUtils.nullToEmpty(interfaces);</span>
+<span class="pc bpc" id="L202" title="1 of 2 branches missed.">        if (attributes == null) {</span>
+<span class="nc" id="L203">            attributes = Attribute.EMPTY_ARRAY;</span>
+        }
+<span class="pc bpc" id="L205" title="1 of 2 branches missed.">        if (fields == null) {</span>
+<span class="nc" id="L206">            fields = Field.EMPTY_ARRAY;</span>
+        }
+<span class="pc bpc" id="L208" title="1 of 2 branches missed.">        if (methods == null) {</span>
+<span class="nc" id="L209">            methods = Method.EMPTY_ARRAY;</span>
+        }
+<span class="fc" id="L211">        this.classNameIndex = classNameIndex;</span>
+<span class="fc" id="L212">        this.superclassNameIndex = superclassNameIndex;</span>
+<span class="fc" id="L213">        this.fileName = fileName;</span>
+<span class="fc" id="L214">        this.major = major;</span>
+<span class="fc" id="L215">        this.minor = minor;</span>
+<span class="fc" id="L216">        this.constantPool = constantPool;</span>
+<span class="fc" id="L217">        this.interfaces = interfaces;</span>
+<span class="fc" id="L218">        this.fields = fields;</span>
+<span class="fc" id="L219">        this.methods = methods;</span>
+<span class="fc" id="L220">        this.attributes = attributes;</span>
+<span class="fc" id="L221">        this.source = source;</span>
+        // Get source file name if available
+<span class="pc bpc" id="L223" title="1 of 2 branches missed.">        for (final Attribute attribute : attributes) {</span>
+<span class="fc bfc" id="L224" title="All 2 branches covered.">            if (attribute instanceof SourceFile) {</span>
+<span class="fc" id="L225">                sourceFileName = ((SourceFile) attribute).getSourceFileName();</span>
+<span class="fc" id="L226">                break;</span>
+            }
+        }
+        /*
+         * According to the specification the following entries must be of type 'ConstantClass' but we check that anyway via the
+         * 'ConstPool.getConstant' method.
+         */
+<span class="fc" id="L233">        className = constantPool.getConstantString(classNameIndex, Const.CONSTANT_Class);</span>
+<span class="fc" id="L234">        className = Utility.compactClassName(className, false);</span>
+<span class="fc" id="L235">        final int index = className.lastIndexOf('.');</span>
+<span class="fc bfc" id="L236" title="All 2 branches covered.">        if (index &lt; 0) {</span>
+<span class="fc" id="L237">            packageName = &quot;&quot;;</span>
+        } else {
+<span class="fc" id="L239">            packageName = className.substring(0, index);</span>
+        }
+<span class="fc bfc" id="L241" title="All 2 branches covered.">        if (superclassNameIndex &gt; 0) {</span>
+            // May be zero -&gt; class is java.lang.Object
+<span class="fc" id="L243">            superclassName = constantPool.getConstantString(superclassNameIndex, Const.CONSTANT_Class);</span>
+<span class="fc" id="L244">            superclassName = Utility.compactClassName(superclassName, false);</span>
+        } else {
+<span class="fc" id="L246">            superclassName = CLASS_NAME_OBJECT;</span>
+        }
+<span class="fc" id="L248">        interfaceNames = new String[interfaces.length];</span>
+<span class="fc bfc" id="L249" title="All 2 branches covered.">        for (int i = 0; i &lt; interfaces.length; i++) {</span>
+<span class="fc" id="L250">            final String str = constantPool.getConstantString(interfaces[i], Const.CONSTANT_Class);</span>
+<span class="fc" id="L251">            interfaceNames[i] = Utility.compactClassName(str, false);</span>
+        }
+<span class="fc" id="L253">    }</span>
+
+    /**
+     * Called by objects that are traversing the nodes of the tree implicitly defined by the contents of a Java class.
+     * I.e., the hierarchy of methods, fields, attributes, etc. spawns a tree of objects.
+     *
+     * @param v Visitor object.
+     */
+    @Override
+    public void accept(final Visitor v) {
+<span class="fc" id="L263">        v.visitJavaClass(this);</span>
+<span class="fc" id="L264">    }</span>
+
+    /**
+     * Return the natural ordering of two JavaClasses. This ordering is based on the class name
+     *
+     * @since 6.0
+     */
+    @Override
+    public int compareTo(final JavaClass obj) {
+<span class="fc" id="L273">        return getClassName().compareTo(obj.getClassName());</span>
+    }
+
+    private void computeIsRecord() {
+<span class="nc bnc" id="L277" title="All 2 branches missed.">        if (computedRecord) {</span>
+<span class="nc" id="L278">            return;</span>
+        }
+<span class="nc bnc" id="L280" title="All 2 branches missed.">        for (final Attribute attribute : this.attributes) {</span>
+<span class="nc bnc" id="L281" title="All 2 branches missed.">            if (attribute instanceof Record) {</span>
+<span class="nc" id="L282">                isRecord = true;</span>
+<span class="nc" id="L283">                break;</span>
+            }
+        }
+<span class="nc" id="L286">        this.computedRecord = true;</span>
+<span class="nc" id="L287">    }</span>
+
+    private void computeNestedTypeStatus() {
+<span class="nc bnc" id="L290" title="All 2 branches missed.">        if (computedNestedTypeStatus) {</span>
+<span class="nc" id="L291">            return;</span>
+        }
+<span class="nc bnc" id="L293" title="All 2 branches missed.">        for (final Attribute attribute : this.attributes) {</span>
+<span class="nc bnc" id="L294" title="All 2 branches missed.">            if (attribute instanceof InnerClasses) {</span>
+<span class="nc" id="L295">                ((InnerClasses) attribute).forEach(innerClass -&gt;  {</span>
+<span class="nc" id="L296">                    boolean innerClassAttributeRefersToMe = false;</span>
+<span class="nc" id="L297">                    String innerClassName = constantPool.getConstantString(innerClass.getInnerClassIndex(), Const.CONSTANT_Class);</span>
+<span class="nc" id="L298">                    innerClassName = Utility.compactClassName(innerClassName, false);</span>
+<span class="nc bnc" id="L299" title="All 2 branches missed.">                    if (innerClassName.equals(getClassName())) {</span>
+<span class="nc" id="L300">                        innerClassAttributeRefersToMe = true;</span>
+                    }
+<span class="nc bnc" id="L302" title="All 2 branches missed.">                    if (innerClassAttributeRefersToMe) {</span>
+<span class="nc" id="L303">                        this.isNested = true;</span>
+<span class="nc bnc" id="L304" title="All 2 branches missed.">                        if (innerClass.getInnerNameIndex() == 0) {</span>
+<span class="nc" id="L305">                            this.isAnonymous = true;</span>
+                        }
+                    }
+<span class="nc" id="L308">                });</span>
+            }
+        }
+<span class="nc" id="L311">        this.computedNestedTypeStatus = true;</span>
+<span class="nc" id="L312">    }</span>
+
+    /**
+     * Creates a deep copy of this class.
+     *
+     * @return deep copy of this class.
+     */
+    public JavaClass copy() {
+        try {
+<span class="fc" id="L321">            final JavaClass c = (JavaClass) clone();</span>
+<span class="fc" id="L322">            c.constantPool = constantPool.copy();</span>
+<span class="fc" id="L323">            c.interfaces = interfaces.clone();</span>
+<span class="fc" id="L324">            c.interfaceNames = interfaceNames.clone();</span>
+<span class="fc" id="L325">            c.fields = new Field[fields.length];</span>
+<span class="fc" id="L326">            Arrays.setAll(c.fields, i -&gt; fields[i].copy(c.constantPool));</span>
+<span class="fc" id="L327">            c.methods = new Method[methods.length];</span>
+<span class="fc" id="L328">            Arrays.setAll(c.methods, i -&gt; methods[i].copy(c.constantPool));</span>
+<span class="fc" id="L329">            c.attributes = new Attribute[attributes.length];</span>
+<span class="fc" id="L330">            Arrays.setAll(c.attributes, i -&gt; attributes[i].copy(c.constantPool));</span>
+<span class="fc" id="L331">            return c;</span>
+<span class="nc" id="L332">        } catch (final CloneNotSupportedException e) {</span>
+<span class="nc" id="L333">            return null;</span>
+        }
+    }
+
+    /**
+     * Dumps Java class to output stream in binary format.
+     *
+     * @param file Output stream.
+     * @throws IOException if an I/O error occurs.
+     */
+    public void dump(final DataOutputStream file) throws IOException {
+<span class="fc" id="L344">        file.writeInt(Const.JVM_CLASSFILE_MAGIC);</span>
+<span class="fc" id="L345">        file.writeShort(minor);</span>
+<span class="fc" id="L346">        file.writeShort(major);</span>
+<span class="fc" id="L347">        constantPool.dump(file);</span>
+<span class="fc" id="L348">        file.writeShort(super.getAccessFlags());</span>
+<span class="fc" id="L349">        file.writeShort(classNameIndex);</span>
+<span class="fc" id="L350">        file.writeShort(superclassNameIndex);</span>
+<span class="fc" id="L351">        file.writeShort(interfaces.length);</span>
+<span class="fc bfc" id="L352" title="All 2 branches covered.">        for (final int interface1 : interfaces) {</span>
+<span class="fc" id="L353">            file.writeShort(interface1);</span>
+        }
+<span class="fc" id="L355">        file.writeShort(fields.length);</span>
+<span class="fc bfc" id="L356" title="All 2 branches covered.">        for (final Field field : fields) {</span>
+<span class="fc" id="L357">            field.dump(file);</span>
+        }
+<span class="fc" id="L359">        file.writeShort(methods.length);</span>
+<span class="fc bfc" id="L360" title="All 2 branches covered.">        for (final Method method : methods) {</span>
+<span class="fc" id="L361">            method.dump(file);</span>
+        }
+<span class="pc bpc" id="L363" title="1 of 2 branches missed.">        if (attributes != null) {</span>
+<span class="fc" id="L364">            file.writeShort(attributes.length);</span>
+<span class="fc bfc" id="L365" title="All 2 branches covered.">            for (final Attribute attribute : attributes) {</span>
+<span class="fc" id="L366">                attribute.dump(file);</span>
+            }
+        } else {
+<span class="nc" id="L369">            file.writeShort(0);</span>
+        }
+<span class="fc" id="L371">        file.flush();</span>
+<span class="fc" id="L372">    }</span>
+
+    /**
+     * Dumps class to a file.
+     *
+     * @param file Output file.
+     * @throws IOException if an I/O error occurs.
+     */
+    public void dump(final File file) throws IOException {
+<span class="nc" id="L381">        final String parent = file.getParent();</span>
+<span class="nc bnc" id="L382" title="All 2 branches missed.">        if (parent != null) {</span>
+<span class="nc" id="L383">            final File dir = new File(parent);</span>
+<span class="nc bnc" id="L384" title="All 4 branches missed.">            if (!dir.mkdirs() &amp;&amp; !dir.isDirectory()) {</span>
+<span class="nc" id="L385">                throw new IOException(&quot;Could not create the directory &quot; + dir);</span>
+            }
+        }
+<span class="nc" id="L388">        try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(file))) {</span>
+<span class="nc" id="L389">            dump(dos);</span>
+        }
+<span class="nc" id="L391">    }</span>
+
+    /**
+     * Dumps Java class to output stream in binary format.
+     *
+     * @param file Output stream.
+     * @throws IOException if an I/O error occurs.
+     */
+    public void dump(final OutputStream file) throws IOException {
+<span class="nc" id="L400">        dump(new DataOutputStream(file));</span>
+<span class="nc" id="L401">    }</span>
+
+    /**
+     * Dumps class to a file named fileName.
+     *
+     * @param fileName Output file name.
+     * @throws IOException if an I/O error occurs.
+     */
+    public void dump(final String fileName) throws IOException {
+<span class="nc" id="L410">        dump(new File(fileName));</span>
+<span class="nc" id="L411">    }</span>
+
+    /**
+     * Return value as defined by given BCELComparator strategy. By default two JavaClass objects are said to be equal when
+     * their class names are equal.
+     *
+     * @see Object#equals(Object)
+     */
+    @Override
+    public boolean equals(final Object obj) {
+<span class="fc bfc" id="L421" title="All 4 branches covered.">        return obj instanceof JavaClass &amp;&amp; bcelComparator.equals(this, (JavaClass) obj);</span>
+    }
+
+    /**
+     * Finds a visible field by name and type in this class and its super classes.
+     *
+     * @param fieldName the field name to find.
+     * @param fieldType the field type to find.
+     * @return field matching given name and type, null if field is not found or not accessible from this class.
+     * @throws ClassNotFoundException if the class cannot be found.
+     * @since 6.8.0
+     */
+    public Field findField(final String fieldName, final Type fieldType) throws ClassNotFoundException {
+<span class="fc" id="L434">        return findFieldVisit(fieldName, fieldType, new HashSet&lt;&gt;());</span>
+    }
+
+    private Field findFieldVisit(final String fieldName, final Type fieldType, final Set&lt;JavaClass&gt; visiting) throws ClassNotFoundException {
+<span class="pc bpc" id="L438" title="1 of 2 branches missed.">        if (!visiting.add(this)) {</span>
+<span class="nc" id="L439">            throw new ClassFormatException(getClassName());</span>
+        }
+        try {
+<span class="pc bpc" id="L442" title="1 of 2 branches missed.">            for (final Field field : fields) {</span>
+<span class="fc bfc" id="L443" title="All 2 branches covered.">                if (field.getName().equals(fieldName)) {</span>
+<span class="fc" id="L444">                    final Type fType = Type.getType(field.getSignature());</span>
+                    // TODO: Check if assignment compatibility is sufficient. What does Sun do?
+<span class="pc bpc" id="L446" title="1 of 2 branches missed.">                    if (fType.equals(fieldType)) {</span>
+<span class="fc" id="L447">                        return field;</span>
+                    }
+                }
+            }
+<span class="nc" id="L451">            final JavaClass superclass = getSuperClass();</span>
+<span class="nc bnc" id="L452" title="All 4 branches missed.">            if (superclass != null &amp;&amp; !CLASS_NAME_OBJECT.equals(superclass.getClassName())) {</span>
+<span class="nc" id="L453">                final Field f = superclass.findFieldVisit(fieldName, fieldType, visiting);</span>
+<span class="nc bnc" id="L454" title="All 10 branches missed.">                if (f != null &amp;&amp; (f.isPublic() || f.isProtected() || !f.isPrivate() &amp;&amp; packageName.equals(superclass.getPackageName()))) {</span>
+<span class="nc" id="L455">                    return f;</span>
+                }
+            }
+<span class="nc" id="L458">            final JavaClass[] implementedInterfaces = getInterfaces();</span>
+<span class="nc bnc" id="L459" title="All 2 branches missed.">            if (implementedInterfaces != null) {</span>
+<span class="nc bnc" id="L460" title="All 2 branches missed.">                for (final JavaClass implementedInterface : implementedInterfaces) {</span>
+<span class="nc" id="L461">                    final Field f = implementedInterface.findFieldVisit(fieldName, fieldType, visiting);</span>
+<span class="nc bnc" id="L462" title="All 2 branches missed.">                    if (f != null) {</span>
+<span class="nc" id="L463">                        return f;</span>
+                    }
+                }
+            }
+<span class="nc" id="L467">            return null;</span>
+        } finally {
+<span class="fc" id="L469">            visiting.remove(this);</span>
+        }
+    }
+
+    /**
+     * Gets all interfaces implemented by this JavaClass (transitively).
+     *
+     * @return all interfaces.
+     * @throws ClassNotFoundException if any of the class's superclasses or interfaces can't be found.
+     */
+    public JavaClass[] getAllInterfaces() throws ClassNotFoundException {
+<span class="nc" id="L480">        final ClassQueue queue = new ClassQueue();</span>
+<span class="nc" id="L481">        final Set&lt;JavaClass&gt; allInterfaces = new TreeSet&lt;&gt;();</span>
+<span class="nc" id="L482">        final Set&lt;JavaClass&gt; visited = new HashSet&lt;&gt;();</span>
+<span class="nc" id="L483">        queue.enqueue(this);</span>
+<span class="nc bnc" id="L484" title="All 2 branches missed.">        while (!queue.empty()) {</span>
+<span class="nc" id="L485">            final JavaClass clazz = queue.dequeue();</span>
+<span class="nc bnc" id="L486" title="All 2 branches missed.">            if (!visited.add(clazz)) {</span>
+<span class="nc" id="L487">                continue;</span>
+            }
+<span class="nc" id="L489">            final JavaClass souper = clazz.getSuperClass();</span>
+<span class="nc" id="L490">            final JavaClass[] interfaces = clazz.getInterfaces();</span>
+<span class="nc bnc" id="L491" title="All 2 branches missed.">            if (clazz.isInterface()) {</span>
+<span class="nc" id="L492">                allInterfaces.add(clazz);</span>
+<span class="nc bnc" id="L493" title="All 2 branches missed.">            } else if (souper != null) {</span>
+<span class="nc" id="L494">                queue.enqueue(souper);</span>
+            }
+<span class="nc bnc" id="L496" title="All 2 branches missed.">            for (final JavaClass iface : interfaces) {</span>
+<span class="nc" id="L497">                queue.enqueue(iface);</span>
+            }
+<span class="nc" id="L499">        }</span>
+<span class="nc" id="L500">        return allInterfaces.toArray(EMPTY_ARRAY);</span>
+    }
+
+    /**
+     * Gets annotations on the class.
+     *
+     * @return Annotations on the class.
+     * @since 6.0
+     */
+    public AnnotationEntry[] getAnnotationEntries() {
+<span class="fc bfc" id="L510" title="All 2 branches covered.">        if (annotations == null) {</span>
+<span class="fc" id="L511">            annotations = AnnotationEntry.createAnnotationEntries(getAttributes());</span>
+        }
+
+<span class="fc" id="L514">        return annotations;</span>
+    }
+
+    /**
+     * Gets attribute for given tag.
+     *
+     * @param &lt;T&gt; the attribute type.
+     * @param tag the attribute tag.
+     * @return Attribute for given tag, null if not found.
+     * Refer to {@link org.apache.bcel.Const#ATTR_UNKNOWN} constants named ATTR_* for possible values.
+     * @since 6.10.0
+     */
+    @SuppressWarnings(&quot;unchecked&quot;)
+    public final &lt;T extends Attribute&gt; T getAttribute(final byte tag) {
+<span class="nc bnc" id="L528" title="All 2 branches missed.">        for (final Attribute attribute : getAttributes()) {</span>
+<span class="nc bnc" id="L529" title="All 2 branches missed.">            if (attribute.getTag() == tag) {</span>
+<span class="nc" id="L530">                return (T) attribute;</span>
+            }
+        }
+<span class="nc" id="L533">        return null;</span>
+    }
+
+    /**
+     * Gets attributes of the class.
+     *
+     * @return Attributes of the class.
+     */
+    public Attribute[] getAttributes() {
+<span class="fc" id="L542">        return attributes;</span>
+    }
+
+    /**
+     * Gets class in binary format.
+     *
+     * @return class in binary format.
+     */
+    public byte[] getBytes() {
+<span class="fc" id="L551">        final ByteArrayOutputStream baos = new ByteArrayOutputStream();</span>
+<span class="fc" id="L552">        try (DataOutputStream dos = new DataOutputStream(baos)) {</span>
+<span class="fc" id="L553">            dump(dos);</span>
+<span class="nc" id="L554">        } catch (final IOException e) {</span>
+<span class="nc" id="L555">            e.printStackTrace();</span>
+<span class="fc" id="L556">        }</span>
+<span class="fc" id="L557">        return baos.toByteArray();</span>
+    }
+
+    /**
+     * Gets the class name.
+     *
+     * @return Class name.
+     */
+    public String getClassName() {
+<span class="fc" id="L566">        return className;</span>
+    }
+
+    /**
+     * Gets the class name index.
+     *
+     * @return Class name index.
+     */
+    public int getClassNameIndex() {
+<span class="fc" id="L575">        return classNameIndex;</span>
+    }
+
+    /**
+     * Gets the constant pool.
+     *
+     * @return Constant pool.
+     */
+    public ConstantPool getConstantPool() {
+<span class="fc" id="L584">        return constantPool;</span>
+    }
+
+    /**
+     * Gets the fields.
+     *
+     * @return Fields, that is, variables of the class. Like the JVM spec mandates for the classfile format, these fields are
+     *         those specific to this class, and not those of the superclass or superinterfaces.
+     */
+    public Field[] getFields() {
+<span class="fc" id="L594">        return fields;</span>
+    }
+
+    /**
+     * Gets the file name of class.
+     *
+     * @return File name of class, aka SourceFile attribute value.
+     */
+    public String getFileName() {
+<span class="nc" id="L603">        return fileName;</span>
+    }
+
+    /**
+     * Gets indices in constant pool of implemented interfaces.
+     *
+     * @return Indices in constant pool of implemented interfaces.
+     */
+    public int[] getInterfaceIndices() {
+<span class="fc" id="L612">        return interfaces;</span>
+    }
+
+    /**
+     * Gets names of implemented interfaces.
+     *
+     * @return Names of implemented interfaces.
+     */
+    public String[] getInterfaceNames() {
+<span class="fc" id="L621">        return interfaceNames;</span>
+    }
+
+    /**
+     * Gets interfaces directly implemented by this JavaClass.
+     *
+     * @return the interfaces.
+     * @throws ClassNotFoundException if any of the class's interfaces can't be found.
+     */
+    public JavaClass[] getInterfaces() throws ClassNotFoundException {
+<span class="nc" id="L631">        final String[] interfaces = getInterfaceNames();</span>
+<span class="nc" id="L632">        final JavaClass[] classes = new JavaClass[interfaces.length];</span>
+<span class="nc bnc" id="L633" title="All 2 branches missed.">        for (int i = 0; i &lt; interfaces.length; i++) {</span>
+<span class="nc" id="L634">            classes[i] = repository.loadClass(interfaces[i]);</span>
+        }
+<span class="nc" id="L636">        return classes;</span>
+    }
+
+    /**
+     * Gets the major number of class file version.
+     *
+     * @return Major number of class file version.
+     */
+    public int getMajor() {
+<span class="fc" id="L645">        return major;</span>
+    }
+
+    /**
+     * Gets a Method corresponding to java.lang.reflect.Method if any.
+     *
+     * @param m the method to find.
+     * @return A {@link Method} corresponding to java.lang.reflect.Method if any.
+     */
+    public Method getMethod(final java.lang.reflect.Method m) {
+<span class="nc bnc" id="L655" title="All 2 branches missed.">        for (final Method method : methods) {</span>
+<span class="nc bnc" id="L656" title="All 6 branches missed.">            if (m.getName().equals(method.getName()) &amp;&amp; m.getModifiers() == method.getModifiers() &amp;&amp; Type.getSignature(m).equals(method.getSignature())) {</span>
+<span class="nc" id="L657">                return method;</span>
+            }
+        }
+<span class="nc" id="L660">        return null;</span>
+    }
+
+    /**
+     * Gets the methods of the class.
+     *
+     * @return Methods of the class.
+     */
+    public Method[] getMethods() {
+<span class="fc" id="L669">        return methods;</span>
+    }
+
+    /**
+     * Gets the minor number of class file version.
+     *
+     * @return Minor number of class file version.
+     */
+    public int getMinor() {
+<span class="fc" id="L678">        return minor;</span>
+    }
+
+    /**
+     * Gets the package name.
+     *
+     * @return Package name.
+     */
+    public String getPackageName() {
+<span class="fc" id="L687">        return packageName;</span>
+    }
+
+    /**
+     * Gets the ClassRepository which holds its definition. By default this is the same as
+     * SyntheticRepository.getInstance().
+     *
+     * @return the repository.
+     */
+    public org.apache.bcel.util.Repository getRepository() {
+<span class="fc" id="L697">        return repository;</span>
+    }
+
+    /**
+     * Gets the source.
+     *
+     * @return either HEAP (generated), FILE, or ZIP.
+     */
+    public final byte getSource() {
+<span class="fc" id="L706">        return source;</span>
+    }
+
+    /**
+     * Gets the file name where this class was read from.
+     *
+     * @return file name where this class was read from.
+     */
+    public String getSourceFileName() {
+<span class="fc" id="L715">        return sourceFileName;</span>
+    }
+
+    /**
+     * Gets the source file path including the package path.
+     *
+     * @return path to original source file of parsed class, relative to original source directory.
+     * @since 6.7.0
+     */
+    public String getSourceFilePath() {
+<span class="nc" id="L725">        final StringBuilder outFileName = new StringBuilder();</span>
+<span class="nc bnc" id="L726" title="All 2 branches missed.">        if (!packageName.isEmpty()) {</span>
+<span class="nc" id="L727">            outFileName.append(Utility.packageToPath(packageName));</span>
+<span class="nc" id="L728">            outFileName.append('/');</span>
+        }
+<span class="nc" id="L730">        outFileName.append(sourceFileName);</span>
+<span class="nc" id="L731">        return outFileName.toString();</span>
+    }
+
+    /**
+     * Gets the superclass for this JavaClass object, or null if this is {@link Object}.
+     *
+     * @return the superclass for this JavaClass object, or null if this is {@link Object}.
+     * @throws ClassNotFoundException if the superclass can't be found.
+     */
+    public JavaClass getSuperClass() throws ClassNotFoundException {
+<span class="fc bfc" id="L741" title="All 2 branches covered.">        if (CLASS_NAME_OBJECT.equals(getClassName())) {</span>
+<span class="fc" id="L742">            return null;</span>
+        }
+<span class="fc" id="L744">        return repository.loadClass(getSuperclassName());</span>
+    }
+
+    /**
+     * Gets list of super classes of this class in ascending order.
+     *
+     * @return list of super classes of this class in ascending order, that is, {@link Object} is always the last element.
+     * @throws ClassNotFoundException if any of the superclasses can't be found.
+     */
+    public JavaClass[] getSuperClasses() throws ClassNotFoundException {
+<span class="fc" id="L754">        JavaClass clazz = this;</span>
+<span class="fc" id="L755">        final List&lt;JavaClass&gt; allSuperClasses = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L756">        final Set&lt;JavaClass&gt; visited = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L757">        visited.add(this);</span>
+<span class="fc bfc" id="L758" title="All 2 branches covered.">        for (clazz = clazz.getSuperClass(); clazz != null; clazz = clazz.getSuperClass()) {</span>
+<span class="pc bpc" id="L759" title="1 of 2 branches missed.">            if (!visited.add(clazz)) {</span>
+<span class="nc" id="L760">                throw new ClassFormatException(clazz.getClassName());</span>
+            }
+<span class="fc" id="L762">            allSuperClasses.add(clazz);</span>
+        }
+<span class="fc" id="L764">        return allSuperClasses.toArray(EMPTY_ARRAY);</span>
+    }
+
+    /**
+     * returns the super class name of this class. In the case that this class is {@link Object}, it will return itself
+     * ({@link Object}). This is probably incorrect but isn't fixed at this time to not break existing clients.
+     *
+     * @return Superclass name.
+     */
+    public String getSuperclassName() {
+<span class="fc" id="L774">        return superclassName;</span>
+    }
+
+    /**
+     * Gets the class name index.
+     *
+     * @return Class name index.
+     */
+    public int getSuperclassNameIndex() {
+<span class="fc" id="L783">        return superclassNameIndex;</span>
+    }
+
+    /**
+     * Return value as defined by given BCELComparator strategy. By default return the hash code of the class name.
+     *
+     * @see Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+<span class="fc" id="L793">        return bcelComparator.hashCode(this);</span>
+    }
+
+    /**
+     * Checks if this class is an implementation of interface inter.
+     *
+     * @param inter the interface to check.
+     * @return true, if this class is an implementation of interface inter.
+     * @throws ClassNotFoundException if superclasses or superinterfaces of this class can't be found.
+     */
+    public boolean implementationOf(final JavaClass inter) throws ClassNotFoundException {
+<span class="nc bnc" id="L804" title="All 2 branches missed.">        if (!inter.isInterface()) {</span>
+<span class="nc" id="L805">            throw new IllegalArgumentException(inter.getClassName() + &quot; is no interface&quot;);</span>
+        }
+<span class="nc bnc" id="L807" title="All 2 branches missed.">        if (equals(inter)) {</span>
+<span class="nc" id="L808">            return true;</span>
+        }
+<span class="nc" id="L810">        final JavaClass[] superInterfaces = getAllInterfaces();</span>
+<span class="nc bnc" id="L811" title="All 2 branches missed.">        for (final JavaClass superInterface : superInterfaces) {</span>
+<span class="nc bnc" id="L812" title="All 2 branches missed.">            if (superInterface.equals(inter)) {</span>
+<span class="nc" id="L813">                return true;</span>
+            }
+        }
+<span class="nc" id="L816">        return false;</span>
+    }
+
+    /**
+     * Equivalent to runtime &quot;instanceof&quot; operator.
+     *
+     * @param superclass the superclass to check.
+     * @return true if this JavaClass is derived from the super class.
+     * @throws ClassNotFoundException if superclasses or superinterfaces of this object can't be found.
+     */
+    public final boolean instanceOf(final JavaClass superclass) throws ClassNotFoundException {
+<span class="pc bpc" id="L827" title="1 of 2 branches missed.">        if (equals(superclass)) {</span>
+<span class="nc" id="L828">            return true;</span>
+        }
+<span class="pc bpc" id="L830" title="1 of 2 branches missed.">        for (final JavaClass clazz : getSuperClasses()) {</span>
+<span class="pc bpc" id="L831" title="1 of 2 branches missed.">            if (clazz.equals(superclass)) {</span>
+<span class="fc" id="L832">                return true;</span>
+            }
+        }
+<span class="nc bnc" id="L835" title="All 2 branches missed.">        if (superclass.isInterface()) {</span>
+<span class="nc" id="L836">            return implementationOf(superclass);</span>
+        }
+<span class="nc" id="L838">        return false;</span>
+    }
+
+    /**
+     * Checks if this class is anonymous.
+     *
+     * @return true if anonymous.
+     * @since 6.0
+     */
+    public final boolean isAnonymous() {
+<span class="nc" id="L848">        computeNestedTypeStatus();</span>
+<span class="nc" id="L849">        return this.isAnonymous;</span>
+    }
+
+    /**
+     * Checks if this is a class.
+     *
+     * @return true if this is a class.
+     */
+    public final boolean isClass() {
+<span class="pc bpc" id="L858" title="1 of 2 branches missed.">        return (super.getAccessFlags() &amp; Const.ACC_INTERFACE) == 0;</span>
+    }
+
+    /**
+     * Checks if this class is nested.
+     *
+     * @return true if nested.
+     * @since 6.0
+     */
+    public final boolean isNested() {
+<span class="nc" id="L868">        computeNestedTypeStatus();</span>
+<span class="nc" id="L869">        return this.isNested;</span>
+    }
+
+    /**
+     * Tests whether this class was declared as a record
+     *
+     * @return true if a record attribute is present, false otherwise.
+     * @since 6.9.0
+     */
+    public boolean isRecord() {
+<span class="nc" id="L879">        computeIsRecord();</span>
+<span class="nc" id="L880">        return this.isRecord;</span>
+    }
+
+    /**
+     * Checks if this is a super class.
+     *
+     * @return true if this is a super class.
+     */
+    public final boolean isSuper() {
+<span class="pc bpc" id="L889" title="1 of 2 branches missed.">        return (super.getAccessFlags() &amp; Const.ACC_SUPER) != 0;</span>
+    }
+
+    /**
+     * Sets the attributes.
+     *
+     * @param attributes the attributes.
+     */
+    public void setAttributes(final Attribute[] attributes) {
+<span class="nc bnc" id="L898" title="All 2 branches missed.">        this.attributes = attributes != null ? attributes : Attribute.EMPTY_ARRAY;</span>
+<span class="nc" id="L899">    }</span>
+
+    /**
+     * Sets the class name.
+     *
+     * @param className the class name.
+     */
+    public void setClassName(final String className) {
+<span class="fc" id="L907">        this.className = className;</span>
+<span class="fc" id="L908">    }</span>
+
+    /**
+     * Sets the class name index.
+     *
+     * @param classNameIndex the class name index.
+     */
+    public void setClassNameIndex(final int classNameIndex) {
+<span class="nc" id="L916">        this.classNameIndex = classNameIndex;</span>
+<span class="nc" id="L917">    }</span>
+
+    /**
+     * Sets the constant pool.
+     *
+     * @param constantPool the constant pool.
+     */
+    public void setConstantPool(final ConstantPool constantPool) {
+<span class="nc" id="L925">        this.constantPool = constantPool;</span>
+<span class="nc" id="L926">    }</span>
+
+    /**
+     * Sets the fields.
+     *
+     * @param fields the fields.
+     */
+    public void setFields(final Field[] fields) {
+<span class="nc bnc" id="L934" title="All 2 branches missed.">        this.fields = fields != null ? fields : Field.EMPTY_ARRAY;</span>
+<span class="nc" id="L935">    }</span>
+
+    /**
+     * Sets File name of class, aka SourceFile attribute value.
+     *
+     * @param fileName the file name.
+     */
+    public void setFileName(final String fileName) {
+<span class="nc" id="L943">        this.fileName = fileName;</span>
+<span class="nc" id="L944">    }</span>
+
+    /**
+     * Sets the interface names.
+     *
+     * @param interfaceNames the interface names.
+     */
+    public void setInterfaceNames(final String[] interfaceNames) {
+<span class="nc" id="L952">        this.interfaceNames = ArrayUtils.nullToEmpty(interfaceNames);</span>
+<span class="nc" id="L953">    }</span>
+
+    /**
+     * Sets the interfaces.
+     *
+     * @param interfaces the interfaces.
+     */
+    public void setInterfaces(final int[] interfaces) {
+<span class="nc" id="L961">        this.interfaces = ArrayUtils.nullToEmpty(interfaces);</span>
+<span class="nc" id="L962">    }</span>
+
+    /**
+     * Sets the major version.
+     *
+     * @param major the major version.
+     */
+    public void setMajor(final int major) {
+<span class="fc" id="L970">        this.major = major;</span>
+<span class="fc" id="L971">    }</span>
+
+    /**
+     * Sets the methods.
+     *
+     * @param methods the methods.
+     */
+    public void setMethods(final Method[] methods) {
+<span class="nc bnc" id="L979" title="All 2 branches missed.">        this.methods = methods != null ? methods : Method.EMPTY_ARRAY;</span>
+<span class="nc" id="L980">    }</span>
+
+    /**
+     * Sets the minor version.
+     *
+     * @param minor the minor version.
+     */
+    public void setMinor(final int minor) {
+<span class="fc" id="L988">        this.minor = minor;</span>
+<span class="fc" id="L989">    }</span>
+
+    /**
+     * Sets the ClassRepository which loaded the JavaClass. Should be called immediately after parsing is done.
+     *
+     * @param repository the repository.
+     */
+    public void setRepository(final org.apache.bcel.util.Repository repository) { // TODO make protected?
+<span class="fc" id="L997">        this.repository = repository;</span>
+<span class="fc" id="L998">    }</span>
+
+    /**
+     * Sets absolute path to file this class was read from.
+     *
+     * @param sourceFileName the source file name.
+     */
+    public void setSourceFileName(final String sourceFileName) {
+<span class="nc" id="L1006">        this.sourceFileName = sourceFileName;</span>
+<span class="nc" id="L1007">    }</span>
+
+    /**
+     * Sets the superclass name.
+     *
+     * @param superclassName the superclass name.
+     */
+    public void setSuperclassName(final String superclassName) {
+<span class="nc" id="L1015">        this.superclassName = superclassName;</span>
+<span class="nc" id="L1016">    }</span>
+
+    /**
+     * Sets the superclass name index.
+     *
+     * @param superclassNameIndex the superclass name index.
+     */
+    public void setSuperclassNameIndex(final int superclassNameIndex) {
+<span class="nc" id="L1024">        this.superclassNameIndex = superclassNameIndex;</span>
+<span class="nc" id="L1025">    }</span>
+
+    /**
+     * @return String representing class contents.
+     */
+    @Override
+    public String toString() {
+<span class="fc" id="L1032">        String access = Utility.accessToString(super.getAccessFlags(), true);</span>
+<span class="pc bpc" id="L1033" title="1 of 2 branches missed.">        access = access.isEmpty() ? &quot;&quot; : access + &quot; &quot;;</span>
+<span class="fc" id="L1034">        final StringBuilder buf = new StringBuilder(128);</span>
+<span class="fc" id="L1035">        buf.append(access).append(Utility.classOrInterface(super.getAccessFlags())).append(&quot; &quot;).append(className).append(&quot; extends &quot;)</span>
+<span class="fc" id="L1036">            .append(Utility.compactClassName(superclassName, false)).append('\n');</span>
+<span class="fc" id="L1037">        final int size = interfaces.length;</span>
+<span class="pc bpc" id="L1038" title="1 of 2 branches missed.">        if (size &gt; 0) {</span>
+<span class="fc" id="L1039">            buf.append(&quot;implements\t\t&quot;);</span>
+<span class="fc bfc" id="L1040" title="All 2 branches covered.">            for (int i = 0; i &lt; size; i++) {</span>
+<span class="fc" id="L1041">                buf.append(interfaceNames[i]);</span>
+<span class="fc bfc" id="L1042" title="All 2 branches covered.">                if (i &lt; size - 1) {</span>
+<span class="fc" id="L1043">                    buf.append(&quot;, &quot;);</span>
+                }
+            }
+<span class="fc" id="L1046">            buf.append('\n');</span>
+        }
+<span class="fc" id="L1048">        buf.append(&quot;file name\t\t&quot;).append(fileName).append('\n');</span>
+<span class="fc" id="L1049">        buf.append(&quot;compiled from\t\t&quot;).append(sourceFileName).append('\n');</span>
+<span class="fc" id="L1050">        buf.append(&quot;compiler version\t&quot;).append(major).append(&quot;.&quot;).append(minor).append('\n');</span>
+<span class="fc" id="L1051">        buf.append(&quot;access flags\t\t&quot;).append(super.getAccessFlags()).append('\n');</span>
+<span class="fc" id="L1052">        buf.append(&quot;constant pool\t\t&quot;).append(constantPool.getLength()).append(&quot; entries\n&quot;);</span>
+<span class="fc" id="L1053">        buf.append(&quot;ACC_SUPER flag\t\t&quot;).append(isSuper()).append(&quot;\n&quot;);</span>
+<span class="pc bpc" id="L1054" title="1 of 2 branches missed.">        if (attributes.length &gt; 0) {</span>
+<span class="fc" id="L1055">            buf.append(&quot;\nAttribute(s):\n&quot;);</span>
+<span class="fc bfc" id="L1056" title="All 2 branches covered.">            for (final Attribute attribute : attributes) {</span>
+<span class="fc" id="L1057">                buf.append(indent(attribute));</span>
+            }
+        }
+<span class="fc" id="L1060">        final AnnotationEntry[] annotations = getAnnotationEntries();</span>
+<span class="pc bpc" id="L1061" title="1 of 4 branches missed.">        if (annotations != null &amp;&amp; annotations.length &gt; 0) {</span>
+<span class="fc" id="L1062">            buf.append(&quot;\nAnnotation(s):\n&quot;);</span>
+<span class="fc bfc" id="L1063" title="All 2 branches covered.">            for (final AnnotationEntry annotation : annotations) {</span>
+<span class="fc" id="L1064">                buf.append(indent(annotation));</span>
+            }
+        }
+<span class="pc bpc" id="L1067" title="1 of 2 branches missed.">        if (fields.length &gt; 0) {</span>
+<span class="fc" id="L1068">            buf.append(&quot;\n&quot;).append(fields.length).append(&quot; fields:\n&quot;);</span>
+<span class="fc bfc" id="L1069" title="All 2 branches covered.">            for (final Field field : fields) {</span>
+<span class="fc" id="L1070">                buf.append(&quot;\t&quot;).append(field).append('\n');</span>
+            }
+        }
+<span class="pc bpc" id="L1073" title="1 of 2 branches missed.">        if (methods.length &gt; 0) {</span>
+<span class="fc" id="L1074">            buf.append(&quot;\n&quot;).append(methods.length).append(&quot; methods:\n&quot;);</span>
+<span class="fc bfc" id="L1075" title="All 2 branches covered.">            for (final Method method : methods) {</span>
+<span class="fc" id="L1076">                buf.append(&quot;\t&quot;).append(method).append('\n');</span>
+            }
+        }
+<span class="fc" id="L1079">        return buf.toString();</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

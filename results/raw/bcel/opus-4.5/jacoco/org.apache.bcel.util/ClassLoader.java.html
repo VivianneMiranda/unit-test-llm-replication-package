@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClassLoader.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.util</a> &gt; <span class="el_source">ClassLoader.java</span></div><h1>ClassLoader.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.util;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.Hashtable;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.classfile.ClassParser;
+import org.apache.bcel.classfile.ConstantClass;
+import org.apache.bcel.classfile.ConstantPool;
+import org.apache.bcel.classfile.ConstantUtf8;
+import org.apache.bcel.classfile.JavaClass;
+import org.apache.bcel.classfile.Utility;
+
+/**
+ * &lt;p&gt;
+ * Drop in replacement for the standard class loader of the JVM. You can use it in conjunction with the JavaWrapper to
+ * dynamically modify/create classes as they're requested.
+ * &lt;/p&gt;
+ *
+ * &lt;p&gt;
+ * This class loader recognizes special requests in a distinct format, that is, when the name of the requested class
+ * contains with &quot;$$BCEL$$&quot; it calls the createClass() method with that name (everything bevor the $$BCEL$$ is
+ * considered to be the package name. You can subclass the class loader and override that method. &quot;Normal&quot; classes class
+ * can be modified by overriding the modifyClass() method which is called just before defineClass().
+ * &lt;/p&gt;
+ *
+ * &lt;p&gt;
+ * There may be a number of packages where you have to use the default class loader (which may also be faster). You can
+ * define the set of packages where to use the system class loader in the constructor. The default value contains
+ * &quot;java.&quot;, &quot;sun.&quot;, &quot;javax.&quot;
+ * &lt;/p&gt;
+ *
+ * @see JavaWrapper
+ * @see ClassPath
+ * @deprecated 6.0 Do not use - does not work
+ */
+@Deprecated
+public class ClassLoader extends java.lang.ClassLoader {
+
+    private static final String BCEL_TOKEN = &quot;$$BCEL$$&quot;;
+
+    /**
+     * Default packages that are ignored by the class loader.
+     */
+<span class="fc" id="L64">    public static final String[] DEFAULT_IGNORED_PACKAGES = {&quot;java.&quot;, &quot;javax.&quot;, &quot;sun.&quot;};</span>
+
+<span class="fc" id="L66">    private final Hashtable&lt;String, Class&lt;?&gt;&gt; classes = new Hashtable&lt;&gt;();</span>
+    // Hashtable is synchronized thus thread-safe
+    private final String[] ignoredPackages;
+<span class="fc" id="L69">    private Repository repository = SyntheticRepository.getInstance();</span>
+
+    /**
+     * Constructs a ClassLoader with default ignored packages.
+     * Ignored packages are by default ( &quot;java.&quot;, &quot;sun.&quot;, &quot;javax.&quot;), for example loaded by system class loader.
+     */
+    public ClassLoader() {
+<span class="fc" id="L76">        this(DEFAULT_IGNORED_PACKAGES);</span>
+<span class="fc" id="L77">    }</span>
+
+    /**
+     * Constructs a ClassLoader with a delegate class loader.
+     *
+     * @param deferTo delegate class loader to use for ignored packages.
+     */
+    public ClassLoader(final java.lang.ClassLoader deferTo) {
+<span class="fc" id="L85">        super(deferTo);</span>
+<span class="fc" id="L86">        this.ignoredPackages = DEFAULT_IGNORED_PACKAGES;</span>
+<span class="fc" id="L87">        this.repository = new ClassLoaderRepository(deferTo);</span>
+<span class="fc" id="L88">    }</span>
+
+    /**
+     * Constructs a ClassLoader with a delegate class loader and ignored packages.
+     *
+     * @param deferTo delegate class loader to use for ignored packages.
+     * @param ignoredPackages classes contained in these packages will be loaded with the system class loader.
+     */
+    public ClassLoader(final java.lang.ClassLoader deferTo, final String[] ignoredPackages) {
+<span class="fc" id="L97">        this(ignoredPackages);</span>
+<span class="fc" id="L98">        this.repository = new ClassLoaderRepository(deferTo);</span>
+<span class="fc" id="L99">    }</span>
+
+    /**
+     * Constructs a ClassLoader with specific ignored packages.
+     *
+     * @param ignoredPackages classes contained in these packages will be loaded with the system class loader.
+     */
+<span class="fc" id="L106">    public ClassLoader(final String[] ignoredPackages) {</span>
+<span class="fc" id="L107">        this.ignoredPackages = ignoredPackages;</span>
+<span class="fc" id="L108">    }</span>
+
+    /**
+     * Override this method to create you own classes on the fly. The name contains the special token $$BCEL$$. Everything
+     * before that token is considered to be a package name. You can encode your own arguments into the subsequent string.
+     * You must ensure however not to use any &quot;illegal&quot; characters, that is, characters that may not appear in a Java class
+     * name too.
+     * &lt;p&gt;
+     * The default implementation interprets the string as a encoded compressed Java class, unpacks and decodes it with the
+     * Utility.decode() method, and parses the resulting byte array and returns the resulting JavaClass object.
+     * &lt;/p&gt;
+     *
+     * @param className compressed byte code with &quot;$$BCEL$$&quot; in it.
+     * @return the created JavaClass.
+     */
+    protected JavaClass createClass(final String className) {
+<span class="nc" id="L124">        final int index = className.indexOf(BCEL_TOKEN);</span>
+<span class="nc" id="L125">        final String realName = className.substring(index + BCEL_TOKEN.length());</span>
+<span class="nc" id="L126">        JavaClass clazz = null;</span>
+        try {
+<span class="nc" id="L128">            final byte[] bytes = Utility.decode(realName, true);</span>
+<span class="nc" id="L129">            final ClassParser parser = new ClassParser(new ByteArrayInputStream(bytes), &quot;foo&quot;);</span>
+<span class="nc" id="L130">            clazz = parser.parse();</span>
+<span class="nc" id="L131">        } catch (final IOException e) {</span>
+<span class="nc" id="L132">            e.printStackTrace();</span>
+<span class="nc" id="L133">            return null;</span>
+<span class="nc" id="L134">        }</span>
+        // Adapt the class name to the passed value
+<span class="nc" id="L136">        final ConstantPool cp = clazz.getConstantPool();</span>
+<span class="nc" id="L137">        final ConstantClass cl = cp.getConstant(clazz.getClassNameIndex(), Const.CONSTANT_Class, ConstantClass.class);</span>
+<span class="nc" id="L138">        final ConstantUtf8 name = cp.getConstantUtf8(cl.getNameIndex());</span>
+<span class="nc" id="L139">        name.setBytes(Utility.packageToPath(className));</span>
+<span class="nc" id="L140">        return clazz;</span>
+    }
+
+    @Override
+    protected Class&lt;?&gt; loadClass(final String className, final boolean resolve) throws ClassNotFoundException {
+<span class="fc" id="L145">        Class&lt;?&gt; cl = null;</span>
+        /*
+         * First try: lookup hash table.
+         */
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        if ((cl = classes.get(className)) == null) {</span>
+            /*
+             * Second try: Load system class using system class loader. You better don't mess around with them.
+             */
+<span class="fc bfc" id="L153" title="All 2 branches covered.">            for (final String ignoredPackage : ignoredPackages) {</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">                if (className.startsWith(ignoredPackage)) {</span>
+<span class="fc" id="L155">                    cl = getParent().loadClass(className);</span>
+<span class="fc" id="L156">                    break;</span>
+                }
+            }
+<span class="fc bfc" id="L159" title="All 2 branches covered.">            if (cl == null) {</span>
+<span class="fc" id="L160">                JavaClass clazz = null;</span>
+                /*
+                 * Third try: Special request?
+                 */
+<span class="nc bnc" id="L164" title="All 2 branches missed.">                if (className.contains(BCEL_TOKEN)) {</span>
+<span class="nc" id="L165">                    clazz = createClass(className);</span>
+                } else { // Fourth try: Load classes via repository
+<span class="nc bnc" id="L167" title="All 2 branches missed.">                    if ((clazz = repository.loadClass(className)) == null) {</span>
+<span class="nc" id="L168">                        throw new ClassNotFoundException(className);</span>
+                    }
+<span class="nc" id="L170">                    clazz = modifyClass(clazz);</span>
+                }
+<span class="nc bnc" id="L172" title="All 2 branches missed.">                if (clazz != null) {</span>
+<span class="nc" id="L173">                    final byte[] bytes = clazz.getBytes();</span>
+<span class="nc" id="L174">                    cl = defineClass(className, bytes, 0, bytes.length);</span>
+<span class="nc" id="L175">                } else {</span>
+<span class="nc" id="L176">                    cl = Class.forName(className);</span>
+                }
+            }
+<span class="pc bpc" id="L179" title="1 of 2 branches missed.">            if (resolve) {</span>
+<span class="nc" id="L180">                resolveClass(cl);</span>
+            }
+        }
+<span class="fc" id="L183">        classes.put(className, cl);</span>
+<span class="fc" id="L184">        return cl;</span>
+    }
+
+    /**
+     * Override this method if you want to alter a class before it gets actually loaded. Does nothing by default.
+     *
+     * @param clazz the class to modify.
+     * @return the modified class.
+     */
+    protected JavaClass modifyClass(final JavaClass clazz) {
+<span class="nc" id="L194">        return clazz;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StaticCodeInstructionOperandConstraintException.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.verifier.exc</a> &gt; <span class="el_source">StaticCodeInstructionOperandConstraintException.java</span></div><h1>StaticCodeInstructionOperandConstraintException.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.verifier.exc;
+
+/**
+ * Instances of this class are thrown by BCEL's class file verifier &quot;JustIce&quot; when a class file to verify does not pass
+ * the verification pass 3 because of a violation of a static constraint as described in the Java Virtual Machine
+ * Specification, Second edition, 4.8.1, pages 133-137. The static constraints checking part of pass 3 is called pass 3a
+ * in JustIce. Static constraints on the operands of instructions in the code array are checked late in pass 3a and are
+ * described on page 134-137 in the Java Virtual Machine Specification, Second Edition.
+ */
+public class StaticCodeInstructionOperandConstraintException extends StaticCodeConstraintException {
+    private static final long serialVersionUID = 4780787099381933487L;
+
+    /**
+     * Constructs a StaticCodeInstructionOperandConstraintException.
+     *
+     * @param message the exception message.
+     */
+    public StaticCodeInstructionOperandConstraintException(final String message) {
+<span class="fc" id="L37">        super(message);</span>
+<span class="fc" id="L38">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

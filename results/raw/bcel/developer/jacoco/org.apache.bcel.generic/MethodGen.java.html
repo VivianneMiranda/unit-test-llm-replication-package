@@ -1,0 +1,1316 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MethodGen.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">MethodGen.java</span></div><h1>MethodGen.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Objects;
+import java.util.Stack;
+import java.util.stream.Collectors;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.classfile.AnnotationEntry;
+import org.apache.bcel.classfile.Annotations;
+import org.apache.bcel.classfile.Attribute;
+import org.apache.bcel.classfile.Code;
+import org.apache.bcel.classfile.CodeException;
+import org.apache.bcel.classfile.ExceptionTable;
+import org.apache.bcel.classfile.LineNumber;
+import org.apache.bcel.classfile.LineNumberTable;
+import org.apache.bcel.classfile.LocalVariable;
+import org.apache.bcel.classfile.LocalVariableTable;
+import org.apache.bcel.classfile.LocalVariableTypeTable;
+import org.apache.bcel.classfile.Method;
+import org.apache.bcel.classfile.ParameterAnnotationEntry;
+import org.apache.bcel.classfile.ParameterAnnotations;
+import org.apache.bcel.classfile.RuntimeVisibleParameterAnnotations;
+import org.apache.bcel.classfile.Utility;
+import org.apache.bcel.util.BCELComparator;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.stream.Streams;
+
+/**
+ * Template class for building up a method. This is done by defining exception handlers, adding thrown exceptions, local
+ * variables and attributes, whereas the 'LocalVariableTable' and 'LineNumberTable' attributes will be set automatically
+ * for the code. Use stripAttributes() if you don't like this.
+ *
+ * While generating code it may be necessary to insert NOP operations. You can use the 'removeNOPs' method to get rid
+ * off them. The resulting method object can be obtained via the 'getMethod()' method.
+ *
+ * @see InstructionList
+ * @see Method
+ */
+public class MethodGen extends FieldGenOrMethodGen {
+
+<span class="fc" id="L65">    static final class BranchStack {</span>
+
+<span class="fc" id="L67">        private final Stack&lt;BranchTarget&gt; branchTargets = new Stack&lt;&gt;();</span>
+<span class="fc" id="L68">        private final Hashtable&lt;InstructionHandle, BranchTarget&gt; visitedTargets = new Hashtable&lt;&gt;();</span>
+
+        public BranchTarget pop() {
+<span class="fc bfc" id="L71" title="All 2 branches covered.">            if (!branchTargets.empty()) {</span>
+<span class="fc" id="L72">                return branchTargets.pop();</span>
+            }
+<span class="fc" id="L74">            return null;</span>
+        }
+
+        public void push(final InstructionHandle target, final int stackDepth) {
+<span class="fc bfc" id="L78" title="All 2 branches covered.">            if (visited(target)) {</span>
+<span class="fc" id="L79">                return;</span>
+            }
+<span class="fc" id="L81">            branchTargets.push(visit(target, stackDepth));</span>
+<span class="fc" id="L82">        }</span>
+
+        private BranchTarget visit(final InstructionHandle target, final int stackDepth) {
+<span class="fc" id="L85">            final BranchTarget bt = new BranchTarget(target, stackDepth);</span>
+<span class="fc" id="L86">            visitedTargets.put(target, bt);</span>
+<span class="fc" id="L87">            return bt;</span>
+        }
+
+        private boolean visited(final InstructionHandle target) {
+<span class="fc bfc" id="L91" title="All 2 branches covered.">            return visitedTargets.get(target) != null;</span>
+        }
+    }
+
+    static final class BranchTarget {
+
+        final InstructionHandle target;
+        final int stackDepth;
+
+<span class="fc" id="L100">        BranchTarget(final InstructionHandle target, final int stackDepth) {</span>
+<span class="fc" id="L101">            this.target = target;</span>
+<span class="fc" id="L102">            this.stackDepth = stackDepth;</span>
+<span class="fc" id="L103">        }</span>
+    }
+
+<span class="fc" id="L106">    private static BCELComparator&lt;FieldGenOrMethodGen&gt; bcelComparator = new BCELComparator&lt;FieldGenOrMethodGen&gt;() {</span>
+
+        @Override
+        public boolean equals(final FieldGenOrMethodGen a, final FieldGenOrMethodGen b) {
+<span class="nc bnc" id="L110" title="All 10 branches missed.">            return a == b || a != null &amp;&amp; b != null &amp;&amp; Objects.equals(a.getName(), b.getName()) &amp;&amp; Objects.equals(a.getSignature(), b.getSignature());</span>
+        }
+
+        @Override
+        public int hashCode(final FieldGenOrMethodGen o) {
+<span class="nc bnc" id="L115" title="All 2 branches missed.">            return o != null ? Objects.hash(o.getSignature(), o.getName()) : 0;</span>
+        }
+    };
+
+    private static byte[] getByteCodes(final Method method) {
+<span class="fc" id="L120">        final Code code = method.getCode();</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (code == null) {</span>
+<span class="fc" id="L122">            throw new IllegalStateException(String.format(&quot;The method '%s' has no code.&quot;, method));</span>
+        }
+<span class="fc" id="L124">        return code.getCode();</span>
+    }
+
+    /**
+     * Gets the comparison strategy object.
+     *
+     * @return Comparison strategy object.
+     */
+    public static BCELComparator&lt;FieldGenOrMethodGen&gt; getComparator() {
+<span class="nc" id="L133">        return bcelComparator;</span>
+    }
+
+    /**
+     * Computes stack usage of an instruction list by performing control flow analysis.
+     *
+     * @param cp the constant pool generator.
+     * @param il the instruction list.
+     * @param et the exception handlers.
+     * @return maximum stack depth used by method.
+     */
+    public static int getMaxStack(final ConstantPoolGen cp, final InstructionList il, final CodeExceptionGen[] et) {
+<span class="fc" id="L145">        final BranchStack branchTargets = new BranchStack();</span>
+        /*
+         * Initially, populate the branch stack with the exception handlers, because these aren't (necessarily) branched to
+         * explicitly. in each case, the stack will have depth 1, containing the exception object.
+         */
+<span class="fc bfc" id="L150" title="All 2 branches covered.">        for (final CodeExceptionGen element : et) {</span>
+<span class="fc" id="L151">            final InstructionHandle handlerPc = element.getHandlerPC();</span>
+<span class="pc bpc" id="L152" title="1 of 2 branches missed.">            if (handlerPc != null) {</span>
+<span class="fc" id="L153">                branchTargets.push(handlerPc, 1);</span>
+            }
+        }
+<span class="fc" id="L156">        int stackDepth = 0;</span>
+<span class="fc" id="L157">        int maxStackDepth = 0;</span>
+<span class="fc" id="L158">        InstructionHandle ih = il.getStart();</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">        while (ih != null) {</span>
+<span class="fc" id="L160">            final Instruction instruction = ih.getInstruction();</span>
+<span class="fc" id="L161">            final short opcode = instruction.getOpcode();</span>
+<span class="fc" id="L162">            final int delta = instruction.produceStack(cp) - instruction.consumeStack(cp);</span>
+<span class="fc" id="L163">            stackDepth += delta;</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">            if (stackDepth &gt; maxStackDepth) {</span>
+<span class="fc" id="L165">                maxStackDepth = stackDepth;</span>
+            }
+            // choose the next instruction based on whether current is a branch.
+<span class="fc bfc" id="L168" title="All 2 branches covered.">            if (instruction instanceof BranchInstruction) {</span>
+<span class="fc" id="L169">                final BranchInstruction branch = (BranchInstruction) instruction;</span>
+<span class="fc bfc" id="L170" title="All 2 branches covered.">                if (instruction instanceof Select) {</span>
+                    // explore all of the select's targets. the default target is handled below.
+<span class="fc" id="L172">                    final Select select = (Select) branch;</span>
+<span class="fc" id="L173">                    final InstructionHandle[] targets = select.getTargets();</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">                    for (final InstructionHandle target : targets) {</span>
+<span class="fc" id="L175">                        branchTargets.push(target, stackDepth);</span>
+                    }
+                    // nothing to fall through to.
+<span class="fc" id="L178">                    ih = null;</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">                } else if (!(branch instanceof IfInstruction)) {</span>
+                    // if an instruction that comes back to following PC,
+                    // push next instruction, with stack depth reduced by 1.
+<span class="pc bpc" id="L182" title="2 of 4 branches missed.">                    if (opcode == Const.JSR || opcode == Const.JSR_W) {</span>
+<span class="nc" id="L183">                        branchTargets.push(ih.getNext(), stackDepth - 1);</span>
+                    }
+<span class="fc" id="L185">                    ih = null;</span>
+                }
+                // for all branches, the target of the branch is pushed on the branch stack.
+                // conditional branches have a fall through case, selects don't, and
+                // jsr/jsr_w return to the next instruction.
+<span class="fc" id="L190">                branchTargets.push(branch.getTarget(), stackDepth);</span>
+<span class="fc" id="L191">            } else // check for instructions that terminate the method.</span>
+<span class="pc bpc" id="L192" title="1 of 8 branches missed.">            if (opcode == Const.ATHROW || opcode == Const.RET || opcode &gt;= Const.IRETURN &amp;&amp; opcode &lt;= Const.RETURN) {</span>
+<span class="fc" id="L193">                ih = null;</span>
+            }
+            // normal case, go to the next instruction.
+<span class="fc bfc" id="L196" title="All 2 branches covered.">            if (ih != null) {</span>
+<span class="fc" id="L197">                ih = ih.getNext();</span>
+            }
+            // if we have no more instructions, see if there are any deferred branches to explore.
+<span class="fc bfc" id="L200" title="All 2 branches covered.">            if (ih == null) {</span>
+<span class="fc" id="L201">                final BranchTarget bt = branchTargets.pop();</span>
+<span class="fc bfc" id="L202" title="All 2 branches covered.">                if (bt != null) {</span>
+<span class="fc" id="L203">                    ih = bt.target;</span>
+<span class="fc" id="L204">                    stackDepth = bt.stackDepth;</span>
+                }
+            }
+<span class="fc" id="L207">        }</span>
+<span class="fc" id="L208">        return maxStackDepth;</span>
+    }
+
+    /**
+     * Sets the comparison strategy object.
+     *
+     * @param comparator Comparison strategy object.
+     */
+    public static void setComparator(final BCELComparator&lt;FieldGenOrMethodGen&gt; comparator) {
+<span class="nc" id="L217">        bcelComparator = comparator;</span>
+<span class="nc" id="L218">    }</span>
+
+    private String className;
+    private Type[] argTypes;
+    private String[] argNames;
+    private int maxLocals;
+    private int maxStack;
+    private InstructionList il;
+
+    private boolean stripAttributes;
+    private LocalVariableTypeTable localVariableTypeTable;
+<span class="fc" id="L229">    private final List&lt;LocalVariableGen&gt; variableList = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L231">    private final List&lt;LineNumberGen&gt; lineNumberList = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L233">    private final List&lt;CodeExceptionGen&gt; exceptionList = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L235">    private final List&lt;String&gt; throwsList = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L237">    private final List&lt;Attribute&gt; codeAttrsList = new ArrayList&lt;&gt;();</span>
+
+    private List&lt;AnnotationEntryGen&gt;[] paramAnnotations; // Array of lists containing AnnotationGen objects
+
+    private boolean hasParameterAnnotations;
+
+    private boolean haveUnpackedParameterAnnotations;
+
+    private List&lt;MethodObserver&gt; observers;
+
+    /**
+     * Declare method. If the method is non-static the constructor automatically declares a local variable '$this' in slot
+     * 0. The actual code is contained in the 'il' parameter, which may further manipulated by the user. But they must take
+     * care not to remove any instruction (handles) that are still referenced from this object.
+     *
+     * For example one may not add a local variable and later remove the instructions it refers to without causing havoc. It
+     * is safe however if you remove that local variable, too.
+     *
+     * @param accessFlags access qualifiers.
+     * @param returnType method type.
+     * @param argTypes argument types.
+     * @param argNames argument names (if this is null, default names will be provided for them).
+     * @param methodName name of method.
+     * @param className class name containing this method (may be null, if you don't care).
+     * @param il instruction list associated with this method, may be null only for abstract or native methods.
+     * @param cp constant pool.
+     */
+    public MethodGen(final int accessFlags, final Type returnType, final Type[] argTypes, String[] argNames, final String methodName, final String className,
+        final InstructionList il, final ConstantPoolGen cp) {
+<span class="fc" id="L266">        super(accessFlags);</span>
+<span class="fc" id="L267">        setType(returnType);</span>
+<span class="fc" id="L268">        setArgumentTypes(argTypes);</span>
+<span class="fc" id="L269">        setArgumentNames(argNames);</span>
+<span class="fc" id="L270">        setName(methodName);</span>
+<span class="fc" id="L271">        setClassName(className);</span>
+<span class="fc" id="L272">        setInstructionList(il);</span>
+<span class="fc" id="L273">        setConstantPool(cp);</span>
+<span class="fc bfc" id="L274" title="All 4 branches covered.">        final boolean abstract_ = isAbstract() || isNative();</span>
+<span class="fc" id="L275">        InstructionHandle start = null;</span>
+<span class="fc" id="L276">        final InstructionHandle end = null;</span>
+<span class="fc bfc" id="L277" title="All 2 branches covered.">        if (!abstract_) {</span>
+<span class="fc" id="L278">            start = il.getStart();</span>
+            // end == null =&gt; live to end of method
+            /*
+             * Add local variables, namely the implicit 'this' and the arguments
+             */
+<span class="pc bpc" id="L283" title="1 of 4 branches missed.">            if (!isStatic() &amp;&amp; className != null) { // Instance method -&gt; 'this' is local var 0</span>
+<span class="fc" id="L284">                addLocalVariable(&quot;this&quot;, ObjectType.getInstance(className), start, end);</span>
+            }
+        }
+<span class="pc bpc" id="L287" title="1 of 2 branches missed.">        if (argTypes != null) {</span>
+<span class="fc" id="L288">            final int size = argTypes.length;</span>
+<span class="fc bfc" id="L289" title="All 2 branches covered.">            for (final Type argType : argTypes) {</span>
+<span class="pc bpc" id="L290" title="1 of 2 branches missed.">                if (Type.VOID == argType) {</span>
+<span class="nc" id="L291">                    throw new ClassGenException(&quot;'void' is an illegal argument type for a method&quot;);</span>
+                }
+            }
+<span class="fc bfc" id="L294" title="All 2 branches covered.">            if (argNames != null) { // Names for variables provided?</span>
+<span class="pc bpc" id="L295" title="1 of 2 branches missed.">                if (size != argNames.length) {</span>
+<span class="nc" id="L296">                    throw new ClassGenException(&quot;Mismatch in argument array lengths: &quot; + size + &quot; vs. &quot; + argNames.length);</span>
+                }
+            } else { // Give them dummy names
+<span class="fc" id="L299">                argNames = new String[size];</span>
+<span class="fc bfc" id="L300" title="All 2 branches covered.">                for (int i = 0; i &lt; size; i++) {</span>
+<span class="fc" id="L301">                    argNames[i] = &quot;arg&quot; + i;</span>
+                }
+<span class="fc" id="L303">                setArgumentNames(argNames);</span>
+            }
+<span class="fc bfc" id="L305" title="All 2 branches covered.">            if (!abstract_) {</span>
+<span class="fc bfc" id="L306" title="All 2 branches covered.">                for (int i = 0; i &lt; size; i++) {</span>
+<span class="fc" id="L307">                    addLocalVariable(argNames[i], argTypes[i], start, end);</span>
+                }
+            }
+        }
+<span class="fc" id="L311">    }</span>
+
+    /**
+     * Instantiate from existing method.
+     *
+     * @param method method.
+     * @param className class name containing this method.
+     * @param cp constant pool.
+     */
+    public MethodGen(final Method method, final String className, final ConstantPoolGen cp) {
+<span class="fc" id="L321">        this(method.getAccessFlags(), Type.getReturnType(method.getSignature()), Type.getArgumentTypes(method.getSignature()),</span>
+            null /* may be overridden anyway */
+<span class="fc" id="L323">            , method.getName(), className,</span>
+<span class="fc bfc" id="L324" title="All 2 branches covered.">            (method.getAccessFlags() &amp; (Const.ACC_ABSTRACT | Const.ACC_NATIVE)) == 0 ? new InstructionList(getByteCodes(method)) : null, cp);</span>
+<span class="fc" id="L325">        final Attribute[] attributes = method.getAttributes();</span>
+<span class="fc bfc" id="L326" title="All 2 branches covered.">        for (final Attribute attribute : attributes) {</span>
+<span class="fc" id="L327">            Attribute a = attribute;</span>
+<span class="fc bfc" id="L328" title="All 2 branches covered.">            if (a instanceof Code) {</span>
+<span class="fc" id="L329">                final Code c = (Code) a;</span>
+<span class="fc" id="L330">                setMaxStack(c.getMaxStack());</span>
+<span class="fc" id="L331">                setMaxLocals(c.getMaxLocals());</span>
+<span class="fc" id="L332">                final CodeException[] ces = c.getExceptionTable();</span>
+<span class="pc bpc" id="L333" title="1 of 2 branches missed.">                if (ces != null) {</span>
+<span class="fc bfc" id="L334" title="All 2 branches covered.">                    for (final CodeException ce : ces) {</span>
+<span class="fc" id="L335">                        final int type = ce.getCatchType();</span>
+<span class="fc" id="L336">                        ObjectType cType = null;</span>
+<span class="fc bfc" id="L337" title="All 2 branches covered.">                        if (type &gt; 0) {</span>
+<span class="fc" id="L338">                            final String cen = method.getConstantPool().getConstantString(type, Const.CONSTANT_Class);</span>
+<span class="fc" id="L339">                            cType = ObjectType.getInstance(cen);</span>
+                        }
+<span class="fc" id="L341">                        final int endPc = ce.getEndPC();</span>
+<span class="fc" id="L342">                        final int length = getByteCodes(method).length;</span>
+                        InstructionHandle end;
+<span class="pc bpc" id="L344" title="1 of 2 branches missed.">                        if (length == endPc) { // May happen, because end_pc is exclusive</span>
+<span class="nc" id="L345">                            end = il.getEnd();</span>
+                        } else {
+<span class="fc" id="L347">                            end = il.findHandle(endPc);</span>
+<span class="fc" id="L348">                            end = end.getPrev(); // Make it inclusive</span>
+                        }
+<span class="fc" id="L350">                        addExceptionHandler(il.findHandle(ce.getStartPC()), end, il.findHandle(ce.getHandlerPC()), cType);</span>
+                    }
+                }
+<span class="fc" id="L353">                final Attribute[] cAttributes = c.getAttributes();</span>
+<span class="fc bfc" id="L354" title="All 2 branches covered.">                for (final Attribute cAttribute : cAttributes) {</span>
+<span class="fc" id="L355">                    a = cAttribute;</span>
+<span class="fc bfc" id="L356" title="All 2 branches covered.">                    if (a instanceof LineNumberTable) {</span>
+<span class="fc" id="L357">                        ((LineNumberTable) a).forEach(l -&gt; {</span>
+<span class="fc" id="L358">                            final InstructionHandle ih = il.findHandle(l.getStartPC());</span>
+<span class="pc bpc" id="L359" title="1 of 2 branches missed.">                            if (ih != null) {</span>
+<span class="fc" id="L360">                                addLineNumber(ih, l.getLineNumber());</span>
+                            }
+<span class="fc" id="L362">                        });</span>
+<span class="fc bfc" id="L363" title="All 2 branches covered.">                    } else if (a instanceof LocalVariableTable) {</span>
+<span class="fc" id="L364">                        updateLocalVariableTable((LocalVariableTable) a);</span>
+<span class="fc bfc" id="L365" title="All 2 branches covered.">                    } else if (a instanceof LocalVariableTypeTable) {</span>
+<span class="fc" id="L366">                        this.localVariableTypeTable = (LocalVariableTypeTable) a.copy(cp.getConstantPool());</span>
+                    } else {
+<span class="fc" id="L368">                        addCodeAttribute(a);</span>
+                    }
+                }
+<span class="fc bfc" id="L371" title="All 2 branches covered.">            } else if (a instanceof ExceptionTable) {</span>
+<span class="fc" id="L372">                Collections.addAll(throwsList, ((ExceptionTable) a).getExceptionNames());</span>
+<span class="fc bfc" id="L373" title="All 2 branches covered.">            } else if (a instanceof Annotations) {</span>
+<span class="fc" id="L374">                final Annotations runtimeAnnotations = (Annotations) a;</span>
+<span class="fc" id="L375">                runtimeAnnotations.forEach(element -&gt; addAnnotationEntry(new AnnotationEntryGen(element, cp, false)));</span>
+<span class="fc" id="L376">            } else {</span>
+<span class="fc" id="L377">                addAttribute(a);</span>
+            }
+        }
+<span class="fc" id="L380">    }</span>
+
+    /**
+     * Adds annotations as an attribute.
+     *
+     * @param cp the constant pool generator.
+     * @since 6.0
+     */
+    public void addAnnotationsAsAttribute(final ConstantPoolGen cp) {
+<span class="nc" id="L389">        addAll(AnnotationEntryGen.getAnnotationAttributes(cp, super.getAnnotationEntries()));</span>
+<span class="nc" id="L390">    }</span>
+
+    /**
+     * Add an attribute to the code. Currently, the JVM knows about the LineNumberTable, LocalVariableTable and StackMap
+     * attributes, where the former two will be generated automatically and the latter is used for the MIDP only. Other
+     * attributes will be ignored by the JVM but do no harm.
+     *
+     * @param a attribute to be added.
+     */
+    public void addCodeAttribute(final Attribute a) {
+<span class="fc" id="L400">        codeAttrsList.add(a);</span>
+<span class="fc" id="L401">    }</span>
+
+    /**
+     * Add an exception possibly thrown by this method.
+     *
+     * @param className (fully qualified) name of exception.
+     */
+    public void addException(final String className) {
+<span class="fc" id="L409">        throwsList.add(className);</span>
+<span class="fc" id="L410">    }</span>
+
+    /**
+     * Add an exception handler, that is, specify region where a handler is active and an instruction where the actual handling
+     * is done.
+     *
+     * @param startPc Start of region (inclusive).
+     * @param endPc End of region (inclusive).
+     * @param handlerPc Where handling is done.
+     * @param catchType class type of handled exception or null if any exception is handled.
+     * @return new exception handler object.
+     */
+    public CodeExceptionGen addExceptionHandler(final InstructionHandle startPc, final InstructionHandle endPc, final InstructionHandle handlerPc,
+        final ObjectType catchType) {
+<span class="pc bpc" id="L424" title="3 of 6 branches missed.">        if (startPc == null || endPc == null || handlerPc == null) {</span>
+<span class="nc" id="L425">            throw new ClassGenException(&quot;Exception handler target is null instruction&quot;);</span>
+        }
+<span class="fc" id="L427">        final CodeExceptionGen c = new CodeExceptionGen(startPc, endPc, handlerPc, catchType);</span>
+<span class="fc" id="L428">        exceptionList.add(c);</span>
+<span class="fc" id="L429">        return c;</span>
+    }
+
+    /**
+     * Give an instruction a line number corresponding to the source code line.
+     *
+     * @param ih instruction to tag.
+     * @param srcLine the source line number.
+     * @return new line number object.
+     * @see LineNumber
+     */
+    public LineNumberGen addLineNumber(final InstructionHandle ih, final int srcLine) {
+<span class="fc" id="L441">        final LineNumberGen l = new LineNumberGen(ih, srcLine);</span>
+<span class="fc" id="L442">        lineNumberList.add(l);</span>
+<span class="fc" id="L443">        return l;</span>
+    }
+
+    /**
+     * Adds a local variable to this method and assigns an index automatically.
+     *
+     * @param name variable name.
+     * @param type variable type.
+     * @param start from where the variable is valid, if this is null, it is valid from the start.
+     * @param end until where the variable is valid, if this is null, it is valid to the end.
+     * @return new local variable object.
+     * @see LocalVariable
+     */
+    public LocalVariableGen addLocalVariable(final String name, final Type type, final InstructionHandle start, final InstructionHandle end) {
+<span class="fc" id="L457">        return addLocalVariable(name, type, maxLocals, start, end);</span>
+    }
+
+    /**
+     * Adds a local variable to this method.
+     *
+     * @param name variable name.
+     * @param type variable type.
+     * @param slot the index of the local variable, if type is long or double, the next available index is slot+2.
+     * @param start from where the variable is valid.
+     * @param end until where the variable is valid.
+     * @return new local variable object.
+     * @see LocalVariable
+     */
+    public LocalVariableGen addLocalVariable(final String name, final Type type, final int slot, final InstructionHandle start, final InstructionHandle end) {
+<span class="fc" id="L472">        return addLocalVariable(name, type, slot, start, end, slot);</span>
+    }
+
+    /**
+     * Adds a local variable to this method.
+     *
+     * @param name variable name.
+     * @param type variable type.
+     * @param slot the index of the local variable, if type is long or double, the next available index is slot+2.
+     * @param start from where the variable is valid.
+     * @param end until where the variable is valid.
+     * @param origIndex the index of the local variable prior to any modifications.
+     * @return new local variable object.
+     * @see LocalVariable
+     */
+    public LocalVariableGen addLocalVariable(final String name, final Type type, final int slot, final InstructionHandle start, final InstructionHandle end,
+        final int origIndex) {
+<span class="fc" id="L489">        final byte t = type.getType();</span>
+<span class="pc bpc" id="L490" title="1 of 2 branches missed.">        if (t != Const.T_ADDRESS) {</span>
+<span class="fc" id="L491">            final int add = type.getSize();</span>
+<span class="fc bfc" id="L492" title="All 2 branches covered.">            if (slot + add &gt; maxLocals) {</span>
+<span class="fc" id="L493">                maxLocals = slot + add;</span>
+            }
+<span class="fc" id="L495">            final LocalVariableGen l = new LocalVariableGen(slot, name, type, start, end, origIndex);</span>
+            final int i;
+<span class="pc bpc" id="L497" title="1 of 2 branches missed.">            if ((i = variableList.indexOf(l)) &gt;= 0) {</span>
+<span class="nc" id="L498">                variableList.set(i, l);</span>
+            } else {
+<span class="fc" id="L500">                variableList.add(l);</span>
+            }
+<span class="fc" id="L502">            return l;</span>
+        }
+<span class="nc" id="L504">        throw new IllegalArgumentException(&quot;Can not use &quot; + type + &quot; as type for local variable&quot;);</span>
+    }
+
+    /**
+     * Add observer for this object.
+     *
+     * @param o the observer to add.
+     */
+    public void addObserver(final MethodObserver o) {
+<span class="nc bnc" id="L513" title="All 2 branches missed.">        if (observers == null) {</span>
+<span class="nc" id="L514">            observers = new ArrayList&lt;&gt;();</span>
+        }
+<span class="nc" id="L516">        observers.add(o);</span>
+<span class="nc" id="L517">    }</span>
+
+    /**
+     * Adds a parameter annotation.
+     *
+     * @param parameterIndex the parameter index.
+     * @param annotation the annotation.
+     */
+    public void addParameterAnnotation(final int parameterIndex, final AnnotationEntryGen annotation) {
+<span class="nc" id="L526">        ensureExistingParameterAnnotationsUnpacked();</span>
+<span class="nc bnc" id="L527" title="All 2 branches missed.">        if (!hasParameterAnnotations) {</span>
+            @SuppressWarnings(&quot;unchecked&quot;) // OK
+<span class="nc" id="L529">            final List&lt;AnnotationEntryGen&gt;[] parmList = new List[argTypes.length];</span>
+<span class="nc" id="L530">            paramAnnotations = parmList;</span>
+<span class="nc" id="L531">            hasParameterAnnotations = true;</span>
+        }
+<span class="nc" id="L533">        final List&lt;AnnotationEntryGen&gt; existingAnnotations = paramAnnotations[parameterIndex];</span>
+<span class="nc bnc" id="L534" title="All 2 branches missed.">        if (existingAnnotations != null) {</span>
+<span class="nc" id="L535">            existingAnnotations.add(annotation);</span>
+        } else {
+<span class="nc" id="L537">            final List&lt;AnnotationEntryGen&gt; l = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L538">            l.add(annotation);</span>
+<span class="nc" id="L539">            paramAnnotations[parameterIndex] = l;</span>
+        }
+<span class="nc" id="L541">    }</span>
+
+    /**
+     * Adds parameter annotations as an attribute.
+     *
+     * @param cp the constant pool generator.
+     * @since 6.0
+     */
+    public void addParameterAnnotationsAsAttribute(final ConstantPoolGen cp) {
+<span class="nc bnc" id="L550" title="All 2 branches missed.">        if (!hasParameterAnnotations) {</span>
+<span class="nc" id="L551">            return;</span>
+        }
+<span class="nc" id="L553">        final Attribute[] attrs = AnnotationEntryGen.getParameterAnnotationAttributes(cp, paramAnnotations);</span>
+<span class="nc bnc" id="L554" title="All 2 branches missed.">        if (attrs != null) {</span>
+<span class="nc" id="L555">            addAll(attrs);</span>
+        }
+<span class="nc" id="L557">    }</span>
+
+    private Attribute[] addRuntimeAnnotationsAsAttribute(final ConstantPoolGen cp) {
+<span class="fc" id="L560">        final Attribute[] attrs = AnnotationEntryGen.getAnnotationAttributes(cp, super.getAnnotationEntries());</span>
+<span class="fc" id="L561">        addAll(attrs);</span>
+<span class="fc" id="L562">        return attrs;</span>
+    }
+
+    private Attribute[] addRuntimeParameterAnnotationsAsAttribute(final ConstantPoolGen cp) {
+<span class="fc bfc" id="L566" title="All 2 branches covered.">        if (!hasParameterAnnotations) {</span>
+<span class="fc" id="L567">            return Attribute.EMPTY_ARRAY;</span>
+        }
+<span class="fc" id="L569">        final Attribute[] attrs = AnnotationEntryGen.getParameterAnnotationAttributes(cp, paramAnnotations);</span>
+<span class="fc" id="L570">        addAll(attrs);</span>
+<span class="fc" id="L571">        return attrs;</span>
+    }
+
+    private void adjustLocalVariableTypeTable(final LocalVariableTable lvt) {
+<span class="fc" id="L575">        final LocalVariable[] lv = lvt.getLocalVariableTable();</span>
+<span class="fc bfc" id="L576" title="All 2 branches covered.">        for (final LocalVariable element : localVariableTypeTable.getLocalVariableTypeTable()) {</span>
+<span class="pc bpc" id="L577" title="1 of 2 branches missed.">            for (final LocalVariable l : lv) {</span>
+<span class="pc bpc" id="L578" title="1 of 4 branches missed.">                if (element.getName().equals(l.getName()) &amp;&amp; element.getIndex() == l.getOrigIndex()) {</span>
+<span class="fc" id="L579">                    element.setLength(l.getLength());</span>
+<span class="fc" id="L580">                    element.setStartPC(l.getStartPC());</span>
+<span class="fc" id="L581">                    element.setIndex(l.getIndex());</span>
+<span class="fc" id="L582">                    break;</span>
+                }
+            }
+        }
+<span class="fc" id="L586">    }</span>
+
+    /**
+     * Creates a deep copy of this method.
+     *
+     * @param className the class name.
+     * @param cp the constant pool generator.
+     * @return deep copy of this method.
+     */
+    public MethodGen copy(final String className, final ConstantPoolGen cp) {
+<span class="nc" id="L596">        final Method m = ((MethodGen) clone()).getMethod();</span>
+<span class="nc" id="L597">        final MethodGen mg = new MethodGen(m, className, super.getConstantPool());</span>
+<span class="nc bnc" id="L598" title="All 2 branches missed.">        if (super.getConstantPool() != cp) {</span>
+<span class="nc" id="L599">            mg.setConstantPool(cp);</span>
+<span class="nc" id="L600">            mg.getInstructionList().replaceConstantPool(super.getConstantPool(), cp);</span>
+        }
+<span class="nc" id="L602">        return mg;</span>
+    }
+
+    /**
+     * Goes through the attributes on the method and identifies any that are RuntimeParameterAnnotations, extracting their
+     * contents and storing them as parameter annotations. There are two kinds of parameter annotation - visible and
+     * invisible. Once they have been unpacked, these attributes are deleted. (The annotations will be rebuilt as attributes
+     * when someone builds a Method object out of this MethodGen object).
+     */
+    private void ensureExistingParameterAnnotationsUnpacked() {
+<span class="fc bfc" id="L612" title="All 2 branches covered.">        if (haveUnpackedParameterAnnotations) {</span>
+<span class="fc" id="L613">            return;</span>
+        }
+        // Find attributes that contain parameter annotation data
+<span class="fc" id="L616">        final Attribute[] attrs = getAttributes();</span>
+<span class="fc" id="L617">        ParameterAnnotations paramAnnVisAttr = null;</span>
+<span class="fc" id="L618">        ParameterAnnotations paramAnnInvisAttr = null;</span>
+<span class="fc bfc" id="L619" title="All 2 branches covered.">        for (final Attribute attribute : attrs) {</span>
+<span class="fc bfc" id="L620" title="All 2 branches covered.">            if (attribute instanceof ParameterAnnotations) {</span>
+                // Initialize paramAnnotations
+<span class="pc bpc" id="L622" title="1 of 2 branches missed.">                if (!hasParameterAnnotations) {</span>
+                    @SuppressWarnings(&quot;unchecked&quot;) // OK
+<span class="fc" id="L624">                    final List&lt;AnnotationEntryGen&gt;[] parmList = new List[argTypes.length];</span>
+<span class="fc" id="L625">                    paramAnnotations = parmList;</span>
+<span class="fc" id="L626">                    Arrays.setAll(paramAnnotations, i -&gt; new ArrayList&lt;&gt;());</span>
+                }
+<span class="fc" id="L628">                hasParameterAnnotations = true;</span>
+<span class="fc" id="L629">                final ParameterAnnotations rpa = (ParameterAnnotations) attribute;</span>
+<span class="fc bfc" id="L630" title="All 2 branches covered.">                if (rpa instanceof RuntimeVisibleParameterAnnotations) {</span>
+<span class="fc" id="L631">                    paramAnnVisAttr = rpa;</span>
+                } else {
+<span class="fc" id="L633">                    paramAnnInvisAttr = rpa;</span>
+                }
+<span class="fc" id="L635">                final ParameterAnnotationEntry[] parameterAnnotationEntries = rpa.getParameterAnnotationEntries();</span>
+<span class="fc bfc" id="L636" title="All 2 branches covered.">                for (int j = 0; j &lt; parameterAnnotationEntries.length; j++) {</span>
+                    // This returns Annotation[] ...
+<span class="fc" id="L638">                    final ParameterAnnotationEntry immutableArray = rpa.getParameterAnnotationEntries()[j];</span>
+                    // ... which needs transforming into an AnnotationGen[] ...
+<span class="fc" id="L640">                    final List&lt;AnnotationEntryGen&gt; mutable = makeMutableVersion(immutableArray.getAnnotationEntries());</span>
+                    // ... then add these to any we already know about
+<span class="fc" id="L642">                    paramAnnotations[j].addAll(mutable);</span>
+                }
+            }
+        }
+<span class="fc bfc" id="L646" title="All 2 branches covered.">        if (paramAnnVisAttr != null) {</span>
+<span class="fc" id="L647">            removeAttribute(paramAnnVisAttr);</span>
+        }
+<span class="fc bfc" id="L649" title="All 2 branches covered.">        if (paramAnnInvisAttr != null) {</span>
+<span class="fc" id="L650">            removeAttribute(paramAnnInvisAttr);</span>
+        }
+<span class="fc" id="L652">        haveUnpackedParameterAnnotations = true;</span>
+<span class="fc" id="L653">    }</span>
+
+    /**
+     * Return value as defined by given BCELComparator strategy. By default two MethodGen objects are said to be equal when
+     * their names and signatures are equal.
+     *
+     * @see Object#equals(Object)
+     */
+    @Override
+    public boolean equals(final Object obj) {
+<span class="nc bnc" id="L663" title="All 4 branches missed.">        return obj instanceof FieldGenOrMethodGen &amp;&amp; bcelComparator.equals(this, (FieldGenOrMethodGen) obj);</span>
+    }
+
+    // J5TODO: Should paramAnnotations be an array of arrays? Rather than an array of lists, this
+    // is more likely to suggest to the caller it is readonly (which a List does not).
+
+    /**
+     * Return a list of AnnotationGen objects representing parameter annotations.
+     *
+     * @param i the parameter index.
+     * @return list of AnnotationGen objects.
+     * @since 6.0
+     */
+    public List&lt;AnnotationEntryGen&gt; getAnnotationsOnParameter(final int i) {
+<span class="fc" id="L677">        ensureExistingParameterAnnotationsUnpacked();</span>
+<span class="pc bpc" id="L678" title="2 of 4 branches missed.">        if (!hasParameterAnnotations || i &gt; argTypes.length) {</span>
+<span class="nc" id="L679">            return null;</span>
+        }
+<span class="fc" id="L681">        return paramAnnotations[i];</span>
+    }
+
+    /**
+     * Gets the argument name at the specified index.
+     *
+     * @param i the argument index.
+     * @return the argument name.
+     */
+    public String getArgumentName(final int i) {
+<span class="nc" id="L691">        return argNames[i];</span>
+    }
+
+    /**
+     * Gets all argument names.
+     *
+     * @return array of argument names.
+     */
+    public String[] getArgumentNames() {
+<span class="fc" id="L700">        return argNames.clone();</span>
+    }
+
+    /**
+     * Gets the argument type at the specified index.
+     *
+     * @param i the argument index.
+     * @return the argument type.
+     */
+    public Type getArgumentType(final int i) {
+<span class="nc" id="L710">        return argTypes[i];</span>
+    }
+
+    /**
+     * Gets all argument types.
+     *
+     * @return array of argument types.
+     */
+    public Type[] getArgumentTypes() {
+<span class="fc" id="L719">        return argTypes.clone();</span>
+    }
+
+    /**
+     * Gets the class that contains this method.
+     *
+     * @return class that contains this method.
+     */
+    public String getClassName() {
+<span class="fc" id="L728">        return className;</span>
+    }
+
+    /**
+     * Gets all attributes of this method.
+     *
+     * @return all attributes of this method.
+     */
+    public Attribute[] getCodeAttributes() {
+<span class="fc" id="L737">        return codeAttrsList.toArray(Attribute.EMPTY_ARRAY);</span>
+    }
+
+    /**
+     * @return code exceptions for 'Code' attribute.
+     */
+    private CodeException[] getCodeExceptions() {
+<span class="fc" id="L744">        final int size = exceptionList.size();</span>
+<span class="fc" id="L745">        final CodeException[] cExc = new CodeException[size];</span>
+<span class="fc" id="L746">        Arrays.setAll(cExc, i -&gt; exceptionList.get(i).getCodeException(super.getConstantPool()));</span>
+<span class="fc" id="L747">        return cExc;</span>
+    }
+
+    /**
+     * Gets array of declared exception handlers.
+     *
+     * @return array of declared exception handlers.
+     */
+    public CodeExceptionGen[] getExceptionHandlers() {
+<span class="fc" id="L756">        return exceptionList.toArray(CodeExceptionGen.EMPTY_ARRAY);</span>
+    }
+
+    /**
+     * Gets array of thrown exceptions.
+     *
+     * @return array of thrown exceptions.
+     */
+    public String[] getExceptions() {
+<span class="nc" id="L765">        return throwsList.toArray(ArrayUtils.EMPTY_STRING_ARRAY);</span>
+    }
+
+    /**
+     * @return 'Exceptions' attribute of all the exceptions thrown by this method.
+     */
+    private ExceptionTable getExceptionTable(final ConstantPoolGen cp) {
+<span class="fc" id="L772">        final int size = throwsList.size();</span>
+<span class="fc" id="L773">        final int[] ex = new int[size];</span>
+<span class="fc" id="L774">        Arrays.setAll(ex, i -&gt; cp.addClass(throwsList.get(i)));</span>
+<span class="fc" id="L775">        return new ExceptionTable(cp.addUtf8(&quot;Exceptions&quot;), 2 + 2 * size, ex, cp.getConstantPool());</span>
+    }
+
+    /**
+     * Gets the instruction list.
+     *
+     * @return the instruction list.
+     */
+    public InstructionList getInstructionList() {
+<span class="fc" id="L784">        return il;</span>
+    }
+
+    /**
+     * Gets array of line numbers.
+     *
+     * @return array of line numbers.
+     */
+    public LineNumberGen[] getLineNumbers() {
+<span class="nc" id="L793">        return lineNumberList.toArray(LineNumberGen.EMPTY_ARRAY);</span>
+    }
+
+    /**
+     * Gets the 'LineNumberTable' attribute of all the local variables of this method.
+     *
+     * @param cp the constant pool generator.
+     * @return 'LineNumberTable' attribute of all the local variables of this method.
+     */
+    public LineNumberTable getLineNumberTable(final ConstantPoolGen cp) {
+<span class="fc" id="L803">        final int size = lineNumberList.size();</span>
+<span class="fc" id="L804">        final LineNumber[] ln = new LineNumber[size];</span>
+<span class="fc" id="L805">        Arrays.setAll(ln, i -&gt; lineNumberList.get(i).getLineNumber());</span>
+<span class="fc" id="L806">        return new LineNumberTable(cp.addUtf8(&quot;LineNumberTable&quot;), 2 + ln.length * 4, ln, cp.getConstantPool());</span>
+    }
+
+    /**
+     * Gets array of declared local variables sorted by index.
+     *
+     * If the range of the variable has not been set yet, it will be set to be valid from the start to the end of the
+     * instruction list.
+     *
+     * @return array of declared local variables sorted by index.
+     */
+    public LocalVariableGen[] getLocalVariables() {
+<span class="fc" id="L818">        final int size = variableList.size();</span>
+<span class="fc" id="L819">        final LocalVariableGen[] lg = new LocalVariableGen[size];</span>
+<span class="fc" id="L820">        variableList.toArray(lg);</span>
+<span class="fc bfc" id="L821" title="All 2 branches covered.">        for (int i = 0; i &lt; size; i++) {</span>
+<span class="fc bfc" id="L822" title="All 4 branches covered.">            if (lg[i].getStart() == null &amp;&amp; il != null) {</span>
+<span class="fc" id="L823">                lg[i].setStart(il.getStart());</span>
+            }
+<span class="fc bfc" id="L825" title="All 4 branches covered.">            if (lg[i].getEnd() == null &amp;&amp; il != null) {</span>
+<span class="fc" id="L826">                lg[i].setEnd(il.getEnd());</span>
+            }
+        }
+<span class="fc bfc" id="L829" title="All 2 branches covered.">        if (size &gt; 1) {</span>
+<span class="fc" id="L830">            Arrays.sort(lg, Comparator.comparingInt(LocalVariableGen::getIndex));</span>
+        }
+<span class="fc" id="L832">        return lg;</span>
+    }
+
+    /**
+     * Gets the 'LocalVariableTable' attribute of all the local variables of this method.
+     *
+     * @param cp the constant pool generator.
+     * @return 'LocalVariableTable' attribute of all the local variables of this method.
+     */
+    public LocalVariableTable getLocalVariableTable(final ConstantPoolGen cp) {
+<span class="fc" id="L842">        final LocalVariableGen[] lg = getLocalVariables();</span>
+<span class="fc" id="L843">        final int size = lg.length;</span>
+<span class="fc" id="L844">        final LocalVariable[] lv = new LocalVariable[size];</span>
+<span class="fc" id="L845">        Arrays.setAll(lv, i -&gt; lg[i].getLocalVariable(cp));</span>
+<span class="fc" id="L846">        return new LocalVariableTable(cp.addUtf8(&quot;LocalVariableTable&quot;), 2 + lv.length * 10, lv, cp.getConstantPool());</span>
+    }
+
+    /**
+     * Gets the 'LocalVariableTypeTable' attribute of this method.
+     *
+     * @return 'LocalVariableTypeTable' attribute of this method.
+     */
+    public LocalVariableTypeTable getLocalVariableTypeTable() {
+<span class="nc" id="L855">        return localVariableTypeTable;</span>
+    }
+
+    /**
+     * Gets the maximum number of local variables.
+     *
+     * @return the maximum number of local variables.
+     */
+    public int getMaxLocals() {
+<span class="fc" id="L864">        return maxLocals;</span>
+    }
+
+    /**
+     * Gets the maximum stack size.
+     *
+     * @return the maximum stack size.
+     */
+    public int getMaxStack() {
+<span class="fc" id="L873">        return maxStack;</span>
+    }
+
+    /**
+     * Gets method object. Never forget to call setMaxStack() or setMaxStack(max), respectively, before calling this method
+     * (the same applies for max locals).
+     *
+     * @return method object.
+     */
+    public Method getMethod() {
+<span class="fc" id="L883">        final String signature = getSignature();</span>
+<span class="fc" id="L884">        final ConstantPoolGen cp = super.getConstantPool();</span>
+<span class="fc" id="L885">        final int nameIndex = cp.addUtf8(super.getName());</span>
+<span class="fc" id="L886">        final int signatureIndex = cp.addUtf8(signature);</span>
+        /*
+         * Also updates positions of instructions, that is, their indices
+         */
+<span class="fc bfc" id="L890" title="All 2 branches covered.">        final byte[] byteCode = il != null ? il.getByteCode() : null;</span>
+<span class="fc" id="L891">        LineNumberTable lnt = null;</span>
+<span class="fc" id="L892">        LocalVariableTable lvt = null;</span>
+        /*
+         * Create LocalVariableTable and LineNumberTable attributes (for debuggers, for example)
+         */
+<span class="pc bpc" id="L896" title="1 of 4 branches missed.">        if (!variableList.isEmpty() &amp;&amp; !stripAttributes) {</span>
+<span class="fc" id="L897">            updateLocalVariableTable(getLocalVariableTable(cp));</span>
+<span class="fc" id="L898">            addCodeAttribute(lvt = getLocalVariableTable(cp));</span>
+        }
+<span class="fc bfc" id="L900" title="All 2 branches covered.">        if (localVariableTypeTable != null) {</span>
+            // LocalVariable length in LocalVariableTypeTable is not updated automatically. It's a difference with
+            // LocalVariableTable.
+<span class="pc bpc" id="L903" title="1 of 2 branches missed.">            if (lvt != null) {</span>
+<span class="fc" id="L904">                adjustLocalVariableTypeTable(lvt);</span>
+            }
+<span class="fc" id="L906">            addCodeAttribute(localVariableTypeTable);</span>
+        }
+<span class="pc bpc" id="L908" title="1 of 4 branches missed.">        if (!lineNumberList.isEmpty() &amp;&amp; !stripAttributes) {</span>
+<span class="fc" id="L909">            addCodeAttribute(lnt = getLineNumberTable(cp));</span>
+        }
+<span class="fc" id="L911">        final Attribute[] codeAttrs = getCodeAttributes();</span>
+        /*
+         * Each attribute causes 6 additional header bytes
+         */
+<span class="fc" id="L915">        int attrsLen = 0;</span>
+<span class="fc bfc" id="L916" title="All 2 branches covered.">        for (final Attribute codeAttr : codeAttrs) {</span>
+<span class="fc" id="L917">            attrsLen += codeAttr.getLength() + 6;</span>
+        }
+<span class="fc" id="L919">        final CodeException[] cExc = getCodeExceptions();</span>
+<span class="fc" id="L920">        final int excLen = cExc.length * 8; // Every entry takes 8 bytes</span>
+<span class="fc" id="L921">        Code code = null;</span>
+<span class="pc bpc" id="L922" title="2 of 6 branches missed.">        if (byteCode != null &amp;&amp; !isAbstract() &amp;&amp; !isNative()) {</span>
+            // Remove any stale code attribute
+<span class="fc" id="L924">            final Attribute[] attributes = getAttributes();</span>
+<span class="fc bfc" id="L925" title="All 2 branches covered.">            for (final Attribute a : attributes) {</span>
+<span class="pc bpc" id="L926" title="1 of 2 branches missed.">                if (a instanceof Code) {</span>
+<span class="nc" id="L927">                    removeAttribute(a);</span>
+                }
+            }
+<span class="fc" id="L930">            code = new Code(cp.addUtf8(&quot;Code&quot;), 8 + byteCode.length + // prologue byte code</span>
+                2 + excLen + // exceptions
+                2 + attrsLen, // attributes
+<span class="fc" id="L933">                maxStack, maxLocals, byteCode, cExc, codeAttrs, cp.getConstantPool());</span>
+<span class="fc" id="L934">            addAttribute(code);</span>
+        }
+<span class="fc" id="L936">        final Attribute[] annotations = addRuntimeAnnotationsAsAttribute(cp);</span>
+<span class="fc" id="L937">        final Attribute[] parameterAnnotations = addRuntimeParameterAnnotationsAsAttribute(cp);</span>
+<span class="fc" id="L938">        ExceptionTable et = null;</span>
+<span class="fc bfc" id="L939" title="All 2 branches covered.">        if (!throwsList.isEmpty()) {</span>
+<span class="fc" id="L940">            addAttribute(et = getExceptionTable(cp));</span>
+            // Add 'Exceptions' if there are &quot;throws&quot; clauses
+        }
+<span class="fc" id="L943">        final Method m = new Method(super.getAccessFlags(), nameIndex, signatureIndex, getAttributes(), cp.getConstantPool());</span>
+        // Undo effects of adding attributes
+<span class="fc bfc" id="L945" title="All 2 branches covered.">        if (lvt != null) {</span>
+<span class="fc" id="L946">            removeCodeAttribute(lvt);</span>
+        }
+<span class="fc bfc" id="L948" title="All 2 branches covered.">        if (localVariableTypeTable != null) {</span>
+<span class="fc" id="L949">            removeCodeAttribute(localVariableTypeTable);</span>
+        }
+<span class="fc bfc" id="L951" title="All 2 branches covered.">        if (lnt != null) {</span>
+<span class="fc" id="L952">            removeCodeAttribute(lnt);</span>
+        }
+<span class="fc bfc" id="L954" title="All 2 branches covered.">        if (code != null) {</span>
+<span class="fc" id="L955">            removeAttribute(code);</span>
+        }
+<span class="fc bfc" id="L957" title="All 2 branches covered.">        if (et != null) {</span>
+<span class="fc" id="L958">            removeAttribute(et);</span>
+        }
+<span class="fc" id="L960">        removeRuntimeAttributes(annotations);</span>
+<span class="fc" id="L961">        removeRuntimeAttributes(parameterAnnotations);</span>
+<span class="fc" id="L962">        return m;</span>
+    }
+
+    /**
+     * Gets the return type.
+     *
+     * @return the return type.
+     */
+    public Type getReturnType() {
+<span class="fc" id="L971">        return getType();</span>
+    }
+
+    @Override
+    public String getSignature() {
+<span class="fc" id="L976">        return Type.getMethodSignature(super.getType(), argTypes);</span>
+    }
+
+    /**
+     * Return value as defined by given BCELComparator strategy. By default return the hash code of the method's name XOR
+     * signature.
+     *
+     * @see Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+<span class="nc" id="L987">        return bcelComparator.hashCode(this);</span>
+    }
+
+    private List&lt;AnnotationEntryGen&gt; makeMutableVersion(final AnnotationEntry[] mutableArray) {
+<span class="fc" id="L991">        return Streams.of(mutableArray).map(ae -&gt; new AnnotationEntryGen(ae, getConstantPool(), false)).collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Remove a code attribute.
+     *
+     * @param a the attribute to remove.
+     */
+    public void removeCodeAttribute(final Attribute a) {
+<span class="fc" id="L1000">        codeAttrsList.remove(a);</span>
+<span class="fc" id="L1001">    }</span>
+
+    /**
+     * Remove all code attributes.
+     */
+    public void removeCodeAttributes() {
+<span class="nc" id="L1007">        localVariableTypeTable = null;</span>
+<span class="nc" id="L1008">        codeAttrsList.clear();</span>
+<span class="nc" id="L1009">    }</span>
+
+    /**
+     * Remove an exception.
+     *
+     * @param c the exception to remove.
+     */
+    public void removeException(final String c) {
+<span class="nc" id="L1017">        throwsList.remove(c);</span>
+<span class="nc" id="L1018">    }</span>
+
+    /**
+     * Remove an exception handler.
+     *
+     * @param c the exception handler to remove.
+     */
+    public void removeExceptionHandler(final CodeExceptionGen c) {
+<span class="nc" id="L1026">        exceptionList.remove(c);</span>
+<span class="nc" id="L1027">    }</span>
+
+    /**
+     * Remove all line numbers.
+     */
+    public void removeExceptionHandlers() {
+<span class="nc" id="L1033">        exceptionList.clear();</span>
+<span class="nc" id="L1034">    }</span>
+
+    /**
+     * Remove all exceptions.
+     */
+    public void removeExceptions() {
+<span class="nc" id="L1040">        throwsList.clear();</span>
+<span class="nc" id="L1041">    }</span>
+
+    /**
+     * Remove a line number.
+     *
+     * @param l the line number to remove.
+     */
+    public void removeLineNumber(final LineNumberGen l) {
+<span class="nc" id="L1049">        lineNumberList.remove(l);</span>
+<span class="nc" id="L1050">    }</span>
+
+    /**
+     * Remove all line numbers.
+     */
+    public void removeLineNumbers() {
+<span class="nc" id="L1056">        lineNumberList.clear();</span>
+<span class="nc" id="L1057">    }</span>
+
+    /**
+     * Remove a local variable, its slot will not be reused, if you do not use addLocalVariable with an explicit index
+     * argument.
+     *
+     * @param l the local variable to remove.
+     */
+    public void removeLocalVariable(final LocalVariableGen l) {
+<span class="fc" id="L1066">        l.dispose();</span>
+<span class="fc" id="L1067">        variableList.remove(l);</span>
+<span class="fc" id="L1068">    }</span>
+
+    /**
+     * Remove all local variables.
+     */
+    public void removeLocalVariables() {
+<span class="fc" id="L1074">        variableList.forEach(LocalVariableGen::dispose);</span>
+<span class="fc" id="L1075">        variableList.clear();</span>
+<span class="fc" id="L1076">    }</span>
+
+    /**
+     * Remove the LocalVariableTypeTable
+     */
+    public void removeLocalVariableTypeTable() {
+<span class="nc" id="L1082">        localVariableTypeTable = null;</span>
+<span class="nc" id="L1083">    }</span>
+
+    /**
+     * Remove all NOPs from the instruction list (if possible) and update every object referring to them, that is, branch
+     * instructions, local variables and exception handlers.
+     */
+    public void removeNOPs() {
+<span class="nc bnc" id="L1090" title="All 2 branches missed.">        if (il != null) {</span>
+            InstructionHandle next;
+            /*
+             * Check branch instructions.
+             */
+<span class="nc bnc" id="L1095" title="All 2 branches missed.">            for (InstructionHandle ih = il.getStart(); ih != null; ih = next) {</span>
+<span class="nc" id="L1096">                next = ih.getNext();</span>
+<span class="nc bnc" id="L1097" title="All 4 branches missed.">                if (next != null &amp;&amp; ih.getInstruction() instanceof NOP) {</span>
+                    try {
+<span class="nc" id="L1099">                        il.delete(ih);</span>
+<span class="nc" id="L1100">                    } catch (final TargetLostException e) {</span>
+<span class="nc bnc" id="L1101" title="All 2 branches missed.">                        for (final InstructionHandle target : e.getTargets()) {</span>
+<span class="nc bnc" id="L1102" title="All 2 branches missed.">                            for (final InstructionTargeter targeter : target.getTargeters()) {</span>
+<span class="nc" id="L1103">                                targeter.updateTarget(target, next);</span>
+                            }
+                        }
+<span class="nc" id="L1106">                    }</span>
+                }
+            }
+        }
+<span class="nc" id="L1110">    }</span>
+
+    /**
+     * Remove observer for this object.
+     *
+     * @param o the observer to remove.
+     */
+    public void removeObserver(final MethodObserver o) {
+<span class="nc bnc" id="L1118" title="All 2 branches missed.">        if (observers != null) {</span>
+<span class="nc" id="L1119">            observers.remove(o);</span>
+        }
+<span class="nc" id="L1121">    }</span>
+
+    /**
+     * Would prefer to make this private, but need a way to test if client is using BCEL version 6.5.0 or later that
+     * contains fix for BCEL-329.
+     *
+     * @param attributes the attributes to remove.
+     * @since 6.5.0
+     */
+    public void removeRuntimeAttributes(final Attribute[] attributes) {
+<span class="fc" id="L1131">        Streams.of(attributes).forEach(this::removeAttribute);</span>
+<span class="fc" id="L1132">    }</span>
+
+    /**
+     * Sets the argument name at the specified index.
+     *
+     * @param i the argument index.
+     * @param name the argument name.
+     */
+    public void setArgumentName(final int i, final String name) {
+<span class="nc" id="L1141">        argNames[i] = name;</span>
+<span class="nc" id="L1142">    }</span>
+
+    /**
+     * Sets all argument names.
+     *
+     * @param argNames the argument names.
+     */
+    public void setArgumentNames(final String[] argNames) {
+<span class="fc" id="L1150">        this.argNames = ArrayUtils.nullToEmpty(argNames);</span>
+<span class="fc" id="L1151">    }</span>
+
+    /**
+     * Sets the argument type at the specified index.
+     *
+     * @param i the argument index.
+     * @param type the argument type.
+     */
+    public void setArgumentType(final int i, final Type type) {
+<span class="nc" id="L1160">        argTypes[i] = type;</span>
+<span class="nc" id="L1161">    }</span>
+
+    /**
+     * Sets all argument types.
+     *
+     * @param argTypes the argument types.
+     */
+    public void setArgumentTypes(final Type[] argTypes) {
+<span class="pc bpc" id="L1169" title="1 of 2 branches missed.">        this.argTypes = argTypes != null ? argTypes : Type.NO_ARGS;</span>
+<span class="fc" id="L1170">    }</span>
+
+    /**
+     * Sets the class name.
+     *
+     * @param className the class name.
+     */
+    public void setClassName(final String className) { // TODO could be package-protected?
+<span class="fc" id="L1178">        this.className = className;</span>
+<span class="fc" id="L1179">    }</span>
+
+    /**
+     * Sets the instruction list.
+     *
+     * @param il the instruction list.
+     */
+    public void setInstructionList(final InstructionList il) { // TODO could be package-protected?
+<span class="fc" id="L1187">        this.il = il;</span>
+<span class="fc" id="L1188">    }</span>
+
+    /**
+     * Compute maximum number of local variables.
+     */
+    public void setMaxLocals() { // TODO could be package-protected? (some tests would need repackaging)
+<span class="pc bpc" id="L1194" title="1 of 2 branches missed.">        if (il != null) {</span>
+<span class="fc bfc" id="L1195" title="All 2 branches covered.">            int max = isStatic() ? 0 : 1;</span>
+<span class="fc bfc" id="L1196" title="All 2 branches covered.">            for (final Type argType : argTypes) {</span>
+<span class="fc" id="L1197">                max += argType.getSize();</span>
+            }
+<span class="fc bfc" id="L1199" title="All 2 branches covered.">            for (InstructionHandle ih = il.getStart(); ih != null; ih = ih.getNext()) {</span>
+<span class="fc" id="L1200">                final Instruction ins = ih.getInstruction();</span>
+<span class="pc bpc" id="L1201" title="2 of 6 branches missed.">                if (ins instanceof LocalVariableInstruction || ins instanceof RET || ins instanceof IINC) {</span>
+<span class="fc" id="L1202">                    final int index = ((IndexedInstruction) ins).getIndex() + ((TypedInstruction) ins).getType(super.getConstantPool()).getSize();</span>
+<span class="fc bfc" id="L1203" title="All 2 branches covered.">                    if (index &gt; max) {</span>
+<span class="fc" id="L1204">                        max = index;</span>
+                    }
+                }
+            }
+<span class="fc" id="L1208">            maxLocals = max;</span>
+<span class="fc" id="L1209">        } else {</span>
+<span class="nc" id="L1210">            maxLocals = 0;</span>
+        }
+<span class="fc" id="L1212">    }</span>
+
+    /**
+     * Sets maximum number of local variables.
+     *
+     * @param m the maximum number of local variables.
+     */
+    public void setMaxLocals(final int m) {
+<span class="fc" id="L1220">        maxLocals = m;</span>
+<span class="fc" id="L1221">    }</span>
+
+    /**
+     * Computes max. stack size by performing control flow analysis.
+     */
+    public void setMaxStack() { // TODO could be package-protected? (some tests would need repackaging)
+<span class="pc bpc" id="L1227" title="1 of 2 branches missed.">        if (il != null) {</span>
+<span class="fc" id="L1228">            maxStack = getMaxStack(super.getConstantPool(), il, getExceptionHandlers());</span>
+        } else {
+<span class="nc" id="L1230">            maxStack = 0;</span>
+        }
+<span class="fc" id="L1232">    }</span>
+
+    /**
+     * Sets maximum stack size for this method.
+     *
+     * @param m the maximum stack size.
+     */
+    public void setMaxStack(final int m) { // TODO could be package-protected?
+<span class="fc" id="L1240">        maxStack = m;</span>
+<span class="fc" id="L1241">    }</span>
+
+    /**
+     * Sets the return type.
+     *
+     * @param returnType the return type.
+     */
+    public void setReturnType(final Type returnType) {
+<span class="nc" id="L1249">        setType(returnType);</span>
+<span class="nc" id="L1250">    }</span>
+
+    /**
+     * Do not/Do produce attributes code attributesLineNumberTable and LocalVariableTable, like javac -O.
+     *
+     * @param flag whether to strip attributes.
+     */
+    public void stripAttributes(final boolean flag) {
+<span class="nc" id="L1258">        stripAttributes = flag;</span>
+<span class="nc" id="L1259">    }</span>
+
+    /**
+     * Return string representation close to declaration format, 'public static void main(String[]) throws IOException',
+     * for example.
+     *
+     * @return String representation of the method.
+     */
+    @Override
+    public final String toString() {
+<span class="nc" id="L1269">        final String access = Utility.accessToString(super.getAccessFlags());</span>
+<span class="nc" id="L1270">        String signature = Type.getMethodSignature(super.getType(), argTypes);</span>
+<span class="nc" id="L1271">        signature = Utility.methodSignatureToString(signature, super.getName(), access, true, getLocalVariableTable(super.getConstantPool()));</span>
+<span class="nc" id="L1272">        final StringBuilder buf = new StringBuilder(signature);</span>
+<span class="nc bnc" id="L1273" title="All 2 branches missed.">        for (final Attribute a : getAttributes()) {</span>
+<span class="nc bnc" id="L1274" title="All 4 branches missed.">            if (!(a instanceof Code || a instanceof ExceptionTable)) {</span>
+<span class="nc" id="L1275">                buf.append(&quot; [&quot;).append(a).append(&quot;]&quot;);</span>
+            }
+        }
+
+<span class="nc bnc" id="L1279" title="All 2 branches missed.">        if (!throwsList.isEmpty()) {</span>
+<span class="nc bnc" id="L1280" title="All 2 branches missed.">            for (final String throwsDescriptor : throwsList) {</span>
+<span class="nc" id="L1281">                buf.append(&quot;\n\t\tthrows &quot;).append(throwsDescriptor);</span>
+<span class="nc" id="L1282">            }</span>
+        }
+<span class="nc" id="L1284">        return buf.toString();</span>
+    }
+
+    /**
+     * Call notify() method on all observers. This method is not called automatically whenever the state has changed, but
+     * has to be called by the user after they have finished editing the object.
+     */
+    public void update() {
+<span class="nc bnc" id="L1292" title="All 2 branches missed.">        if (observers != null) {</span>
+<span class="nc bnc" id="L1293" title="All 2 branches missed.">            for (final MethodObserver observer : observers) {</span>
+<span class="nc" id="L1294">                observer.notify(this);</span>
+<span class="nc" id="L1295">            }</span>
+        }
+<span class="nc" id="L1297">    }</span>
+
+    private void updateLocalVariableTable(final LocalVariableTable a) {
+<span class="fc" id="L1300">        removeLocalVariables();</span>
+<span class="fc bfc" id="L1301" title="All 2 branches covered.">        for (final LocalVariable l : a.getLocalVariableTable()) {</span>
+<span class="fc" id="L1302">            InstructionHandle start = il.findHandle(l.getStartPC());</span>
+<span class="fc" id="L1303">            final InstructionHandle end = il.findHandle(l.getStartPC() + l.getLength());</span>
+            // Repair malformed handles
+<span class="pc bpc" id="L1305" title="1 of 2 branches missed.">            if (null == start) {</span>
+<span class="nc" id="L1306">                start = il.getStart();</span>
+            }
+            // end == null =&gt; live to end of method
+            // Since we are recreating the LocalVaraible, we must
+            // propagate the orig_index to new copy.
+<span class="fc" id="L1311">            addLocalVariable(l.getName(), Type.getType(l.getSignature()), l.getIndex(), start, end, l.getOrigIndex());</span>
+        }
+<span class="fc" id="L1313">    }</span>
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

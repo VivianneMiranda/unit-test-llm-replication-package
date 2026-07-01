@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BootstrapMethods.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">BootstrapMethods.java</span></div><h1>BootstrapMethods.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.apache.bcel.classfile;
+
+import java.io.DataInput;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.stream.Stream;
+
+import org.apache.bcel.Const;
+
+/**
+ * This class represents a BootstrapMethods attribute.
+ *
+ * @see &lt;a href=&quot;https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.23&quot;&gt; The class File Format :
+ *      The BootstrapMethods Attribute&lt;/a&gt;
+ * @since 6.0
+ */
+public class BootstrapMethods extends Attribute implements Iterable&lt;BootstrapMethod&gt; {
+
+    private BootstrapMethod[] bootstrapMethods; // TODO this could be made final (setter is not used)
+
+    /**
+     * Initialize from another object. Note that both objects use the same references (shallow copy). Use clone() for a
+     * physical copy.
+     *
+     * @param c Source to copy.
+     */
+    public BootstrapMethods(final BootstrapMethods c) {
+<span class="nc" id="L48">        this(c.getNameIndex(), c.getLength(), c.getBootstrapMethods(), c.getConstantPool());</span>
+<span class="nc" id="L49">    }</span>
+
+    /**
+     * Constructs a BootstrapMethods attribute.
+     *
+     * @param nameIndex Index in constant pool to CONSTANT_Utf8.
+     * @param length Content length in bytes.
+     * @param bootstrapMethods array of bootstrap methods.
+     * @param constantPool Array of constants.
+     */
+    public BootstrapMethods(final int nameIndex, final int length, final BootstrapMethod[] bootstrapMethods, final ConstantPool constantPool) {
+<span class="fc" id="L60">        super(Const.ATTR_BOOTSTRAP_METHODS, nameIndex, length, constantPool);</span>
+<span class="fc" id="L61">        setBootstrapMethods(bootstrapMethods);</span>
+<span class="fc" id="L62">    }</span>
+
+    /**
+     * Constructs object from Input stream.
+     *
+     * @param nameIndex Index in constant pool to CONSTANT_Utf8.
+     * @param length Content length in bytes.
+     * @param input Input stream.
+     * @param constantPool Array of constants.
+     * @throws IOException if an I/O error occurs.
+     */
+    BootstrapMethods(final int nameIndex, final int length, final DataInput input, final ConstantPool constantPool) throws IOException {
+<span class="fc" id="L74">        this(nameIndex, length, (BootstrapMethod[]) null, constantPool);</span>
+
+<span class="fc" id="L76">        final int numBootstrapMethods = input.readUnsignedShort();</span>
+<span class="fc" id="L77">        bootstrapMethods = new BootstrapMethod[numBootstrapMethods];</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        for (int i = 0; i &lt; numBootstrapMethods; i++) {</span>
+<span class="fc" id="L79">            bootstrapMethods[i] = new BootstrapMethod(input);</span>
+        }
+<span class="fc" id="L81">    }</span>
+
+    /**
+     * Accepts a visitor.
+     *
+     * @param v Visitor object.
+     */
+    @Override
+    public void accept(final Visitor v) {
+<span class="nc" id="L90">        v.visitBootstrapMethods(this);</span>
+<span class="nc" id="L91">    }</span>
+
+    /**
+     * Creates a deep copy of this attribute.
+     *
+     * @param constantPool the constant pool.
+     * @return deep copy of this attribute.
+     */
+    @Override
+    public BootstrapMethods copy(final ConstantPool constantPool) {
+<span class="nc" id="L101">        final BootstrapMethods c = (BootstrapMethods) clone();</span>
+<span class="nc" id="L102">        c.bootstrapMethods = new BootstrapMethod[bootstrapMethods.length];</span>
+
+<span class="nc bnc" id="L104" title="All 2 branches missed.">        for (int i = 0; i &lt; bootstrapMethods.length; i++) {</span>
+<span class="nc" id="L105">            c.bootstrapMethods[i] = bootstrapMethods[i].copy();</span>
+        }
+<span class="nc" id="L107">        c.setConstantPool(constantPool);</span>
+<span class="nc" id="L108">        return c;</span>
+    }
+
+    /**
+     * Dumps bootstrap methods attribute to file stream in binary format.
+     *
+     * @param file Output file stream.
+     * @throws IOException if an I/O error occurs.
+     */
+    @Override
+    public final void dump(final DataOutputStream file) throws IOException {
+<span class="nc" id="L119">        super.dump(file);</span>
+
+<span class="nc" id="L121">        file.writeShort(bootstrapMethods.length);</span>
+<span class="nc bnc" id="L122" title="All 2 branches missed.">        for (final BootstrapMethod bootstrapMethod : bootstrapMethods) {</span>
+<span class="nc" id="L123">            bootstrapMethod.dump(file);</span>
+        }
+<span class="nc" id="L125">    }</span>
+
+    /**
+     * Gets the array of bootstrap method records.
+     *
+     * @return array of bootstrap method records.
+     */
+    public final BootstrapMethod[] getBootstrapMethods() {
+<span class="nc" id="L133">        return bootstrapMethods;</span>
+    }
+
+    @Override
+    public Iterator&lt;BootstrapMethod&gt; iterator() {
+<span class="nc" id="L138">        return Stream.of(bootstrapMethods).iterator();</span>
+    }
+
+    /**
+     * Sets the bootstrap methods.
+     *
+     * @param bootstrapMethods the array of bootstrap methods.
+     */
+    public final void setBootstrapMethods(final BootstrapMethod[] bootstrapMethods) {
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">        this.bootstrapMethods = bootstrapMethods != null ? bootstrapMethods : BootstrapMethod.EMPTY_ARRAY;</span>
+<span class="fc" id="L148">    }</span>
+
+    /**
+     * @return String representation.
+     */
+    @Override
+    public final String toString() {
+<span class="nc" id="L155">        final StringBuilder buf = new StringBuilder();</span>
+<span class="nc" id="L156">        buf.append(&quot;BootstrapMethods(&quot;);</span>
+<span class="nc" id="L157">        buf.append(bootstrapMethods.length);</span>
+<span class="nc" id="L158">        buf.append(&quot;):&quot;);</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">        for (int i = 0; i &lt; bootstrapMethods.length; i++) {</span>
+<span class="nc" id="L160">            buf.append(&quot;\n&quot;);</span>
+<span class="nc" id="L161">            final int start = buf.length();</span>
+<span class="nc" id="L162">            buf.append(&quot;  &quot;).append(i).append(&quot;: &quot;);</span>
+<span class="nc" id="L163">            final int indentCount = buf.length() - start;</span>
+<span class="nc" id="L164">            final String[] lines = bootstrapMethods[i].toString(super.getConstantPool()).split(&quot;\\r?\\n&quot;);</span>
+<span class="nc" id="L165">            buf.append(lines[0]);</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">            for (int j = 1; j &lt; lines.length; j++) {</span>
+<span class="nc" id="L167">                buf.append(&quot;\n&quot;).append(&quot;          &quot;, 0, indentCount).append(lines[j]);</span>
+            }
+        }
+<span class="nc" id="L170">        return buf.toString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

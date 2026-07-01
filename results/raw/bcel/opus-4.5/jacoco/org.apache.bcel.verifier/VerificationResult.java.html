@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VerificationResult.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.verifier</a> &gt; <span class="el_source">VerificationResult.java</span></div><h1>VerificationResult.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.verifier;
+
+/**
+ * A VerificationResult is what a PassVerifier returns after verifying.
+ */
+public class VerificationResult {
+
+    /**
+     * Constant to indicate verification has not been tried yet. This happens if some earlier verification pass did not
+     * return VERIFIED_OK.
+     */
+    public static final int VERIFIED_NOTYET = 0;
+
+    /** Constant to indicate verification was passed. */
+    public static final int VERIFIED_OK = 1;
+
+    /** Constant to indicate verfication failed. */
+    public static final int VERIFIED_REJECTED = 2;
+
+    /**
+     * This string is the canonical message for verifications that have not been tried yet. This happens if some earlier
+     * verification pass did not return {@link #VERIFIED_OK}.
+     */
+    private static final String VERIFIED_NOTYET_MSG = &quot;Not yet verified.&quot;;
+
+    /** This string is the canonical message for passed verification passes. */
+    private static final String VERIFIED_OK_MSG = &quot;Passed verification.&quot;;
+
+    /**
+     * Canonical VerificationResult for not-yet-tried verifications. This happens if some earlier verification pass did not
+     * return {@link #VERIFIED_OK}.
+     */
+<span class="fc" id="L51">    public static final VerificationResult VR_NOTYET = new VerificationResult(VERIFIED_NOTYET, VERIFIED_NOTYET_MSG);</span>
+
+    /** Canonical VerificationResult for passed verifications. */
+<span class="fc" id="L54">    public static final VerificationResult VR_OK = new VerificationResult(VERIFIED_OK, VERIFIED_OK_MSG);</span>
+
+    /** The numeric status. */
+    private final int numeric;
+
+    /** The detailed message. */
+    private final String detailMessage;
+
+    /**
+     * The usual constructor.
+     *
+     * @param status the verification status.
+     * @param message the detail message.
+     */
+<span class="fc" id="L68">    public VerificationResult(final int status, final String message) {</span>
+<span class="fc" id="L69">        numeric = status;</span>
+<span class="fc" id="L70">        detailMessage = message;</span>
+<span class="fc" id="L71">    }</span>
+
+    /**
+     * Returns if two VerificationResult instances are equal.
+     *
+     * @param o the object to compare.
+     * @return true if equal.
+     */
+    @Override
+    public boolean equals(final Object o) {
+<span class="fc bfc" id="L81" title="All 2 branches covered.">        if (!(o instanceof VerificationResult)) {</span>
+<span class="fc" id="L82">            return false;</span>
+        }
+<span class="fc" id="L84">        final VerificationResult other = (VerificationResult) o;</span>
+<span class="fc bfc" id="L85" title="All 4 branches covered.">        return other.numeric == this.numeric &amp;&amp; other.detailMessage.equals(this.detailMessage);</span>
+    }
+
+    /**
+     * Returns a detailed message.
+     *
+     * @return the detail message.
+     */
+    public String getMessage() {
+<span class="fc" id="L94">        return detailMessage;</span>
+    }
+
+    /**
+     * Returns one of the {@link #VERIFIED_OK}, {@link #VERIFIED_NOTYET}, {@link #VERIFIED_REJECTED} constants.
+     *
+     * @return the verification status.
+     */
+    public int getStatus() {
+<span class="fc" id="L103">        return numeric;</span>
+    }
+
+    /**
+     * @return a hash code value for the object.
+     */
+    @Override
+    public int hashCode() {
+<span class="fc" id="L111">        return numeric ^ detailMessage.hashCode();</span>
+    }
+
+    /**
+     * Returns a String representation of the VerificationResult.
+     */
+    @Override
+    public String toString() {
+<span class="fc" id="L119">        String ret = &quot;&quot;;</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">        if (numeric == VERIFIED_NOTYET) {</span>
+<span class="fc" id="L121">            ret = &quot;VERIFIED_NOTYET&quot;;</span>
+        }
+<span class="fc bfc" id="L123" title="All 2 branches covered.">        if (numeric == VERIFIED_OK) {</span>
+<span class="fc" id="L124">            ret = &quot;VERIFIED_OK&quot;;</span>
+        }
+<span class="fc bfc" id="L126" title="All 2 branches covered.">        if (numeric == VERIFIED_REJECTED) {</span>
+<span class="fc" id="L127">            ret = &quot;VERIFIED_REJECTED&quot;;</span>
+        }
+<span class="fc" id="L129">        ret += &quot;\n&quot; + detailMessage + &quot;\n&quot;;</span>
+<span class="fc" id="L130">        return ret;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

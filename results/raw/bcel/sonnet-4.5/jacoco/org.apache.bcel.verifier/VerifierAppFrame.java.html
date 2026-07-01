@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VerifierAppFrame.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.verifier</a> &gt; <span class="el_source">VerifierAppFrame.java</span></div><h1>VerifierAppFrame.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.verifier;
+
+import java.awt.AWTEvent;
+import java.awt.CardLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.WindowEvent;
+import java.util.Arrays;
+
+import javax.swing.BorderFactory;
+import javax.swing.JFrame;
+import javax.swing.JList;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTextPane;
+import javax.swing.ListSelectionModel;
+import javax.swing.event.ListSelectionEvent;
+
+import org.apache.bcel.Repository;
+import org.apache.bcel.classfile.JavaClass;
+import org.apache.commons.lang3.ArrayUtils;
+
+/**
+ * This class implements a machine-generated frame for use with the GraphicalVerfifier.
+ *
+ * @see GraphicalVerifier
+ */
+public class VerifierAppFrame extends JFrame {
+
+    private static final long serialVersionUID = -542458133073307640L;
+
+    /** Machine-generated GUI component. */
+    private JPanel contentPane;
+    /** Machine-generated GUI component. */
+<span class="fc" id="L61">    private final JSplitPane jSplitPane1 = new JSplitPane();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L63">    private final JPanel jPanel1 = new JPanel();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L65">    private final JPanel jPanel2 = new JPanel();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L67">    private final JSplitPane jSplitPane2 = new JSplitPane();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L69">    private final JPanel jPanel3 = new JPanel();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L71">    private final JList&lt;String&gt; classNamesJList = new JList&lt;&gt;();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L73">    private final GridLayout gridLayout1 = new GridLayout();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L75">    private final JPanel messagesPanel = new JPanel();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L77">    private final GridLayout gridLayout2 = new GridLayout();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L79">    private final JMenuBar jMenuBar1 = new JMenuBar();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L81">    private final JMenu jMenu1 = new JMenu();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L83">    private final JScrollPane jScrollPane1 = new JScrollPane();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L85">    private final JScrollPane messagesScrollPane = new JScrollPane();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L87">    private final JScrollPane jScrollPane3 = new JScrollPane();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L89">    private final GridLayout gridLayout4 = new GridLayout();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L91">    private final JScrollPane jScrollPane4 = new JScrollPane();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L93">    private final CardLayout cardLayout1 = new CardLayout();</span>
+    /** The current class being verified. */
+    private String currentClass;
+    /** Machine-generated GUI component. */
+<span class="fc" id="L97">    private final GridLayout gridLayout3 = new GridLayout();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L99">    private final JTextPane pass1TextPane = new JTextPane();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L101">    private final JTextPane pass2TextPane = new JTextPane();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L103">    private final JTextPane messagesTextPane = new JTextPane();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L105">    private final JMenuItem newFileMenuItem = new JMenuItem();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L107">    private final JSplitPane jSplitPane3 = new JSplitPane();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L109">    private final JSplitPane jSplitPane4 = new JSplitPane();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L111">    private final JScrollPane jScrollPane2 = new JScrollPane();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L113">    private final JScrollPane jScrollPane5 = new JScrollPane();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L115">    private final JScrollPane jScrollPane6 = new JScrollPane();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L117">    private final JScrollPane jScrollPane7 = new JScrollPane();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L119">    private final JList&lt;String&gt; pass3aJList = new JList&lt;&gt;();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L121">    private final JList&lt;String&gt; pass3bJList = new JList&lt;&gt;();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L123">    private final JTextPane pass3aTextPane = new JTextPane();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L125">    private final JTextPane pass3bTextPane = new JTextPane();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L127">    private final JMenu jMenu2 = new JMenu();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L129">    private final JMenuItem whatisMenuItem = new JMenuItem();</span>
+    /** Machine-generated GUI component. */
+<span class="fc" id="L131">    private final JMenuItem aboutMenuItem = new JMenuItem();</span>
+
+    /** Constructs a new instance. */
+<span class="fc" id="L134">    public VerifierAppFrame() {</span>
+<span class="fc" id="L135">        enableEvents(AWTEvent.WINDOW_EVENT_MASK);</span>
+        try {
+<span class="fc" id="L137">            jbInit();</span>
+<span class="nc" id="L138">        } catch (final Exception e) {</span>
+<span class="nc" id="L139">            e.printStackTrace();</span>
+<span class="fc" id="L140">        }</span>
+<span class="fc" id="L141">    }</span>
+
+    void aboutMenuItemActionPerformed(final ActionEvent e) {
+<span class="nc" id="L144">        JOptionPane.showMessageDialog(this, Verifier.BANNER, Verifier.NAME, JOptionPane.INFORMATION_MESSAGE);</span>
+<span class="nc" id="L145">    }</span>
+
+    synchronized void classNamesJListValueChanged(final ListSelectionEvent e) {
+<span class="nc bnc" id="L148" title="All 2 branches missed.">        if (e.getValueIsAdjusting()) {</span>
+<span class="nc" id="L149">            return;</span>
+        }
+<span class="nc" id="L151">        currentClass = classNamesJList.getSelectedValue();</span>
+        try {
+<span class="nc" id="L153">            verify();</span>
+<span class="nc" id="L154">        } catch (final ClassNotFoundException ex) {</span>
+            // FIXME: report the error using the GUI
+<span class="nc" id="L156">            ex.printStackTrace();</span>
+<span class="nc" id="L157">        }</span>
+<span class="nc" id="L158">        classNamesJList.setSelectedValue(currentClass, true);</span>
+<span class="nc" id="L159">    }</span>
+
+    /**
+     * @return the classNamesJList.
+     */
+    JList&lt;String&gt; getClassNamesJList() {
+<span class="fc" id="L165">        return classNamesJList;</span>
+    }
+
+    /** Initizalization of the components. */
+    private void jbInit() {
+        // setIconImage(Toolkit.getDefaultToolkit().createImage(Frame1.class.getResource(&quot;[Ihr Symbol]&quot;)));
+<span class="fc" id="L171">        contentPane = (JPanel) getContentPane();</span>
+<span class="fc" id="L172">        contentPane.setLayout(cardLayout1);</span>
+<span class="fc" id="L173">        setJMenuBar(jMenuBar1);</span>
+<span class="fc" id="L174">        this.setSize(new Dimension(708, 451));</span>
+<span class="fc" id="L175">        setTitle(&quot;JustIce&quot;);</span>
+<span class="fc" id="L176">        jPanel1.setMinimumSize(new Dimension(100, 100));</span>
+<span class="fc" id="L177">        jPanel1.setPreferredSize(new Dimension(100, 100));</span>
+<span class="fc" id="L178">        jPanel1.setLayout(gridLayout1);</span>
+<span class="fc" id="L179">        jSplitPane2.setOrientation(JSplitPane.VERTICAL_SPLIT);</span>
+<span class="fc" id="L180">        jPanel2.setLayout(gridLayout2);</span>
+<span class="fc" id="L181">        jPanel3.setMinimumSize(new Dimension(200, 100));</span>
+<span class="fc" id="L182">        jPanel3.setPreferredSize(new Dimension(400, 400));</span>
+<span class="fc" id="L183">        jPanel3.setLayout(gridLayout4);</span>
+<span class="fc" id="L184">        messagesPanel.setMinimumSize(new Dimension(100, 100));</span>
+<span class="fc" id="L185">        messagesPanel.setLayout(gridLayout3);</span>
+<span class="fc" id="L186">        jPanel2.setMinimumSize(new Dimension(200, 100));</span>
+<span class="fc" id="L187">        jMenu1.setText(&quot;File&quot;);</span>
+<span class="fc" id="L188">        jScrollPane1.getViewport().setBackground(Color.red);</span>
+<span class="fc" id="L189">        messagesScrollPane.getViewport().setBackground(Color.red);</span>
+<span class="fc" id="L190">        messagesScrollPane.setPreferredSize(new Dimension(10, 10));</span>
+<span class="fc" id="L191">        classNamesJList.addListSelectionListener(this::classNamesJListValueChanged);</span>
+<span class="fc" id="L192">        classNamesJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);</span>
+<span class="fc" id="L193">        jScrollPane3.setBorder(BorderFactory.createLineBorder(Color.black));</span>
+<span class="fc" id="L194">        jScrollPane3.setPreferredSize(new Dimension(100, 100));</span>
+<span class="fc" id="L195">        gridLayout4.setRows(4);</span>
+<span class="fc" id="L196">        gridLayout4.setColumns(1);</span>
+<span class="fc" id="L197">        gridLayout4.setHgap(1);</span>
+<span class="fc" id="L198">        jScrollPane4.setBorder(BorderFactory.createLineBorder(Color.black));</span>
+<span class="fc" id="L199">        jScrollPane4.setPreferredSize(new Dimension(100, 100));</span>
+<span class="fc" id="L200">        pass1TextPane.setBorder(BorderFactory.createRaisedBevelBorder());</span>
+<span class="fc" id="L201">        pass1TextPane.setToolTipText(&quot;&quot;);</span>
+<span class="fc" id="L202">        pass1TextPane.setEditable(false);</span>
+<span class="fc" id="L203">        pass2TextPane.setBorder(BorderFactory.createRaisedBevelBorder());</span>
+<span class="fc" id="L204">        pass2TextPane.setEditable(false);</span>
+<span class="fc" id="L205">        messagesTextPane.setBorder(BorderFactory.createRaisedBevelBorder());</span>
+<span class="fc" id="L206">        messagesTextPane.setEditable(false);</span>
+<span class="fc" id="L207">        newFileMenuItem.setText(&quot;New...&quot;);</span>
+<span class="fc" id="L208">        newFileMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(78, InputEvent.CTRL_MASK, true));</span>
+<span class="fc" id="L209">        newFileMenuItem.addActionListener(this::newFileMenuItemActionPerformed);</span>
+<span class="fc" id="L210">        pass3aTextPane.setEditable(false);</span>
+<span class="fc" id="L211">        pass3bTextPane.setEditable(false);</span>
+<span class="fc" id="L212">        pass3aJList.addListSelectionListener(this::pass3aJList_valueChanged);</span>
+<span class="fc" id="L213">        pass3bJList.addListSelectionListener(this::pass3bJList_valueChanged);</span>
+<span class="fc" id="L214">        jMenu2.setText(&quot;Help&quot;);</span>
+<span class="fc" id="L215">        whatisMenuItem.setText(&quot;What is...&quot;);</span>
+<span class="fc" id="L216">        whatisMenuItem.addActionListener(this::whatisMenuItemActionPerformed);</span>
+<span class="fc" id="L217">        aboutMenuItem.setText(&quot;About&quot;);</span>
+<span class="fc" id="L218">        aboutMenuItem.addActionListener(this::aboutMenuItemActionPerformed);</span>
+<span class="fc" id="L219">        jSplitPane2.add(messagesPanel, JSplitPane.BOTTOM);</span>
+<span class="fc" id="L220">        messagesPanel.add(messagesScrollPane, null);</span>
+<span class="fc" id="L221">        messagesScrollPane.getViewport().add(messagesTextPane, null);</span>
+<span class="fc" id="L222">        jSplitPane2.add(jPanel3, JSplitPane.TOP);</span>
+<span class="fc" id="L223">        jPanel3.add(jScrollPane3, null);</span>
+<span class="fc" id="L224">        jScrollPane3.getViewport().add(pass1TextPane, null);</span>
+<span class="fc" id="L225">        jPanel3.add(jScrollPane4, null);</span>
+<span class="fc" id="L226">        jPanel3.add(jSplitPane3, null);</span>
+<span class="fc" id="L227">        jSplitPane3.add(jScrollPane2, JSplitPane.LEFT);</span>
+<span class="fc" id="L228">        jScrollPane2.getViewport().add(pass3aJList, null);</span>
+<span class="fc" id="L229">        jSplitPane3.add(jScrollPane5, JSplitPane.RIGHT);</span>
+<span class="fc" id="L230">        jScrollPane5.getViewport().add(pass3aTextPane, null);</span>
+<span class="fc" id="L231">        jPanel3.add(jSplitPane4, null);</span>
+<span class="fc" id="L232">        jSplitPane4.add(jScrollPane6, JSplitPane.LEFT);</span>
+<span class="fc" id="L233">        jScrollPane6.getViewport().add(pass3bJList, null);</span>
+<span class="fc" id="L234">        jSplitPane4.add(jScrollPane7, JSplitPane.RIGHT);</span>
+<span class="fc" id="L235">        jScrollPane7.getViewport().add(pass3bTextPane, null);</span>
+<span class="fc" id="L236">        jScrollPane4.getViewport().add(pass2TextPane, null);</span>
+<span class="fc" id="L237">        jSplitPane1.add(jPanel2, JSplitPane.TOP);</span>
+<span class="fc" id="L238">        jPanel2.add(jScrollPane1, null);</span>
+<span class="fc" id="L239">        jSplitPane1.add(jPanel1, JSplitPane.BOTTOM);</span>
+<span class="fc" id="L240">        jPanel1.add(jSplitPane2, null);</span>
+<span class="fc" id="L241">        jScrollPane1.getViewport().add(classNamesJList, null);</span>
+<span class="fc" id="L242">        jMenuBar1.add(jMenu1);</span>
+<span class="fc" id="L243">        jMenuBar1.add(jMenu2);</span>
+<span class="fc" id="L244">        contentPane.add(jSplitPane1, &quot;jSplitPane1&quot;);</span>
+<span class="fc" id="L245">        jMenu1.add(newFileMenuItem);</span>
+<span class="fc" id="L246">        jMenu2.add(whatisMenuItem);</span>
+<span class="fc" id="L247">        jMenu2.add(aboutMenuItem);</span>
+<span class="fc" id="L248">        jSplitPane2.setDividerLocation(300);</span>
+<span class="fc" id="L249">        jSplitPane3.setDividerLocation(150);</span>
+<span class="fc" id="L250">        jSplitPane4.setDividerLocation(150);</span>
+<span class="fc" id="L251">    }</span>
+
+    void newFileMenuItemActionPerformed(final ActionEvent e) {
+<span class="nc" id="L254">        final String className = JOptionPane.showInputDialog(&quot;Please enter the fully qualified name of a class or interface to verify:&quot;);</span>
+<span class="nc bnc" id="L255" title="All 4 branches missed.">        if (className == null || className.isEmpty()) {</span>
+<span class="nc" id="L256">            return;</span>
+        }
+<span class="nc" id="L258">        VerifierFactory.getVerifier(className); // let observers do the rest.</span>
+<span class="nc" id="L259">        classNamesJList.setSelectedValue(className, true);</span>
+<span class="nc" id="L260">    }</span>
+
+    synchronized void pass3aJList_valueChanged(final ListSelectionEvent e) {
+<span class="nc bnc" id="L263" title="All 2 branches missed.">        if (e.getValueIsAdjusting()) {</span>
+<span class="nc" id="L264">            return;</span>
+        }
+<span class="nc" id="L266">        final Verifier v = VerifierFactory.getVerifier(currentClass);</span>
+<span class="nc" id="L267">        final StringBuilder all3amsg = new StringBuilder();</span>
+<span class="nc" id="L268">        boolean all3aok = true;</span>
+<span class="nc" id="L269">        boolean rejected = false;</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">        for (int i = 0; i &lt; pass3aJList.getModel().getSize(); i++) {</span>
+<span class="nc bnc" id="L271" title="All 2 branches missed.">            if (pass3aJList.isSelectedIndex(i)) {</span>
+<span class="nc" id="L272">                final VerificationResult vr = v.doPass3a(i);</span>
+<span class="nc bnc" id="L273" title="All 2 branches missed.">                if (vr.getStatus() == VerificationResult.VERIFIED_REJECTED) {</span>
+<span class="nc" id="L274">                    all3aok = false;</span>
+<span class="nc" id="L275">                    rejected = true;</span>
+                }
+<span class="nc" id="L277">                JavaClass jc = null;</span>
+                try {
+<span class="nc" id="L279">                    jc = Repository.lookupClass(v.getClassName());</span>
+<span class="nc" id="L280">                    all3amsg.append(&quot;Method '&quot;).append(jc.getMethods()[i]).append(&quot;': &quot;).append(vr.getMessage().replace('\n', ' ')).append(&quot;\n\n&quot;);</span>
+<span class="nc" id="L281">                } catch (final ClassNotFoundException ex) {</span>
+                    // FIXME: handle the error
+<span class="nc" id="L283">                    ex.printStackTrace();</span>
+<span class="nc" id="L284">                }</span>
+            }
+        }
+<span class="nc" id="L287">        pass3aTextPane.setText(all3amsg.toString());</span>
+<span class="nc bnc" id="L288" title="All 4 branches missed.">        pass3aTextPane.setBackground(all3aok ? Color.green : rejected ? Color.red : Color.yellow);</span>
+<span class="nc" id="L289">    }</span>
+
+    synchronized void pass3bJList_valueChanged(final ListSelectionEvent e) {
+<span class="nc bnc" id="L292" title="All 2 branches missed.">        if (e.getValueIsAdjusting()) {</span>
+<span class="nc" id="L293">            return;</span>
+        }
+<span class="nc" id="L295">        final Verifier v = VerifierFactory.getVerifier(currentClass);</span>
+<span class="nc" id="L296">        final StringBuilder all3bmsg = new StringBuilder();</span>
+<span class="nc" id="L297">        boolean all3bok = true;</span>
+<span class="nc" id="L298">        boolean rejected = false;</span>
+<span class="nc bnc" id="L299" title="All 2 branches missed.">        for (int i = 0; i &lt; pass3bJList.getModel().getSize(); i++) {</span>
+<span class="nc bnc" id="L300" title="All 2 branches missed.">            if (pass3bJList.isSelectedIndex(i)) {</span>
+<span class="nc" id="L301">                final VerificationResult vr = v.doPass3b(i);</span>
+<span class="nc bnc" id="L302" title="All 2 branches missed.">                if (vr.getStatus() == VerificationResult.VERIFIED_REJECTED) {</span>
+<span class="nc" id="L303">                    all3bok = false;</span>
+<span class="nc" id="L304">                    rejected = true;</span>
+                }
+<span class="nc" id="L306">                JavaClass jc = null;</span>
+                try {
+<span class="nc" id="L308">                    jc = Repository.lookupClass(v.getClassName());</span>
+<span class="nc" id="L309">                    all3bmsg.append(&quot;Method '&quot;).append(jc.getMethods()[i]).append(&quot;': &quot;).append(vr.getMessage().replace('\n', ' ')).append(&quot;\n\n&quot;);</span>
+<span class="nc" id="L310">                } catch (final ClassNotFoundException ex) {</span>
+                    // FIXME: handle the error
+<span class="nc" id="L312">                    ex.printStackTrace();</span>
+<span class="nc" id="L313">                }</span>
+            }
+        }
+<span class="nc" id="L316">        pass3bTextPane.setText(all3bmsg.toString());</span>
+<span class="nc bnc" id="L317" title="All 4 branches missed.">        pass3bTextPane.setBackground(all3bok ? Color.green : rejected ? Color.red : Color.yellow);</span>
+<span class="nc" id="L318">    }</span>
+
+    /** Overridden to stop the application on a closing window. */
+    @Override
+    protected void processWindowEvent(final WindowEvent e) {
+<span class="fc" id="L323">        super.processWindowEvent(e);</span>
+<span class="pc bpc" id="L324" title="1 of 2 branches missed.">        if (e.getID() == WindowEvent.WINDOW_CLOSING) {</span>
+<span class="nc" id="L325">            System.exit(0);</span>
+        }
+<span class="fc" id="L327">    }</span>
+
+    private void verify() throws ClassNotFoundException {
+<span class="nc" id="L330">        setTitle(&quot;PLEASE WAIT&quot;);</span>
+<span class="nc" id="L331">        final Verifier v = VerifierFactory.getVerifier(currentClass);</span>
+<span class="nc" id="L332">        v.flush(); // Don't cache the verification result for this class.</span>
+        VerificationResult vr;
+<span class="nc" id="L334">        vr = v.doPass1();</span>
+<span class="nc bnc" id="L335" title="All 2 branches missed.">        if (vr.getStatus() == VerificationResult.VERIFIED_REJECTED) {</span>
+<span class="nc" id="L336">            pass1TextPane.setText(vr.getMessage());</span>
+<span class="nc" id="L337">            pass1TextPane.setBackground(Color.red);</span>
+<span class="nc" id="L338">            pass2TextPane.setText(&quot;&quot;);</span>
+<span class="nc" id="L339">            pass2TextPane.setBackground(Color.yellow);</span>
+<span class="nc" id="L340">            pass3aTextPane.setText(&quot;&quot;);</span>
+<span class="nc" id="L341">            pass3aJList.setListData(ArrayUtils.EMPTY_STRING_ARRAY);</span>
+<span class="nc" id="L342">            pass3aTextPane.setBackground(Color.yellow);</span>
+<span class="nc" id="L343">            pass3bTextPane.setText(&quot;&quot;);</span>
+<span class="nc" id="L344">            pass3bJList.setListData(ArrayUtils.EMPTY_STRING_ARRAY);</span>
+<span class="nc" id="L345">            pass3bTextPane.setBackground(Color.yellow);</span>
+        } else { // Must be VERIFIED_OK, Pass 1 does not know VERIFIED_NOTYET
+<span class="nc" id="L347">            pass1TextPane.setBackground(Color.green);</span>
+<span class="nc" id="L348">            pass1TextPane.setText(vr.getMessage());</span>
+<span class="nc" id="L349">            vr = v.doPass2();</span>
+<span class="nc bnc" id="L350" title="All 2 branches missed.">            if (vr.getStatus() == VerificationResult.VERIFIED_REJECTED) {</span>
+<span class="nc" id="L351">                pass2TextPane.setText(vr.getMessage());</span>
+<span class="nc" id="L352">                pass2TextPane.setBackground(Color.red);</span>
+<span class="nc" id="L353">                pass3aTextPane.setText(&quot;&quot;);</span>
+<span class="nc" id="L354">                pass3aTextPane.setBackground(Color.yellow);</span>
+<span class="nc" id="L355">                pass3aJList.setListData(ArrayUtils.EMPTY_STRING_ARRAY);</span>
+<span class="nc" id="L356">                pass3bTextPane.setText(&quot;&quot;);</span>
+<span class="nc" id="L357">                pass3bTextPane.setBackground(Color.yellow);</span>
+<span class="nc" id="L358">                pass3bJList.setListData(ArrayUtils.EMPTY_STRING_ARRAY);</span>
+            } else { // must be Verified_OK, because Pass1 was OK (cannot be Verified_NOTYET).
+<span class="nc" id="L360">                pass2TextPane.setText(vr.getMessage());</span>
+<span class="nc" id="L361">                pass2TextPane.setBackground(Color.green);</span>
+<span class="nc" id="L362">                final JavaClass jc = Repository.lookupClass(currentClass);</span>
+                /*
+                 * boolean all3aok = true; boolean all3bok = true; String all3amsg = &quot;&quot;; String all3bmsg = &quot;&quot;;
+                 */
+<span class="nc" id="L366">                final String[] methodNames = new String[jc.getMethods().length];</span>
+<span class="nc" id="L367">                Arrays.setAll(methodNames, i -&gt; jc.getMethods()[i].toString().replace('\n', ' ').replace('\t', ' '));</span>
+<span class="nc" id="L368">                pass3aJList.setListData(methodNames);</span>
+<span class="nc" id="L369">                pass3aJList.setSelectionInterval(0, jc.getMethods().length - 1);</span>
+<span class="nc" id="L370">                pass3bJList.setListData(methodNames);</span>
+<span class="nc" id="L371">                pass3bJList.setSelectionInterval(0, jc.getMethods().length - 1);</span>
+            }
+        }
+<span class="nc" id="L374">        final String[] msgs = v.getMessages();</span>
+<span class="nc bnc" id="L375" title="All 2 branches missed.">        messagesTextPane.setBackground(msgs.length == 0 ? Color.green : Color.yellow);</span>
+<span class="nc" id="L376">        final StringBuilder allmsgs = new StringBuilder();</span>
+<span class="nc bnc" id="L377" title="All 2 branches missed.">        for (int i = 0; i &lt; msgs.length; i++) {</span>
+<span class="nc" id="L378">            msgs[i] = msgs[i].replace('\n', ' ');</span>
+<span class="nc" id="L379">            allmsgs.append(msgs[i]).append(&quot;\n\n&quot;);</span>
+        }
+<span class="nc" id="L381">        messagesTextPane.setText(allmsgs.toString());</span>
+<span class="nc" id="L382">        setTitle(currentClass + &quot; - &quot; + Verifier.NAME);</span>
+<span class="nc" id="L383">    }</span>
+
+    void whatisMenuItemActionPerformed(final ActionEvent e) {
+<span class="nc" id="L386">        JOptionPane.showMessageDialog(this,</span>
+            &quot;The upper four boxes to the right reflect verification passes according to&quot;
+                + &quot; The Java Virtual Machine Specification.\nThese are (in that order):&quot;
+                + &quot; Pass one, Pass two, Pass three (before data flow analysis), Pass three (data flow analysis).\n&quot;
+                + &quot;The bottom box to the right shows (warning) messages; warnings do not cause a class to be rejected.&quot;,
+            Verifier.NAME, JOptionPane.INFORMATION_MESSAGE);
+<span class="nc" id="L392">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

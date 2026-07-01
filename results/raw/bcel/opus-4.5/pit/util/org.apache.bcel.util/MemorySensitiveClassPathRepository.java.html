@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="../style.css">
+</head>
+<body>
+
+
+<h1>MemorySensitiveClassPathRepository.java</h1>
+
+<table class="src">
+
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_1'/>
+1
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_1'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/*</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_2'/>
+2
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_2'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * Licensed to the Apache Software Foundation (ASF) under one</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_3'/>
+3
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_3'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * or more contributor license agreements.  See the NOTICE file</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_4'/>
+4
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_4'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * distributed with this work for additional information</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_5'/>
+5
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_5'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * regarding copyright ownership.  The ASF licenses this file</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_6'/>
+6
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_6'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * to you under the Apache License, Version 2.0 (the</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_7'/>
+7
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_7'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#34;License&#34;); you may not use this file except in compliance</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_8'/>
+8
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_8'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * with the License.  You may obtain a copy of the License at</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_9'/>
+9
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_9'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_10'/>
+10
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_10'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *   https://www.apache.org/licenses/LICENSE-2.0</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_11'/>
+11
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_11'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_12'/>
+12
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_12'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * Unless required by applicable law or agreed to in writing,</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_13'/>
+13
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_13'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * software distributed under the License is distributed on an</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_14'/>
+14
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_14'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#34;AS IS&#34; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_15'/>
+15
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_15'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * KIND, either express or implied.  See the License for the</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_16'/>
+16
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_16'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * specific language governing permissions and limitations</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_17'/>
+17
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_17'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * under the License.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_18'/>
+18
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_18'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_19'/>
+19
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_19'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>package org.apache.bcel.util;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_20'/>
+20
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_20'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_21'/>
+21
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_21'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.lang.ref.SoftReference;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_22'/>
+22
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_22'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.HashMap;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_23'/>
+23
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_23'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.Map;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_24'/>
+24
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_24'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_25'/>
+25
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_25'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.apache.bcel.classfile.JavaClass;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_26'/>
+26
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_26'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_27'/>
+27
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_27'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_28'/>
+28
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_28'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * This repository is used in situations where a Class is created outside the realm of a ClassLoader. Classes are loaded</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_29'/>
+29
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_29'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * from the file systems using the paths specified in the given class path. By default, this is the value returned by</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_30'/>
+30
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_30'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * ClassPath.getClassPath(). This repository holds onto classes with SoftReferences, and will reload as needed, in cases</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_31'/>
+31
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_31'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * where memory sizes are important.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_32'/>
+32
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_32'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_33'/>
+33
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_33'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * @see org.apache.bcel.Repository</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_34'/>
+34
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_34'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_35'/>
+35
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_35'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>public class MemorySensitiveClassPathRepository extends AbstractClassPathRepository {</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_36'/>
+36
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_36'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_37'/>
+37
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_37'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    private final Map&#60;String, SoftReference&#60;JavaClass&#62;&#62; loadedClasses = new HashMap&#60;&#62;(); // CLASSNAME X JAVACLASS</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_38'/>
+38
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_38'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_39'/>
+39
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_39'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    /**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_40'/>
+40
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_40'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * Constructs a new MemorySensitiveClassPathRepository.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_41'/>
+41
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_41'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     *</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_42'/>
+42
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_42'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * @param path the class path.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_43'/>
+43
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_43'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_44'/>
+44
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_44'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    public MemorySensitiveClassPathRepository(final ClassPath path) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_45'/>
+45
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_45'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        super(path);</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_46'/>
+46
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_46'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_47'/>
+47
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_47'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_48'/>
+48
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_48'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    /**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_49'/>
+49
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_49'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * Clear all entries from cache.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_50'/>
+50
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_50'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_51'/>
+51
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_51'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    @Override</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_52'/>
+52
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_52'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    public void clear() {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_53'/>
+53
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_53'>1</a>
+<span>
+
+1. clear : removed call to java/util/Map::clear &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        loadedClasses.clear();</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_54'/>
+54
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_54'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_55'/>
+55
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_55'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_56'/>
+56
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_56'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    /**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_57'/>
+57
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_57'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * Find an already defined (cached) JavaClass object by name.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_58'/>
+58
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_58'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_59'/>
+59
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_59'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    @Override</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_60'/>
+60
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_60'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    public JavaClass findClass(final String className) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_61'/>
+61
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_61'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        final SoftReference&#60;JavaClass&#62; ref = loadedClasses.get(className);</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_62'/>
+62
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_62'>2</a>
+<span>
+
+1. findClass : negated conditional &rarr; KILLED<br/>
+
+2. findClass : replaced return value with null for org/apache/bcel/util/MemorySensitiveClassPathRepository::findClass &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        return ref == null ? null : ref.get();</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_63'/>
+63
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_63'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_64'/>
+64
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_64'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_65'/>
+65
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_65'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    /**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_66'/>
+66
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_66'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * Remove class from repository</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_67'/>
+67
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_67'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_68'/>
+68
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_68'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    @Override</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_69'/>
+69
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_69'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    public void removeClass(final JavaClass clazz) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_70'/>
+70
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_70'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        loadedClasses.remove(clazz.getClassName());</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_71'/>
+71
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_71'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_72'/>
+72
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_72'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_73'/>
+73
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_73'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    /**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_74'/>
+74
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_74'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * Store a new JavaClass instance into this Repository.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_75'/>
+75
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_75'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_76'/>
+76
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_76'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    @Override</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_77'/>
+77
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_77'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    public void storeClass(final JavaClass clazz) {</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_78'/>
+78
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_78'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        // Not calling super.storeClass because this subclass maintains the mapping.</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_79'/>
+79
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_79'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        loadedClasses.put(clazz.getClassName(), new SoftReference&#60;&#62;(clazz));</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_80'/>
+80
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_80'>1</a>
+<span>
+
+1. storeClass : removed call to org/apache/bcel/classfile/JavaClass::setRepository &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        clazz.setRepository(this);</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_81'/>
+81
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_81'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@cc64e22_82'/>
+82
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_82'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>}</span></pre></td></tr>
+
+
+
+<tr><td></td><td></td><td><h2>Mutations</h2></td></tr>
+
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@cc64e22_53'>53</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_53'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>clear<br/><b>Killed by : </b>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testStoreClass()]</span></span> removed call to java/util/Map::clear &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@cc64e22_62'>62</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_62'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>findClass<br/><b>Killed by : </b>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testFindClassNotLoaded()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>findClass<br/><b>Killed by : </b>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testFindClass()]</span></span> replaced return value with null for org/apache/bcel/util/MemorySensitiveClassPathRepository::findClass &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@cc64e22_80'>80</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@cc64e22_80'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>storeClass<br/><b>Killed by : </b>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testStoreClassSetsRepository()]</span></span> removed call to org/apache/bcel/classfile/JavaClass::setRepository &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+</table>
+
+
+<h2>Active mutators</h2>
+<ul>
+
+<li class='mutator'>CONDITIONALS_BOUNDARY</li>
+
+<li class='mutator'>EMPTY_RETURNS</li>
+
+<li class='mutator'>FALSE_RETURNS</li>
+
+<li class='mutator'>INCREMENTS</li>
+
+<li class='mutator'>INVERT_NEGS</li>
+
+<li class='mutator'>MATH</li>
+
+<li class='mutator'>NEGATE_CONDITIONALS</li>
+
+<li class='mutator'>NULL_RETURNS</li>
+
+<li class='mutator'>PRIMITIVE_RETURNS</li>
+
+<li class='mutator'>TRUE_RETURNS</li>
+
+<li class='mutator'>VOID_METHOD_CALLS</li>
+
+</ul>
+
+<h2>Tests examined</h2>
+<ul>
+<li>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testGetClassPath()] (0 ms)</li><li>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testConstructor()] (0 ms)</li><li>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testFindClassNotLoaded()] (0 ms)</li><li>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testLoadClassWithEmptyName()] (0 ms)</li><li>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testLoadClassWithNullName()] (1 ms)</li><li>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testLoadClassByClass()] (0 ms)</li><li>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testFindClass()] (0 ms)</li><li>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testStoreClass()] (0 ms)</li><li>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testStoreClassSetsRepository()] (0 ms)</li><li>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testLoadClassCaching()] (0 ms)</li><li>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testRemoveClass()] (0 ms)</li><li>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testClear()] (1 ms)</li><li>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testLoadClassByName()] (1 ms)</li><li>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testLoadMultipleClasses()] (5 ms)</li><li>org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.MemorySensitiveClassPathRepositoryTest]/[method:testLoadNonExistentClass()] (4 ms)</li><li>org.apache.bcel.util.SyntheticRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.SyntheticRepositoryTest]/[method:testGetInstanceReturnsSingleton()] (0 ms)</li><li>org.apache.bcel.util.SyntheticRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.SyntheticRepositoryTest]/[method:testGetClassPath()] (0 ms)</li><li>org.apache.bcel.util.SyntheticRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.SyntheticRepositoryTest]/[method:testGetInstanceWithClassPath()] (0 ms)</li><li>org.apache.bcel.util.SyntheticRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.SyntheticRepositoryTest]/[method:testLoadClassWithEmptyName()] (0 ms)</li><li>org.apache.bcel.util.SyntheticRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.SyntheticRepositoryTest]/[method:testLoadClassWithNullName()] (0 ms)</li><li>org.apache.bcel.util.SyntheticRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.SyntheticRepositoryTest]/[method:testFindClassNotLoaded()] (0 ms)</li><li>org.apache.bcel.util.SyntheticRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.SyntheticRepositoryTest]/[method:testGetInstance()] (1 ms)</li><li>org.apache.bcel.util.SyntheticRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.SyntheticRepositoryTest]/[method:testLoadClassByClass()] (0 ms)</li><li>org.apache.bcel.util.SyntheticRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.SyntheticRepositoryTest]/[method:testStoreClass()] (0 ms)</li><li>org.apache.bcel.util.SyntheticRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.SyntheticRepositoryTest]/[method:testLoadClassByName()] (1 ms)</li><li>org.apache.bcel.util.SyntheticRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.SyntheticRepositoryTest]/[method:testLoadClassCaching()] (0 ms)</li><li>org.apache.bcel.util.SyntheticRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.SyntheticRepositoryTest]/[method:testFindClass()] (0 ms)</li><li>org.apache.bcel.util.SyntheticRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.SyntheticRepositoryTest]/[method:testRemoveClass()] (0 ms)</li><li>org.apache.bcel.util.SyntheticRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.SyntheticRepositoryTest]/[method:testClear()] (1 ms)</li><li>org.apache.bcel.util.SyntheticRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.SyntheticRepositoryTest]/[method:testLoadMultipleClasses()] (1 ms)</li><li>org.apache.bcel.util.SyntheticRepositoryTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.SyntheticRepositoryTest]/[method:testLoadNonExistentClass()] (8 ms)</li><li>org.apache.bcel.util.ClassQueueTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassQueueTest]/[method:testFifoOrder()] (0 ms)</li><li>org.apache.bcel.util.ClassVectorTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassVectorTest]/[method:testAddMultipleElements()] (0 ms)</li><li>org.apache.bcel.util.BCELifierTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.BCELifierTest]/[method:testConstructor()] (13 ms)</li><li>org.apache.bcel.util.BCELifierTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.BCELifierTest]/[method:testGeneratedCodeContainsClassGen()] (71 ms)</li><li>org.apache.bcel.util.ClassQueueTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassQueueTest]/[method:testEnqueue()] (0 ms)</li><li>org.apache.bcel.util.ClassQueueTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassQueueTest]/[method:testDequeue()] (0 ms)</li><li>org.apache.bcel.util.ClassSetTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassSetTest]/[method:testAddDuplicateReturnsFalse()] (0 ms)</li><li>org.apache.bcel.util.ClassStackTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassStackTest]/[method:testPop()] (0 ms)</li><li>org.apache.bcel.util.ClassVectorTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassVectorTest]/[method:testAddElement()] (0 ms)</li><li>org.apache.bcel.util.ClassStackTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassStackTest]/[method:testPush()] (0 ms)</li><li>org.apache.bcel.util.ClassSetTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassSetTest]/[method:testRemoveNonExistent()] (0 ms)</li><li>org.apache.bcel.util.ClassStackTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassStackTest]/[method:testTop()] (0 ms)</li><li>org.apache.bcel.util.ClassSetTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassSetTest]/[method:testAdd()] (0 ms)</li><li>org.apache.bcel.util.ClassVectorTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassVectorTest]/[method:testElementAt()] (0 ms)</li><li>org.apache.bcel.util.ClassQueueTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassQueueTest]/[method:testEmptyAfterDequeue()] (0 ms)</li><li>org.apache.bcel.util.ClassVectorTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassVectorTest]/[method:testToArray()] (0 ms)</li><li>org.apache.bcel.util.ClassVectorTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassVectorTest]/[method:testRemoveElementAt()] (0 ms)</li><li>org.apache.bcel.util.ClassStackTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassStackTest]/[method:testTopDoesNotRemove()] (0 ms)</li><li>org.apache.bcel.util.ClassVectorTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassVectorTest]/[method:testAddSameElementMultipleTimes()] (0 ms)</li><li>org.apache.bcel.util.ClassQueueTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassQueueTest]/[method:testEnqueueSameClassMultipleTimes()] (0 ms)</li><li>org.apache.bcel.util.ClassSetTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassSetTest]/[method:testGetClassNames()] (0 ms)</li><li>org.apache.bcel.util.ClassSetTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassSetTest]/[method:testRemove()] (0 ms)</li><li>org.apache.bcel.util.ClassSetTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassSetTest]/[method:testToArray()] (0 ms)</li><li>org.apache.bcel.util.ClassStackTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassStackTest]/[method:testLifoOrder()] (0 ms)</li><li>org.apache.bcel.util.ClassStackTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassStackTest]/[method:testPushSameClassMultipleTimes()] (0 ms)</li><li>org.apache.bcel.util.ClassStackTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassStackTest]/[method:testMultiplePushPop()] (0 ms)</li><li>org.apache.bcel.util.ClassQueueTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassQueueTest]/[method:testMultipleEnqueueDequeue()] (0 ms)</li><li>org.apache.bcel.util.ClassQueueTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassQueueTest]/[method:testToString()] (2 ms)</li><li>org.apache.bcel.util.ClassSetTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassSetTest]/[method:testMultipleAddRemove()] (0 ms)</li><li>org.apache.bcel.util.ClassLoaderTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.ClassLoaderTest]/[method:testLoadNonExistentClassThrows()] (5 ms)</li><li>org.apache.bcel.util.BCELifierTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.BCELifierTest]/[method:testGeneratedCodeContainsInstructionFactory()] (1 ms)</li><li>org.apache.bcel.util.BCELifierTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.BCELifierTest]/[method:testGeneratedCodeContainsConstantPoolGen()] (2 ms)</li><li>org.apache.bcel.util.BCELifierTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.BCELifierTest]/[method:testGeneratedCodeContainsClassName()] (3 ms)</li><li>org.apache.bcel.util.BCELifierTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.BCELifierTest]/[method:testStart()] (3 ms)</li><li>org.apache.bcel.util.Class2HTMLTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.Class2HTMLTest]/[method:testCreatesMethodsHtmlFile()] (21 ms)</li><li>org.apache.bcel.util.Class2HTMLTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.Class2HTMLTest]/[method:testCodeHtmlContainsTable()] (22 ms)</li><li>org.apache.bcel.util.Class2HTMLTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.Class2HTMLTest]/[method:testConstructor()] (22 ms)</li><li>org.apache.bcel.util.Class2HTMLTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.Class2HTMLTest]/[method:testCreatesConstantPoolHtmlFile()] (23 ms)</li><li>org.apache.bcel.util.Class2HTMLTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.Class2HTMLTest]/[method:testCreatesCodeHtmlFile()] (24 ms)</li><li>org.apache.bcel.util.Class2HTMLTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.Class2HTMLTest]/[method:testMainHtmlContainsFrameset()] (26 ms)</li><li>org.apache.bcel.util.Class2HTMLTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.Class2HTMLTest]/[method:testCreatesAttributesHtmlFile()] (27 ms)</li><li>org.apache.bcel.util.Class2HTMLTest.[engine:junit-jupiter]/[class:org.apache.bcel.util.Class2HTMLTest]/[method:testCreatesMainHtmlFile()] (95 ms)</li>
+</ul>
+
+<br/>
+
+Report generated by <a href='https://pitest.org'>PIT</a> 1.25.3 <a href='https://github.com/sponsors/hcoles'>support</a>
+
+</body>
+</html>

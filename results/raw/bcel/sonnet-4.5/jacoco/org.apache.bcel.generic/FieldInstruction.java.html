@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FieldInstruction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">FieldInstruction.java</span></div><h1>FieldInstruction.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import org.apache.bcel.classfile.ConstantPool;
+
+/**
+ * Super class for the GET/PUTxxx family of instructions.
+ */
+public abstract class FieldInstruction extends FieldOrMethod {
+
+    /**
+     * Empty constructor needed for Instruction.readInstruction. Not to be used otherwise.
+     */
+<span class="nc" id="L31">    FieldInstruction() {</span>
+<span class="nc" id="L32">    }</span>
+
+    /**
+     * Constructs a FieldInstruction.
+     *
+     * @param opcode the opcode.
+     * @param index to constant pool.
+     */
+    protected FieldInstruction(final short opcode, final int index) {
+<span class="nc" id="L41">        super(opcode, index);</span>
+<span class="nc" id="L42">    }</span>
+
+    /**
+     * Gets the name of referenced field.
+     *
+     * @param cpg the constant pool generator.
+     * @return name of referenced field.
+     */
+    public String getFieldName(final ConstantPoolGen cpg) {
+<span class="nc" id="L51">        return getName(cpg);</span>
+    }
+
+    /**
+     * Gets the size of field.
+     *
+     * @param cpg the constant pool generator.
+     * @return size of field (1 or 2).
+     */
+    protected int getFieldSize(final ConstantPoolGen cpg) {
+<span class="nc" id="L61">        return Type.size(Type.getTypeSize(getSignature(cpg)));</span>
+    }
+
+    /**
+     * Gets the type of field.
+     *
+     * @param cpg the constant pool generator.
+     * @return type of field.
+     */
+    public Type getFieldType(final ConstantPoolGen cpg) {
+<span class="nc" id="L71">        return Type.getType(getSignature(cpg));</span>
+    }
+
+    /**
+     * @return return type of referenced field.
+     */
+    @Override
+    public Type getType(final ConstantPoolGen cpg) {
+<span class="nc" id="L79">        return getFieldType(cpg);</span>
+    }
+
+    /**
+     * @return mnemonic for instruction with symbolic references resolved.
+     */
+    @Override
+    public String toString(final ConstantPool cp) {
+<span class="nc" id="L87">        return org.apache.bcel.Const.getOpcodeName(super.getOpcode()) + &quot; &quot; + cp.constantToString(super.getIndex(), org.apache.bcel.Const.CONSTANT_Fieldref);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

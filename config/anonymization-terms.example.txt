@@ -1,0 +1,22 @@
+# Copy this file to anonymization-terms.txt (gitignored) and fill with terms
+# to redact at https://anonymous.4open.science/ — one term per line.
+# Regex is supported. Use term=>replacement for custom replacements.
+
+# Author names (full and partial)
+# First Author Name
+# Second Author Name
+
+# Affiliations
+# University Name
+# Department Name
+# Company Name
+
+# Contact and accounts
+# author@university.edu
+# github-username
+
+# Local paths (regex)
+# C:\\Users\\.*
+
+# Repository identifiers (if revealing)
+# unit-test-llm-replication-package

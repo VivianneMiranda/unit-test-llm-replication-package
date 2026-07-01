@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="../style.css">
+</head>
+<body>
+
+
+<h1>FilterHelpAppendable.java</h1>
+
+<table class="src">
+
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_1'/>
+1
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_1'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/*</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_2'/>
+2
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_2'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  Licensed to the Apache Software Foundation (ASF) under one or more</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_3'/>
+3
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_3'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  contributor license agreements.  See the NOTICE file distributed with</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_4'/>
+4
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_4'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  this work for additional information regarding copyright ownership.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_5'/>
+5
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_5'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  The ASF licenses this file to You under the Apache License, Version 2.0</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_6'/>
+6
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_6'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  (the &#34;License&#34;); you may not use this file except in compliance with</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_7'/>
+7
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_7'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  the License.  You may obtain a copy of the License at</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_8'/>
+8
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_8'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_9'/>
+9
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_9'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      https://www.apache.org/licenses/LICENSE-2.0</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_10'/>
+10
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_10'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_11'/>
+11
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_11'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  Unless required by applicable law or agreed to in writing, software</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_12'/>
+12
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_12'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  distributed under the License is distributed on an &#34;AS IS&#34; BASIS,</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_13'/>
+13
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_13'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_14'/>
+14
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_14'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  See the License for the specific language governing permissions and</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_15'/>
+15
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_15'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  limitations under the License.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_16'/>
+16
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_16'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_17'/>
+17
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_17'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>package org.apache.commons.cli.help;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_18'/>
+18
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_18'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_19'/>
+19
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_19'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.io.IOException;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_20'/>
+20
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_20'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_21'/>
+21
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_21'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_22'/>
+22
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_22'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * An abstract implementation of {@link HelpAppendable} that writes output to an {@link Appendable} instance.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_23'/>
+23
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_23'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#60;p&#62;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_24'/>
+24
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_24'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * This class is the superclass of all classes that filter help appendables. These appendable sit on top of an existing appendable (the &#60;em&#62;underlying&#60;/em&#62;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_25'/>
+25
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_25'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * appendable) which it uses as its basic sink of data, but possibly transforming the data along the way or providing additional functionality.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_26'/>
+26
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_26'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#60;/p&#62;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_27'/>
+27
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_27'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#60;p&#62;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_28'/>
+28
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_28'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * The class {@code FilterHelpAppendable} itself simply overrides all methods of {@code HelpAppendable} with versions that pass all requests to the underlying</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_29'/>
+29
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_29'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * appendable. Subclasses of {@code FilterHelpAppendable} may further override some of these methods as well as provide additional methods and fields.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_30'/>
+30
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_30'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#60;/p&#62;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_31'/>
+31
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_31'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#60;p&#62;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_32'/>
+32
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_32'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#60;em&#62;Implementation Note&#60;/em&#62;: This class is similar to FilterOutputStream in relation to OutputStream. We could further split FilterHelpAppendable into a</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_33'/>
+33
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_33'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * FilterAppendable but that seems like YAGNI.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_34'/>
+34
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_34'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#60;/p&#62;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_35'/>
+35
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_35'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_36'/>
+36
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_36'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * @since 1.10.0</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_37'/>
+37
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_37'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_38'/>
+38
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_38'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>public abstract class FilterHelpAppendable implements HelpAppendable {</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_39'/>
+39
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_39'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_40'/>
+40
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_40'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    /**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_41'/>
+41
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_41'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * The underlying appendable to be filtered.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_42'/>
+42
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_42'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_43'/>
+43
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_43'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    protected final Appendable output;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_44'/>
+44
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_44'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_45'/>
+45
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_45'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    /**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_46'/>
+46
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_46'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * Constructs an appendable filter built on top of the specified underlying appendable.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_47'/>
+47
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_47'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     *</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_48'/>
+48
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_48'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * @param output the underlying appendable to be assigned to the field {@code this.output} for later use, or {@code null} if this instance is to be created</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_49'/>
+49
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_49'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     *               without an underlying stream.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_50'/>
+50
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_50'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     */</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_51'/>
+51
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_51'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    protected FilterHelpAppendable(final Appendable output) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_52'/>
+52
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_52'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        this.output = output;</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_53'/>
+53
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_53'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_54'/>
+54
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_54'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_55'/>
+55
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_55'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    @Override</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_56'/>
+56
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_56'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    public FilterHelpAppendable append(final char ch) throws IOException {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_57'/>
+57
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_57'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        output.append(ch);</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_58'/>
+58
+</td>
+<td class='survived'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_58'>1</a>
+<span>
+
+1. append : replaced return value with null for org/apache/commons/cli/help/FilterHelpAppendable::append &rarr; SURVIVED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='survived'>        return this;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_59'/>
+59
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_59'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_60'/>
+60
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_60'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_61'/>
+61
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_61'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    @Override</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_62'/>
+62
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_62'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    public FilterHelpAppendable append(final CharSequence text) throws IOException {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_63'/>
+63
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_63'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        output.append(text);</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_64'/>
+64
+</td>
+<td class='survived'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_64'>1</a>
+<span>
+
+1. append : replaced return value with null for org/apache/commons/cli/help/FilterHelpAppendable::append &rarr; SURVIVED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='survived'>        return this;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_65'/>
+65
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_65'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_66'/>
+66
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_66'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_67'/>
+67
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_67'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    @Override</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_68'/>
+68
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_68'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    public FilterHelpAppendable append(final CharSequence csq, final int start, final int end) throws IOException {</span></pre></td></tr>
+
+
+<tr>
+<td class='uncovered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_69'/>
+69
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_69'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='uncovered'><pre><span  class=''>        output.append(csq, start, end);</span></pre></td></tr>
+
+
+<tr>
+<td class='uncovered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_70'/>
+70
+</td>
+<td class='survived'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_70'>1</a>
+<span>
+
+1. append : replaced return value with null for org/apache/commons/cli/help/FilterHelpAppendable::append &rarr; NO_COVERAGE<br/>
+
+</span>
+</span>
+</td>
+<td class='uncovered'><pre><span  class='survived'>        return this;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_71'/>
+71
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_71'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@23e9526b_72'/>
+72
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_72'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>}</span></pre></td></tr>
+
+
+
+<tr><td></td><td></td><td><h2>Mutations</h2></td></tr>
+
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@23e9526b_58'>58</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_58'/> 
+
+<p class='SURVIVED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>append<br/><b>Killed by : </b>none</span></span> replaced return value with null for org/apache/commons/cli/help/FilterHelpAppendable::append &rarr; SURVIVED</span>
+<a title="Click to view covering tests" class="view-covered-by-tests" onClick="document.getElementById('MutationIdentifier-[location=Location-[clazz=org.apache.commons.cli.help.FilterHelpAppendable,-method=append,-methodDesc=(C)Lorg/apache/commons/cli/help/FilterHelpAppendable;],-indexes=[11],-mutator=org.pitest.mutationtest.engine.gregor.mutators.returns.NullReturnValsMutator]').style.display=(document.getElementById('MutationIdentifier-[location=Location-[clazz=org.apache.commons.cli.help.FilterHelpAppendable,-method=append,-methodDesc=(C)Lorg/apache/commons/cli/help/FilterHelpAppendable;],-indexes=[11],-mutator=org.pitest.mutationtest.engine.gregor.mutators.returns.NullReturnValsMutator]').style.display == 'block')?'none':'block';">Covering tests</a>
+<div class="covered-tests" id="MutationIdentifier-[location=Location-[clazz=org.apache.commons.cli.help.FilterHelpAppendable,-method=append,-methodDesc=(C)Lorg/apache/commons/cli/help/FilterHelpAppendable;],-indexes=[11],-mutator=org.pitest.mutationtest.engine.gregor.mutators.returns.NullReturnValsMutator]" style="display:none;">Covered by tests:
+<ul>
+<li>org.apache.commons.cli.help.TextHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.TextHelpAppendableTest]/[method:testAppend()]</li> 
+</ul>
+</div></div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@23e9526b_64'>64</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_64'/> 
+
+<p class='SURVIVED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>append<br/><b>Killed by : </b>none</span></span> replaced return value with null for org/apache/commons/cli/help/FilterHelpAppendable::append &rarr; SURVIVED</span>
+<a title="Click to view covering tests" class="view-covered-by-tests" onClick="document.getElementById('MutationIdentifier-[location=Location-[clazz=org.apache.commons.cli.help.FilterHelpAppendable,-method=append,-methodDesc=(Ljava/lang/CharSequence;)Lorg/apache/commons/cli/help/FilterHelpAppendable;],-indexes=[11],-mutator=org.pitest.mutationtest.engine.gregor.mutators.returns.NullReturnValsMutator]').style.display=(document.getElementById('MutationIdentifier-[location=Location-[clazz=org.apache.commons.cli.help.FilterHelpAppendable,-method=append,-methodDesc=(Ljava/lang/CharSequence;)Lorg/apache/commons/cli/help/FilterHelpAppendable;],-indexes=[11],-mutator=org.pitest.mutationtest.engine.gregor.mutators.returns.NullReturnValsMutator]').style.display == 'block')?'none':'block';">Covering tests</a>
+<div class="covered-tests" id="MutationIdentifier-[location=Location-[clazz=org.apache.commons.cli.help.FilterHelpAppendable,-method=append,-methodDesc=(Ljava/lang/CharSequence;)Lorg/apache/commons/cli/help/FilterHelpAppendable;],-indexes=[11],-mutator=org.pitest.mutationtest.engine.gregor.mutators.returns.NullReturnValsMutator]" style="display:none;">Covered by tests:
+<ul>
+<li>org.apache.commons.cli.example.AptHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.AptHelpAppendableTest]/[method:testAppendFormatTest()]</li> <li>org.apache.commons.cli.example.AptHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.AptHelpAppendableTest]/[method:testAppendParagraphTest()]</li> <li>org.apache.commons.cli.example.XhtmlHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.XhtmlHelpAppendableTest]/[method:testAppendParagraphTest()]</li> <li>org.apache.commons.cli.example.XhtmlHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.XhtmlHelpAppendableTest]/[method:testAppendParagraphFormatTest()]</li> <li>org.apache.commons.cli.example.AptHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.AptHelpAppendableTest]/[method:testAppendParagraphFormatTest()]</li> <li>org.apache.commons.cli.example.AptHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.AptHelpAppendableTest]/[method:testAppendTitleTest()]</li> <li>org.apache.commons.cli.example.XhtmlHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.XhtmlHelpAppendableTest]/[method:testAppendHeaderTest()]</li> <li>org.apache.commons.cli.help.TextHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.TextHelpAppendableTest]/[method:testAppend()]</li> <li>org.apache.commons.cli.example.AptHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.AptHelpAppendableTest]/[method:testAppendHeaderTest()]</li> <li>org.apache.commons.cli.example.XhtmlHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.XhtmlHelpAppendableTest]/[method:testAppendListTest()]</li> <li>org.apache.commons.cli.example.AptHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.AptHelpAppendableTest]/[method:testAppendListTest()]</li> <li>org.apache.commons.cli.example.XhtmlHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.XhtmlHelpAppendableTest]/[method:testAppendTitleTest()]</li> <li>org.apache.commons.cli.example.XhtmlHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.XhtmlHelpAppendableTest]/[method:testAppendTableTest()]</li> <li>org.apache.commons.cli.help.TextHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.TextHelpAppendableTest]/[method:testAppendParagraph()]</li> <li>org.apache.commons.cli.help.TextHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.TextHelpAppendableTest]/[method:testAppendParagraphFormat()]</li> <li>org.apache.commons.cli.help.TextHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.TextHelpAppendableTest]/[method:testAppendTitle()]</li> <li>org.apache.commons.cli.example.AptHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.AptHelpAppendableTest]/[method:testAppendTableTest()]</li> <li>org.apache.commons.cli.help.TextHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.TextHelpAppendableTest]/[method:testAppendList()]</li> <li>org.apache.commons.cli.help.TextHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.TextHelpAppendableTest]/[method:testAppendHeader()]</li> <li>org.apache.commons.cli.help.TextHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.TextHelpAppendableTest]/[method:testPrintWrapped()]</li> <li>org.apache.commons.cli.help.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.HelpFormatterTest]/[method:testPrintHelpXML()]</li> <li>org.apache.commons.cli.help.TextHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.TextHelpAppendableTest]/[method:testAppendTable()]</li> <li>org.apache.commons.cli.help.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.HelpFormatterTest]/[method:testPrintHelpHeader()]</li> <li>org.apache.commons.cli.help.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.HelpFormatterTest]/[method:verifyOptionGroupingOutput()]</li> <li>org.apache.commons.cli.help.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.HelpFormatterTest]/[method:testPrintHelpWithIterableOptions()]</li> <li>org.apache.commons.cli.help.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.HelpFormatterTest]/[method:testPrintHelp()]</li> 
+</ul>
+</div></div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@23e9526b_70'>70</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@23e9526b_70'/> 
+
+<p class='NO_COVERAGE'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>append<br/><b>Killed by : </b>none</span></span> replaced return value with null for org/apache/commons/cli/help/FilterHelpAppendable::append &rarr; NO_COVERAGE</span>
+</div> 
+</td>
+</tr>
+
+</table>
+
+
+<h2>Active mutators</h2>
+<ul>
+
+<li class='mutator'>CONDITIONALS_BOUNDARY</li>
+
+<li class='mutator'>EMPTY_RETURNS</li>
+
+<li class='mutator'>FALSE_RETURNS</li>
+
+<li class='mutator'>INCREMENTS</li>
+
+<li class='mutator'>INVERT_NEGS</li>
+
+<li class='mutator'>MATH</li>
+
+<li class='mutator'>NEGATE_CONDITIONALS</li>
+
+<li class='mutator'>NULL_RETURNS</li>
+
+<li class='mutator'>PRIMITIVE_RETURNS</li>
+
+<li class='mutator'>TRUE_RETURNS</li>
+
+<li class='mutator'>VOID_METHOD_CALLS</li>
+
+</ul>
+
+<h2>Tests examined</h2>
+<ul>
+<li>org.apache.commons.cli.example.AptHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.AptHelpAppendableTest]/[method:testAppendFormatTest()] (0 ms)</li><li>org.apache.commons.cli.example.AptHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.AptHelpAppendableTest]/[method:testAppendParagraphTest()] (0 ms)</li><li>org.apache.commons.cli.example.XhtmlHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.XhtmlHelpAppendableTest]/[method:testAppendParagraphTest()] (0 ms)</li><li>org.apache.commons.cli.example.XhtmlHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.XhtmlHelpAppendableTest]/[method:testAppendParagraphFormatTest()] (0 ms)</li><li>org.apache.commons.cli.example.AptHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.AptHelpAppendableTest]/[method:testAppendParagraphFormatTest()] (0 ms)</li><li>org.apache.commons.cli.example.AptHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.AptHelpAppendableTest]/[method:testAppendTitleTest()] (0 ms)</li><li>org.apache.commons.cli.example.XhtmlHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.XhtmlHelpAppendableTest]/[method:testAppendHeaderTest()] (0 ms)</li><li>org.apache.commons.cli.help.TextHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.TextHelpAppendableTest]/[method:testAppend()] (0 ms)</li><li>org.apache.commons.cli.example.AptHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.AptHelpAppendableTest]/[method:testAppendHeaderTest()] (0 ms)</li><li>org.apache.commons.cli.example.XhtmlHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.XhtmlHelpAppendableTest]/[method:testAppendListTest()] (0 ms)</li><li>org.apache.commons.cli.example.AptHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.AptHelpAppendableTest]/[method:testAppendListTest()] (0 ms)</li><li>org.apache.commons.cli.example.XhtmlHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.XhtmlHelpAppendableTest]/[method:testAppendTitleTest()] (8 ms)</li><li>org.apache.commons.cli.example.XhtmlHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.XhtmlHelpAppendableTest]/[method:testAppendTableTest()] (0 ms)</li><li>org.apache.commons.cli.help.TextHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.TextHelpAppendableTest]/[method:testAppendParagraph()] (0 ms)</li><li>org.apache.commons.cli.help.TextHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.TextHelpAppendableTest]/[method:testAppendParagraphFormat()] (0 ms)</li><li>org.apache.commons.cli.help.TextHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.TextHelpAppendableTest]/[method:testAppendTitle()] (0 ms)</li><li>org.apache.commons.cli.example.AptHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.example.AptHelpAppendableTest]/[method:testAppendTableTest()] (2 ms)</li><li>org.apache.commons.cli.help.TextHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.TextHelpAppendableTest]/[method:testAppendList()] (0 ms)</li><li>org.apache.commons.cli.help.TextHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.TextHelpAppendableTest]/[method:testAppendHeader()] (0 ms)</li><li>org.apache.commons.cli.help.TextHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.TextHelpAppendableTest]/[method:testPrintWrapped()] (0 ms)</li><li>org.apache.commons.cli.help.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.HelpFormatterTest]/[method:testPrintHelpXML()] (0 ms)</li><li>org.apache.commons.cli.help.TextHelpAppendableTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.TextHelpAppendableTest]/[method:testAppendTable()] (0 ms)</li><li>org.apache.commons.cli.help.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.HelpFormatterTest]/[method:testPrintHelpHeader()] (0 ms)</li><li>org.apache.commons.cli.help.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.HelpFormatterTest]/[method:verifyOptionGroupingOutput()] (1 ms)</li><li>org.apache.commons.cli.help.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.HelpFormatterTest]/[method:testPrintHelpWithIterableOptions()] (2 ms)</li><li>org.apache.commons.cli.help.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.help.HelpFormatterTest]/[method:testPrintHelp()] (2 ms)</li>
+</ul>
+
+<br/>
+
+Report generated by <a href='https://pitest.org'>PIT</a> 1.25.5 <a href='https://github.com/sponsors/hcoles'>support</a>
+
+</body>
+</html>

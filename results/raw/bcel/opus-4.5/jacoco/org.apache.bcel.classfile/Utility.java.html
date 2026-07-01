@@ -1,0 +1,1630 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Utility.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">Utility.java</span></div><h1>Utility.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.apache.bcel.classfile;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.CharArrayReader;
+import java.io.CharArrayWriter;
+import java.io.FilterReader;
+import java.io.FilterWriter;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.util.ByteSequence;
+import org.apache.commons.lang3.ArrayFill;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
+
+/**
+ * Utility functions that do not really belong to any class in particular.
+ */
+// @since 6.0 methods are no longer final
+public abstract class Utility {
+
+    /**
+     * Constructs a Utility.
+     *
+     * @deprecated Will be private in the next major release.
+     */
+<span class="nc" id="L56">    public Utility() {</span>
+        // Default constructor for subclasses
+<span class="nc" id="L58">    }</span>
+
+    /**
+     * Decode characters into bytes. Used by &lt;a href=&quot;Utility.html#decode(java.lang.String, boolean)&quot;&gt;decode()&lt;/a&gt;
+     */
+    private static final class JavaReader extends FilterReader {
+
+        JavaReader(final Reader in) {
+<span class="fc" id="L66">            super(in);</span>
+<span class="fc" id="L67">        }</span>
+
+        @Override
+        public int read() throws IOException {
+<span class="fc" id="L71">            final int b = in.read();</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">            if (b != ESCAPE_CHAR) {</span>
+<span class="fc" id="L73">                return b;</span>
+            }
+<span class="fc" id="L75">            final int i = in.read();</span>
+<span class="pc bpc" id="L76" title="1 of 2 branches missed.">            if (i &lt; 0) {</span>
+<span class="nc" id="L77">                return -1;</span>
+            }
+<span class="pc bpc" id="L79" title="1 of 8 branches missed.">            if (i &gt;= '0' &amp;&amp; i &lt;= '9' || i &gt;= 'a' &amp;&amp; i &lt;= 'f') { // Normal escape</span>
+<span class="fc" id="L80">                final int j = in.read();</span>
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">                if (j &lt; 0) {</span>
+<span class="nc" id="L82">                    return -1;</span>
+                }
+<span class="fc" id="L84">                final char[] tmp = {(char) i, (char) j};</span>
+<span class="fc" id="L85">                return Integer.parseInt(new String(tmp), 16);</span>
+            }
+<span class="fc" id="L87">            return MAP_CHAR[i];</span>
+        }
+
+        @Override
+        public int read(final char[] cbuf, final int off, final int len) throws IOException {
+<span class="nc bnc" id="L92" title="All 2 branches missed.">            for (int i = 0; i &lt; len; i++) {</span>
+<span class="nc" id="L93">                cbuf[off + i] = (char) read();</span>
+            }
+<span class="nc" id="L95">            return len;</span>
+        }
+    }
+
+    /**
+     * Encode bytes into valid Java identifier characters. Used by
+     * &lt;a href=&quot;Utility.html#encode(byte[], boolean)&quot;&gt;encode()&lt;/a&gt;
+     */
+    private static final class JavaWriter extends FilterWriter {
+
+        JavaWriter(final Writer out) {
+<span class="fc" id="L106">            super(out);</span>
+<span class="fc" id="L107">        }</span>
+
+        @Override
+        public void write(final char[] cbuf, final int off, final int len) throws IOException {
+<span class="nc bnc" id="L111" title="All 2 branches missed.">            for (int i = 0; i &lt; len; i++) {</span>
+<span class="nc" id="L112">                write(cbuf[off + i]);</span>
+            }
+<span class="nc" id="L114">        }</span>
+
+        @Override
+        public void write(final int b) throws IOException {
+<span class="pc bpc" id="L118" title="1 of 4 branches missed.">            if (isJavaIdentifierPart((char) b) &amp;&amp; b != ESCAPE_CHAR) {</span>
+<span class="fc" id="L119">                out.write(b);</span>
+            } else {
+<span class="fc" id="L121">                out.write(ESCAPE_CHAR); // Escape character</span>
+                // Special escape
+<span class="pc bpc" id="L123" title="1 of 4 branches missed.">                if (b &gt;= 0 &amp;&amp; b &lt; FREE_CHARS) {</span>
+<span class="fc" id="L124">                    out.write(CHAR_MAP[b]);</span>
+                } else { // Normal escape
+<span class="fc" id="L126">                    final char[] tmp = Integer.toHexString(b).toCharArray();</span>
+<span class="pc bpc" id="L127" title="1 of 2 branches missed.">                    if (tmp.length == 1) {</span>
+<span class="nc" id="L128">                        out.write('0');</span>
+<span class="nc" id="L129">                        out.write(tmp[0]);</span>
+                    } else {
+<span class="fc" id="L131">                        out.write(tmp[0]);</span>
+<span class="fc" id="L132">                        out.write(tmp[1]);</span>
+                    }
+                }
+            }
+<span class="fc" id="L136">        }</span>
+
+        @Override
+        public void write(final String str, final int off, final int len) throws IOException {
+<span class="nc" id="L140">            write(str.toCharArray(), off, len);</span>
+<span class="nc" id="L141">        }</span>
+    }
+
+    /*
+     * How many chars have been consumed during parsing in typeSignatureToString(). Read by methodSignatureToString(). Set
+     * by side effect, but only internally.
+     */
+<span class="pc" id="L148">    private static final ThreadLocal&lt;Integer&gt; CONSUMER_CHARS = ThreadLocal.withInitial(() -&gt; Integer.valueOf(0));</span>
+
+    /*
+     * The 'WIDE' instruction is used in the byte code to allow 16-bit wide indices for local variables. This opcode
+     * precedes an 'ILOAD', for example. The opcode immediately following takes an extra byte which is combined with the following
+     * byte to form a 16-bit value.
+     */
+    private static boolean wide;
+
+    // A-Z, g-z, _, $
+    private static final int FREE_CHARS = 48;
+
+<span class="fc" id="L160">    private static final int[] CHAR_MAP = new int[FREE_CHARS];</span>
+
+<span class="fc" id="L162">    private static final int[] MAP_CHAR = new int[256]; // Reverse map</span>
+
+    private static final char ESCAPE_CHAR = '$';
+
+    static {
+<span class="fc" id="L167">        int j = 0;</span>
+<span class="fc bfc" id="L168" title="All 2 branches covered.">        for (int i = 'A'; i &lt;= 'Z'; i++) {</span>
+<span class="fc" id="L169">            CHAR_MAP[j] = i;</span>
+<span class="fc" id="L170">            MAP_CHAR[i] = j;</span>
+<span class="fc" id="L171">            j++;</span>
+        }
+<span class="fc bfc" id="L173" title="All 2 branches covered.">        for (int i = 'g'; i &lt;= 'z'; i++) {</span>
+<span class="fc" id="L174">            CHAR_MAP[j] = i;</span>
+<span class="fc" id="L175">            MAP_CHAR[i] = j;</span>
+<span class="fc" id="L176">            j++;</span>
+        }
+<span class="fc" id="L178">        CHAR_MAP[j] = '$';</span>
+<span class="fc" id="L179">        MAP_CHAR['$'] = j;</span>
+<span class="fc" id="L180">        j++;</span>
+<span class="fc" id="L181">        CHAR_MAP[j] = '_';</span>
+<span class="fc" id="L182">        MAP_CHAR['_'] = j;</span>
+<span class="fc" id="L183">    }</span>
+
+    /**
+     * Convert bit field of flags into string such as 'static final'.
+     *
+     * @param accessFlags Access flags.
+     * @return String representation of flags.
+     */
+    public static String accessToString(final int accessFlags) {
+<span class="fc" id="L192">        return accessToString(accessFlags, false);</span>
+    }
+
+    /**
+     * Convert bit field of flags into string such as 'static final'.
+     * &lt;p&gt;
+     * Special case: Classes compiled with new compilers and with the 'ACC_SUPER' flag would be said to be &quot;synchronized&quot;.
+     * This is because SUN used the same value for the flags 'ACC_SUPER' and 'ACC_SYNCHRONIZED'.
+     * &lt;/p&gt;
+     *
+     * @param accessFlags Access flags.
+     * @param forClass access flags are for class qualifiers ?.
+     * @return String representation of flags.
+     */
+    public static String accessToString(final int accessFlags, final boolean forClass) {
+<span class="fc" id="L207">        final StringBuilder buf = new StringBuilder();</span>
+<span class="fc" id="L208">        int p = 0;</span>
+<span class="fc bfc" id="L209" title="All 2 branches covered.">        for (int i = 0; p &lt; Const.MAX_ACC_FLAG_I; i++) { // Loop through known flags</span>
+<span class="fc" id="L210">            p = pow2(i);</span>
+<span class="fc bfc" id="L211" title="All 2 branches covered.">            if ((accessFlags &amp; p) != 0) {</span>
+                /*
+                 * Special case: Classes compiled with new compilers and with the 'ACC_SUPER' flag would be said to be &quot;synchronized&quot;.
+                 * This is because SUN used the same value for the flags 'ACC_SUPER' and 'ACC_SYNCHRONIZED'.
+                 */
+<span class="fc bfc" id="L216" title="All 6 branches covered.">                if (forClass &amp;&amp; (p == Const.ACC_SUPER || p == Const.ACC_INTERFACE)) {</span>
+<span class="fc" id="L217">                    continue;</span>
+                }
+<span class="fc" id="L219">                buf.append(Const.getAccessName(i)).append(&quot; &quot;);</span>
+            }
+        }
+<span class="fc" id="L222">        return buf.toString().trim();</span>
+    }
+
+    /**
+     * Convert (signed) byte to (unsigned) short value, that is, all negative values become positive.
+     */
+    private static short byteToShort(final byte b) {
+<span class="fc bfc" id="L229" title="All 2 branches covered.">        return b &lt; 0 ? (short) (256 + b) : (short) b;</span>
+    }
+
+    /**
+     * Gets the class or interface type name.
+     *
+     * @param accessFlags the class flags.
+     * @return &quot;class&quot; or &quot;interface&quot;, depending on the ACC_INTERFACE flag.
+     */
+    public static String classOrInterface(final int accessFlags) {
+<span class="fc bfc" id="L239" title="All 2 branches covered.">        return (accessFlags &amp; Const.ACC_INTERFACE) != 0 ? &quot;interface&quot; : &quot;class&quot;;</span>
+    }
+
+    /**
+     * Clears a bit in a flag.
+     *
+     * @param flag the flag value.
+     * @param i the bit position.
+     * @return 'flag' with bit 'i' set to 0.
+     */
+    public static int clearBit(final int flag, final int i) {
+<span class="fc" id="L250">        final int bit = pow2(i);</span>
+<span class="fc bfc" id="L251" title="All 2 branches covered.">        return (flag &amp; bit) == 0 ? flag : flag ^ bit;</span>
+    }
+
+    /**
+     * Disassembles byte code.
+     *
+     * @param code byte code array.
+     * @param constantPool the constant pool.
+     * @param index offset in code array.
+     * @param length number of opcodes to decompile.
+     * @return disassembled string representation.
+     */
+    public static String codeToString(final byte[] code, final ConstantPool constantPool, final int index, final int length) {
+<span class="nc" id="L264">        return codeToString(code, constantPool, index, length, true);</span>
+    }
+
+    /**
+     * Disassemble a byte array of JVM byte codes starting from code line 'index' and return the disassembled string
+     * representation. Decode only 'num' opcodes (including their operands), use -1 if you want to decompile everything.
+     *
+     * @param code byte code array.
+     * @param constantPool Array of constants.
+     * @param index offset in 'code' array &lt;em&gt;(number of opcodes, not bytes!)&lt;/em&gt;.
+     * @param length number of opcodes to decompile, -1 for all.
+     * @param verbose be verbose, for example print constant pool index.
+     * @return String representation of byte codes.
+     */
+    public static String codeToString(final byte[] code, final ConstantPool constantPool, final int index, final int length, final boolean verbose) {
+<span class="fc" id="L279">        final StringBuilder buf = new StringBuilder(code.length * 20); // Should be sufficient // CHECKSTYLE IGNORE MagicNumber</span>
+<span class="fc" id="L280">        try (ByteSequence stream = new ByteSequence(code)) {</span>
+<span class="pc bpc" id="L281" title="1 of 2 branches missed.">            for (int i = 0; i &lt; index; i++) {</span>
+<span class="nc" id="L282">                codeToString(stream, constantPool, verbose);</span>
+            }
+<span class="fc bfc" id="L284" title="All 2 branches covered.">            for (int i = 0; stream.available() &gt; 0; i++) {</span>
+<span class="pc bpc" id="L285" title="3 of 4 branches missed.">                if (length &lt; 0 || i &lt; length) {</span>
+<span class="fc" id="L286">                    final String indices = fillup(stream.getIndex() + &quot;:&quot;, 6, true, ' ');</span>
+<span class="fc" id="L287">                    buf.append(indices).append(codeToString(stream, constantPool, verbose)).append('\n');</span>
+                }
+            }
+<span class="nc" id="L290">        } catch (final IOException e) {</span>
+<span class="nc" id="L291">            throw new ClassFormatException(&quot;Byte code error: &quot; + buf.toString(), e);</span>
+<span class="fc" id="L292">        }</span>
+<span class="fc" id="L293">        return buf.toString();</span>
+    }
+
+    /**
+     * Disassembles byte code.
+     *
+     * @param bytes stream of bytes.
+     * @param constantPool the constant pool.
+     * @return disassembled string representation.
+     * @throws IOException if a failure from reading from the bytes argument occurs.
+     */
+    public static String codeToString(final ByteSequence bytes, final ConstantPool constantPool) throws IOException {
+<span class="nc" id="L305">        return codeToString(bytes, constantPool, true);</span>
+    }
+
+    /**
+     * Disassemble a stream of byte codes and return the string representation.
+     *
+     * @param bytes stream of bytes.
+     * @param constantPool Array of constants.
+     * @param verbose be verbose, for example print constant pool index.
+     * @return String representation of byte code.
+     * @throws IOException if a failure from reading from the bytes argument occurs
+     */
+    public static String codeToString(final ByteSequence bytes, final ConstantPool constantPool, final boolean verbose) throws IOException {
+<span class="fc" id="L318">        final short opcode = (short) bytes.readUnsignedByte();</span>
+<span class="fc" id="L319">        int defaultOffset = 0;</span>
+        final int low;
+        final int high;
+        final int npairs;
+        final int index;
+        final int vindex;
+        final int constant;
+        final int[] match;
+        final int[] jumpTable;
+<span class="fc" id="L328">        int noPadBytes = 0;</span>
+        final int offset;
+<span class="fc" id="L330">        final StringBuilder buf = new StringBuilder(Const.getOpcodeName(opcode));</span>
+        /*
+         * Special case: Skip (0-3) padding bytes, that is, the following bytes are 4-byte-aligned
+         */
+<span class="pc bpc" id="L334" title="2 of 4 branches missed.">        if (opcode == Const.TABLESWITCH || opcode == Const.LOOKUPSWITCH) {</span>
+<span class="nc" id="L335">            final int remainder = bytes.getIndex() % 4;</span>
+<span class="nc bnc" id="L336" title="All 2 branches missed.">            noPadBytes = remainder == 0 ? 0 : 4 - remainder;</span>
+<span class="nc bnc" id="L337" title="All 2 branches missed.">            for (int i = 0; i &lt; noPadBytes; i++) {</span>
+                final byte b;
+<span class="nc bnc" id="L339" title="All 2 branches missed.">                if ((b = bytes.readByte()) != 0) {</span>
+<span class="nc" id="L340">                    System.err.println(&quot;Warning: Padding byte != 0 in &quot; + Const.getOpcodeName(opcode) + &quot;:&quot; + b);</span>
+                }
+            }
+            // Both cases have a field default_offset in common
+<span class="nc" id="L344">            defaultOffset = bytes.readInt();</span>
+        }
+<span class="pc bpc" id="L346" title="16 of 20 branches missed.">        switch (opcode) {</span>
+        /*
+         * Table switch has variable length arguments.
+         */
+        case Const.TABLESWITCH:
+<span class="nc" id="L351">            low = bytes.readInt();</span>
+<span class="nc" id="L352">            high = bytes.readInt();</span>
+<span class="nc" id="L353">            offset = bytes.getIndex() - 12 - noPadBytes - 1;</span>
+<span class="nc" id="L354">            defaultOffset += offset;</span>
+<span class="nc" id="L355">            buf.append(&quot;\tdefault = &quot;).append(defaultOffset).append(&quot;, low = &quot;).append(low).append(&quot;, high = &quot;).append(high).append(&quot;(&quot;);</span>
+<span class="nc" id="L356">            jumpTable = new int[high - low + 1];</span>
+<span class="nc bnc" id="L357" title="All 2 branches missed.">            for (int i = 0; i &lt; jumpTable.length; i++) {</span>
+<span class="nc" id="L358">                jumpTable[i] = offset + bytes.readInt();</span>
+<span class="nc" id="L359">                buf.append(jumpTable[i]);</span>
+<span class="nc bnc" id="L360" title="All 2 branches missed.">                if (i &lt; jumpTable.length - 1) {</span>
+<span class="nc" id="L361">                    buf.append(&quot;, &quot;);</span>
+                }
+            }
+<span class="nc" id="L364">            buf.append(&quot;)&quot;);</span>
+<span class="nc" id="L365">            break;</span>
+        /*
+         * Lookup switch has variable length arguments.
+         */
+        case Const.LOOKUPSWITCH: {
+<span class="nc" id="L370">            npairs = bytes.readInt();</span>
+<span class="nc" id="L371">            offset = bytes.getIndex() - 8 - noPadBytes - 1;</span>
+<span class="nc" id="L372">            match = new int[npairs];</span>
+<span class="nc" id="L373">            jumpTable = new int[npairs];</span>
+<span class="nc" id="L374">            defaultOffset += offset;</span>
+<span class="nc" id="L375">            buf.append(&quot;\tdefault = &quot;).append(defaultOffset).append(&quot;, npairs = &quot;).append(npairs).append(&quot; (&quot;);</span>
+<span class="nc bnc" id="L376" title="All 2 branches missed.">            for (int i = 0; i &lt; npairs; i++) {</span>
+<span class="nc" id="L377">                match[i] = bytes.readInt();</span>
+<span class="nc" id="L378">                jumpTable[i] = offset + bytes.readInt();</span>
+<span class="nc" id="L379">                buf.append(&quot;(&quot;).append(match[i]).append(&quot;, &quot;).append(jumpTable[i]).append(&quot;)&quot;);</span>
+<span class="nc bnc" id="L380" title="All 2 branches missed.">                if (i &lt; npairs - 1) {</span>
+<span class="nc" id="L381">                    buf.append(&quot;, &quot;);</span>
+                }
+            }
+<span class="nc" id="L384">            buf.append(&quot;)&quot;);</span>
+        }
+<span class="nc" id="L386">            break;</span>
+        /*
+         * Two address bytes + offset from start of byte stream form the jump target
+         */
+        case Const.GOTO:
+        case Const.IFEQ:
+        case Const.IFGE:
+        case Const.IFGT:
+        case Const.IFLE:
+        case Const.IFLT:
+        case Const.JSR:
+        case Const.IFNE:
+        case Const.IFNONNULL:
+        case Const.IFNULL:
+        case Const.IF_ACMPEQ:
+        case Const.IF_ACMPNE:
+        case Const.IF_ICMPEQ:
+        case Const.IF_ICMPGE:
+        case Const.IF_ICMPGT:
+        case Const.IF_ICMPLE:
+        case Const.IF_ICMPLT:
+        case Const.IF_ICMPNE:
+<span class="nc" id="L408">            buf.append(&quot;\t\t#&quot;).append(bytes.getIndex() - 1 + bytes.readShort());</span>
+<span class="nc" id="L409">            break;</span>
+        /*
+         * 32-bit wide jumps
+         */
+        case Const.GOTO_W:
+        case Const.JSR_W:
+<span class="nc" id="L415">            buf.append(&quot;\t\t#&quot;).append(bytes.getIndex() - 1 + bytes.readInt());</span>
+<span class="nc" id="L416">            break;</span>
+        /*
+         * Index byte references local variable (register)
+         */
+        case Const.ALOAD:
+        case Const.ASTORE:
+        case Const.DLOAD:
+        case Const.DSTORE:
+        case Const.FLOAD:
+        case Const.FSTORE:
+        case Const.ILOAD:
+        case Const.ISTORE:
+        case Const.LLOAD:
+        case Const.LSTORE:
+        case Const.RET:
+<span class="nc bnc" id="L431" title="All 2 branches missed.">            if (wide) {</span>
+<span class="nc" id="L432">                vindex = bytes.readUnsignedShort();</span>
+<span class="nc" id="L433">                wide = false; // Clear flag</span>
+            } else {
+<span class="nc" id="L435">                vindex = bytes.readUnsignedByte();</span>
+            }
+<span class="nc" id="L437">            buf.append(&quot;\t\t%&quot;).append(vindex);</span>
+<span class="nc" id="L438">            break;</span>
+        /*
+         * Remember wide byte which is used to form a 16-bit address in the following instruction. Relies on that the method is
+         * called again with the following opcode.
+         */
+        case Const.WIDE:
+<span class="nc" id="L444">            wide = true;</span>
+<span class="nc" id="L445">            buf.append(&quot;\t(wide)&quot;);</span>
+<span class="nc" id="L446">            break;</span>
+        /*
+         * Array of basic type.
+         */
+        case Const.NEWARRAY:
+<span class="nc" id="L451">            buf.append(&quot;\t\t&lt;&quot;).append(Const.getTypeName(bytes.readByte())).append(&quot;&gt;&quot;);</span>
+<span class="nc" id="L452">            break;</span>
+        /*
+         * Access object/class fields.
+         */
+        case Const.GETFIELD:
+        case Const.GETSTATIC:
+        case Const.PUTFIELD:
+        case Const.PUTSTATIC:
+<span class="fc" id="L460">            index = bytes.readUnsignedShort();</span>
+<span class="fc bfc" id="L461" title="All 2 branches covered.">            buf.append(&quot;\t\t&quot;).append(constantPool.constantToString(index, Const.CONSTANT_Fieldref)).append(verbose ? &quot; (&quot; + index + &quot;)&quot; : &quot;&quot;);</span>
+<span class="fc" id="L462">            break;</span>
+        /*
+         * Operands are references to classes in constant pool
+         */
+        case Const.NEW:
+        case Const.CHECKCAST:
+<span class="nc" id="L468">            buf.append(&quot;\t&quot;);</span>
+<span class="nc" id="L469">            index = bytes.readUnsignedShort();</span>
+<span class="nc bnc" id="L470" title="All 2 branches missed.">            buf.append(&quot;\t&lt;&quot;).append(constantPool.constantToString(index, Const.CONSTANT_Class)).append(&quot;&gt;&quot;).append(verbose ? &quot; (&quot; + index + &quot;)&quot; : &quot;&quot;);</span>
+<span class="nc" id="L471">            break;</span>
+        case Const.INSTANCEOF:
+<span class="nc" id="L473">            index = bytes.readUnsignedShort();</span>
+<span class="nc bnc" id="L474" title="All 2 branches missed.">            buf.append(&quot;\t&lt;&quot;).append(constantPool.constantToString(index, Const.CONSTANT_Class)).append(&quot;&gt;&quot;).append(verbose ? &quot; (&quot; + index + &quot;)&quot; : &quot;&quot;);</span>
+<span class="nc" id="L475">            break;</span>
+        /*
+         * Operands are references to methods in constant pool
+         */
+        case Const.INVOKESPECIAL:
+        case Const.INVOKESTATIC:
+<span class="fc" id="L481">            index = bytes.readUnsignedShort();</span>
+<span class="fc" id="L482">            final Constant c = constantPool.getConstant(index);</span>
+            // With Java8 operand may be either a CONSTANT_Methodref
+            // or a CONSTANT_InterfaceMethodref. (markro)
+<span class="fc bfc" id="L485" title="All 2 branches covered.">            buf.append(&quot;\t&quot;).append(constantPool.constantToString(index, c.getTag())).append(verbose ? &quot; (&quot; + index + &quot;)&quot; : &quot;&quot;);</span>
+<span class="fc" id="L486">            break;</span>
+        case Const.INVOKEVIRTUAL:
+<span class="nc" id="L488">            index = bytes.readUnsignedShort();</span>
+<span class="nc bnc" id="L489" title="All 2 branches missed.">            buf.append(&quot;\t&quot;).append(constantPool.constantToString(index, Const.CONSTANT_Methodref)).append(verbose ? &quot; (&quot; + index + &quot;)&quot; : &quot;&quot;);</span>
+<span class="nc" id="L490">            break;</span>
+        case Const.INVOKEINTERFACE:
+<span class="nc" id="L492">            index = bytes.readUnsignedShort();</span>
+<span class="nc" id="L493">            final int nargs = bytes.readUnsignedByte(); // historical, redundant</span>
+<span class="nc bnc" id="L494" title="All 2 branches missed.">            buf.append(&quot;\t&quot;).append(constantPool.constantToString(index, Const.CONSTANT_InterfaceMethodref)).append(verbose ? &quot; (&quot; + index + &quot;)\t&quot; : &quot;&quot;)</span>
+<span class="nc" id="L495">                .append(nargs).append(&quot;\t&quot;).append(bytes.readUnsignedByte()); // Last byte is a reserved space</span>
+<span class="nc" id="L496">            break;</span>
+        case Const.INVOKEDYNAMIC:
+<span class="nc" id="L498">            index = bytes.readUnsignedShort();</span>
+<span class="nc bnc" id="L499" title="All 2 branches missed.">            buf.append(&quot;\t&quot;).append(constantPool.constantToString(index, Const.CONSTANT_InvokeDynamic)).append(verbose ? &quot; (&quot; + index + &quot;)\t&quot; : &quot;&quot;)</span>
+<span class="nc" id="L500">                .append(bytes.readUnsignedByte()) // Thrid byte is a reserved space</span>
+<span class="nc" id="L501">                .append(bytes.readUnsignedByte()); // Last byte is a reserved space</span>
+<span class="nc" id="L502">            break;</span>
+        /*
+         * Operands are references to items in constant pool
+         */
+        case Const.LDC_W:
+        case Const.LDC2_W:
+<span class="nc" id="L508">            index = bytes.readUnsignedShort();</span>
+<span class="nc" id="L509">            buf.append(&quot;\t\t&quot;).append(constantPool.constantToString(index, constantPool.getConstant(index).getTag()))</span>
+<span class="nc bnc" id="L510" title="All 2 branches missed.">                .append(verbose ? &quot; (&quot; + index + &quot;)&quot; : &quot;&quot;);</span>
+<span class="nc" id="L511">            break;</span>
+        case Const.LDC:
+<span class="fc" id="L513">            index = bytes.readUnsignedByte();</span>
+<span class="fc" id="L514">            buf.append(&quot;\t\t&quot;).append(constantPool.constantToString(index, constantPool.getConstant(index).getTag()))</span>
+<span class="fc bfc" id="L515" title="All 2 branches covered.">                .append(verbose ? &quot; (&quot; + index + &quot;)&quot; : &quot;&quot;);</span>
+<span class="fc" id="L516">            break;</span>
+        /*
+         * Array of references.
+         */
+        case Const.ANEWARRAY:
+<span class="nc" id="L521">            index = bytes.readUnsignedShort();</span>
+<span class="nc" id="L522">            buf.append(&quot;\t\t&lt;&quot;).append(compactClassName(constantPool.getConstantString(index, Const.CONSTANT_Class), false)).append(&quot;&gt;&quot;)</span>
+<span class="nc bnc" id="L523" title="All 2 branches missed.">                .append(verbose ? &quot; (&quot; + index + &quot;)&quot; : &quot;&quot;);</span>
+<span class="nc" id="L524">            break;</span>
+        /*
+         * Multidimensional array of references.
+         */
+        case Const.MULTIANEWARRAY: {
+<span class="nc" id="L529">            index = bytes.readUnsignedShort();</span>
+<span class="nc" id="L530">            final int dimensions = bytes.readUnsignedByte();</span>
+<span class="nc" id="L531">            buf.append(&quot;\t&lt;&quot;).append(compactClassName(constantPool.getConstantString(index, Const.CONSTANT_Class), false)).append(&quot;&gt;\t&quot;).append(dimensions)</span>
+<span class="nc bnc" id="L532" title="All 2 branches missed.">                .append(verbose ? &quot; (&quot; + index + &quot;)&quot; : &quot;&quot;);</span>
+        }
+<span class="nc" id="L534">            break;</span>
+        /*
+         * Increment local variable.
+         */
+        case Const.IINC:
+<span class="nc bnc" id="L539" title="All 2 branches missed.">            if (wide) {</span>
+<span class="nc" id="L540">                vindex = bytes.readUnsignedShort();</span>
+<span class="nc" id="L541">                constant = bytes.readShort();</span>
+<span class="nc" id="L542">                wide = false;</span>
+            } else {
+<span class="nc" id="L544">                vindex = bytes.readUnsignedByte();</span>
+<span class="nc" id="L545">                constant = bytes.readByte();</span>
+            }
+<span class="nc" id="L547">            buf.append(&quot;\t\t%&quot;).append(vindex).append(&quot;\t&quot;).append(constant);</span>
+<span class="nc" id="L548">            break;</span>
+        default:
+<span class="pc bpc" id="L550" title="1 of 2 branches missed.">            if (Const.getNoOfOperands(opcode) &gt; 0) {</span>
+<span class="nc bnc" id="L551" title="All 2 branches missed.">                for (int i = 0; i &lt; Const.getOperandTypeCount(opcode); i++) {</span>
+<span class="nc" id="L552">                    buf.append(&quot;\t\t&quot;);</span>
+<span class="nc bnc" id="L553" title="All 4 branches missed.">                    switch (Const.getOperandType(opcode, i)) {</span>
+                    case Const.T_BYTE:
+<span class="nc" id="L555">                        buf.append(bytes.readByte());</span>
+<span class="nc" id="L556">                        break;</span>
+                    case Const.T_SHORT:
+<span class="nc" id="L558">                        buf.append(bytes.readShort());</span>
+<span class="nc" id="L559">                        break;</span>
+                    case Const.T_INT:
+<span class="nc" id="L561">                        buf.append(bytes.readInt());</span>
+<span class="nc" id="L562">                        break;</span>
+                    default: // Never reached
+<span class="nc" id="L564">                        throw new IllegalStateException(&quot;Unreachable default case reached.&quot;);</span>
+                    }
+                }
+            }
+        }
+<span class="fc" id="L569">        return buf.toString();</span>
+    }
+
+    /**
+     * Shorten long class names, &lt;em&gt;java/lang/String&lt;/em&gt; becomes &lt;em&gt;String&lt;/em&gt;.
+     *
+     * @param str The long class name.
+     * @return Compacted class name.
+     */
+    public static String compactClassName(final String str) {
+<span class="fc" id="L579">        return compactClassName(str, true);</span>
+    }
+
+    /**
+     * Shorten long class names, &lt;em&gt;java/lang/String&lt;/em&gt; becomes &lt;em&gt;java.lang.String&lt;/em&gt;, for example. If &lt;em&gt;chopit&lt;/em&gt; is
+     * &lt;em&gt;true&lt;/em&gt; the prefix &lt;em&gt;java.lang&lt;/em&gt; is also removed.
+     *
+     * @param str The long class name.
+     * @param chopit flag that determines whether chopping is executed or not.
+     * @return Compacted class name.
+     */
+    public static String compactClassName(final String str, final boolean chopit) {
+<span class="fc" id="L591">        return compactClassName(str, &quot;java.lang.&quot;, chopit);</span>
+    }
+
+    /**
+     * Shorten long class name &lt;em&gt;str&lt;/em&gt;, that is, chop off the &lt;em&gt;prefix&lt;/em&gt;, if the class name starts with this string
+     * and the flag &lt;em&gt;chopit&lt;/em&gt; is true. Slashes &lt;em&gt;/&lt;/em&gt; are converted to dots &lt;em&gt;.&lt;/em&gt;.
+     *
+     * @param str The long class name.
+     * @param prefix The prefix the get rid off.
+     * @param chopit flag that determines whether chopping is executed or not.
+     * @return Compacted class name.
+     */
+    public static String compactClassName(String str, final String prefix, final boolean chopit) {
+<span class="fc" id="L604">        final int len = prefix.length();</span>
+<span class="fc" id="L605">        str = pathToPackage(str); // Is '/' on all systems, even DOS</span>
+        // If string starts with 'prefix' and contains no further dots
+<span class="fc bfc" id="L607" title="All 6 branches covered.">        if (chopit &amp;&amp; str.startsWith(prefix) &amp;&amp; str.substring(len).indexOf('.') == -1) {</span>
+<span class="fc" id="L608">            str = str.substring(len);</span>
+        }
+<span class="fc" id="L610">        return str;</span>
+    }
+
+    /**
+     * Escape all occurrences of newline chars '\n', quotes \&quot;, etc.
+     *
+     * @param label the string to convert.
+     * @return the converted string.
+     */
+    public static String convertString(final String label) {
+<span class="fc" id="L620">        final char[] ch = label.toCharArray();</span>
+<span class="fc" id="L621">        final StringBuilder buf = new StringBuilder();</span>
+<span class="fc bfc" id="L622" title="All 2 branches covered.">        for (final char element : ch) {</span>
+<span class="fc bfc" id="L623" title="All 6 branches covered.">            switch (element) {</span>
+            case '\n':
+<span class="fc" id="L625">                buf.append(&quot;\\n&quot;);</span>
+<span class="fc" id="L626">                break;</span>
+            case '\r':
+<span class="fc" id="L628">                buf.append(&quot;\\r&quot;);</span>
+<span class="fc" id="L629">                break;</span>
+            case '\&quot;':
+<span class="fc" id="L631">                buf.append(&quot;\\\&quot;&quot;);</span>
+<span class="fc" id="L632">                break;</span>
+            case '\'':
+<span class="fc" id="L634">                buf.append(&quot;\\'&quot;);</span>
+<span class="fc" id="L635">                break;</span>
+            case '\\':
+<span class="fc" id="L637">                buf.append(&quot;\\\\&quot;);</span>
+<span class="fc" id="L638">                break;</span>
+            default:
+<span class="fc" id="L640">                buf.append(element);</span>
+                break;
+            }
+        }
+<span class="fc" id="L644">        return buf.toString();</span>
+    }
+
+    private static int countBrackets(final String brackets) {
+<span class="fc" id="L648">        final char[] chars = brackets.toCharArray();</span>
+<span class="fc" id="L649">        int count = 0;</span>
+<span class="fc" id="L650">        boolean open = false;</span>
+<span class="fc bfc" id="L651" title="All 2 branches covered.">        for (final char c : chars) {</span>
+<span class="pc bpc" id="L652" title="1 of 3 branches missed.">            switch (c) {</span>
+            case '[':
+<span class="pc bpc" id="L654" title="1 of 2 branches missed.">                if (open) {</span>
+<span class="nc" id="L655">                    throw new IllegalArgumentException(&quot;Illegally nested brackets:&quot; + brackets);</span>
+                }
+<span class="fc" id="L657">                open = true;</span>
+<span class="fc" id="L658">                break;</span>
+            case ']':
+<span class="pc bpc" id="L660" title="1 of 2 branches missed.">                if (!open) {</span>
+<span class="nc" id="L661">                    throw new IllegalArgumentException(&quot;Illegally nested brackets:&quot; + brackets);</span>
+                }
+<span class="fc" id="L663">                open = false;</span>
+<span class="fc" id="L664">                count++;</span>
+<span class="fc" id="L665">                break;</span>
+            default:
+                // Don't care
+                break;
+            }
+        }
+<span class="pc bpc" id="L671" title="1 of 2 branches missed.">        if (open) {</span>
+<span class="nc" id="L672">            throw new IllegalArgumentException(&quot;Illegally nested brackets:&quot; + brackets);</span>
+        }
+<span class="fc" id="L674">        return count;</span>
+    }
+
+    /**
+     * Decode a string back to a byte array.
+     *
+     * @param s the string to convert.
+     * @param uncompress use gzip to uncompress the stream of bytes.
+     * @return the decoded byte array.
+     * @throws IOException if there's a gzip exception.
+     */
+    public static byte[] decode(final String s, final boolean uncompress) throws IOException {
+        byte[] bytes;
+<span class="fc" id="L687">        try (JavaReader jr = new JavaReader(new CharArrayReader(s.toCharArray())); ByteArrayOutputStream bos = new ByteArrayOutputStream()) {</span>
+            int ch;
+<span class="fc bfc" id="L689" title="All 2 branches covered.">            while ((ch = jr.read()) &gt;= 0) {</span>
+<span class="fc" id="L690">                bos.write(ch);</span>
+            }
+<span class="fc" id="L692">            bytes = bos.toByteArray();</span>
+        }
+<span class="fc bfc" id="L694" title="All 2 branches covered.">        if (uncompress) {</span>
+<span class="fc" id="L695">            final GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(bytes));</span>
+<span class="fc" id="L696">            final byte[] tmp = new byte[bytes.length * 3]; // Rough estimate</span>
+<span class="fc" id="L697">            int count = 0;</span>
+            int b;
+<span class="fc bfc" id="L699" title="All 2 branches covered.">            while ((b = gis.read()) &gt;= 0) {</span>
+<span class="fc" id="L700">                tmp[count++] = (byte) b;</span>
+            }
+<span class="fc" id="L702">            bytes = Arrays.copyOf(tmp, count);</span>
+        }
+<span class="fc" id="L704">        return bytes;</span>
+    }
+
+    /**
+     * Encode byte array it into Java identifier string, that is, a string that only contains the following characters: (a, ...
+     * z, A, ... Z, 0, ... 9, _, $). The encoding algorithm itself is not too clever: if the current byte's ASCII value
+     * already is a valid Java identifier part, leave it as it is. Otherwise it writes the escape character($) followed by:
+     *
+     * &lt;ul&gt;
+     * &lt;li&gt;the ASCII value as a hexadecimal string, if the value is not in the range 200..247&lt;/li&gt;
+     * &lt;li&gt;a Java identifier char not used in a lowercase hexadecimal string, if the value is in the range 200..247&lt;/li&gt;
+     * &lt;/ul&gt;
+     *
+     * &lt;p&gt;
+     * This operation inflates the original byte array by roughly 40-50%
+     * &lt;/p&gt;
+     *
+     * @param bytes the byte array to convert.
+     * @param compress use gzip to minimize string.
+     * @return the encoded string.
+     * @throws IOException if there's a gzip exception.
+     */
+    public static String encode(byte[] bytes, final boolean compress) throws IOException {
+<span class="fc bfc" id="L727" title="All 2 branches covered.">        if (compress) {</span>
+<span class="fc" id="L728">            try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); GZIPOutputStream gos = new GZIPOutputStream(baos)) {</span>
+<span class="fc" id="L729">                gos.write(bytes, 0, bytes.length);</span>
+<span class="fc" id="L730">                gos.close();</span>
+<span class="fc" id="L731">                bytes = baos.toByteArray();</span>
+            }
+        }
+<span class="fc" id="L734">        final CharArrayWriter caw = new CharArrayWriter();</span>
+<span class="fc" id="L735">        try (JavaWriter jw = new JavaWriter(caw)) {</span>
+<span class="fc bfc" id="L736" title="All 2 branches covered.">            for (final byte b : bytes) {</span>
+<span class="fc" id="L737">                final int in = b &amp; 0x000000ff; // Normalize to unsigned</span>
+<span class="fc" id="L738">                jw.write(in);</span>
+            }
+        }
+<span class="fc" id="L741">        return caw.toString();</span>
+    }
+
+    /**
+     * Fillup char with up to length characters with char 'fill' and justify it left or right.
+     *
+     * @param str string to format.
+     * @param length length of desired string.
+     * @param leftJustify format left or right.
+     * @param fill fill character.
+     * @return formatted string.
+     */
+    public static String fillup(final String str, final int length, final boolean leftJustify, final char fill) {
+<span class="fc" id="L754">        final int len = length - str.length();</span>
+<span class="fc" id="L755">        final char[] buf = ArrayFill.fill(new char[Math.max(len, 0)], fill);</span>
+<span class="fc bfc" id="L756" title="All 2 branches covered.">        if (leftJustify) {</span>
+<span class="fc" id="L757">            return str + new String(buf);</span>
+        }
+<span class="fc" id="L759">        return new String(buf) + str;</span>
+    }
+
+    /**
+     * Return a string for an integer justified left or right and filled up with 'fill' characters if necessary.
+     *
+     * @param i integer to format.
+     * @param length length of desired string.
+     * @param leftJustify format left or right.
+     * @param fill fill character.
+     * @return formatted int.
+     */
+    public static String format(final int i, final int length, final boolean leftJustify, final char fill) {
+<span class="fc" id="L772">        return fillup(Integer.toString(i), length, leftJustify, fill);</span>
+    }
+
+    /**
+     * WARNING:
+     *
+     * There is some nomenclature confusion through much of the BCEL code base with respect to the terms Descriptor and
+     * Signature. For the offical definitions see:
+     *
+     * @see &lt;a href=&quot;https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.3&quot;&gt; Descriptors in The Java
+     *      Virtual Machine Specification&lt;/a&gt;
+     *
+     * @see &lt;a href=&quot;https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.9.1&quot;&gt; Signatures in The Java
+     *      Virtual Machine Specification&lt;/a&gt;
+     *
+     *      In brief, a descriptor is a string representing the type of a field or method. Signatures are similar, but more
+     *      complex. Signatures are used to encode declarations written in the Java programming language that use types
+     *      outside the type system of the Java Virtual Machine. They are used to describe the type of any class, interface,
+     *      constructor, method or field whose declaration uses type variables or parameterized types.
+     *
+     *      To parse a descriptor, call typeSignatureToString. To parse a signature, call signatureToString.
+     *
+     *      Note that if the signature string is a single, non-generic item, the call to signatureToString reduces to a call
+     *      to typeSignatureToString. Also note, that if you only wish to parse the first item in a longer signature string,
+     *      you should call typeSignatureToString directly.
+     */
+
+    /**
+     * Parse Java type such as &quot;char&quot;, or &quot;java.lang.String[]&quot; and return the signature in byte code format, for example &quot;C&quot; or
+     * &quot;[Ljava/lang/String;&quot; respectively.
+     *
+     * @param type Java type.
+     * @return byte code signature.
+     */
+    public static String getSignature(String type) {
+<span class="fc" id="L807">        final StringBuilder buf = new StringBuilder();</span>
+<span class="fc" id="L808">        final char[] chars = type.toCharArray();</span>
+<span class="fc" id="L809">        boolean charFound = false;</span>
+<span class="fc" id="L810">        boolean delim = false;</span>
+<span class="fc" id="L811">        int index = -1;</span>
+<span class="fc bfc" id="L812" title="All 2 branches covered.">        loop: for (int i = 0; i &lt; chars.length; i++) {</span>
+<span class="pc bpc" id="L813" title="1 of 3 branches missed.">            switch (chars[i]) {</span>
+            case ' ':
+            case '\t':
+            case '\n':
+            case '\r':
+            case '\f':
+<span class="nc bnc" id="L819" title="All 2 branches missed.">                if (charFound) {</span>
+<span class="nc" id="L820">                    delim = true;</span>
+                }
+                break;
+            case '[':
+<span class="pc bpc" id="L824" title="1 of 2 branches missed.">                if (!charFound) {</span>
+<span class="nc" id="L825">                    throw new IllegalArgumentException(&quot;Illegal type: &quot; + type);</span>
+                }
+<span class="fc" id="L827">                index = i;</span>
+<span class="fc" id="L828">                break loop;</span>
+            default:
+<span class="fc" id="L830">                charFound = true;</span>
+<span class="pc bpc" id="L831" title="1 of 2 branches missed.">                if (!delim) {</span>
+<span class="fc" id="L832">                    buf.append(chars[i]);</span>
+                }
+            }
+        }
+<span class="fc" id="L836">        int brackets = 0;</span>
+<span class="fc bfc" id="L837" title="All 2 branches covered.">        if (index &gt; 0) {</span>
+<span class="fc" id="L838">            brackets = countBrackets(type.substring(index));</span>
+        }
+<span class="fc" id="L840">        type = buf.toString();</span>
+<span class="fc" id="L841">        buf.setLength(0);</span>
+<span class="fc bfc" id="L842" title="All 2 branches covered.">        for (int i = 0; i &lt; brackets; i++) {</span>
+<span class="fc" id="L843">            buf.append('[');</span>
+        }
+<span class="fc" id="L845">        boolean found = false;</span>
+<span class="fc bfc" id="L846" title="All 4 branches covered.">        for (int i = Const.T_BOOLEAN; i &lt;= Const.T_VOID &amp;&amp; !found; i++) {</span>
+<span class="fc bfc" id="L847" title="All 2 branches covered.">            if (Const.getTypeName(i).equals(type)) {</span>
+<span class="fc" id="L848">                found = true;</span>
+<span class="fc" id="L849">                buf.append(Const.getShortTypeName(i));</span>
+            }
+        }
+<span class="fc bfc" id="L852" title="All 2 branches covered.">        if (!found) {</span>
+<span class="fc" id="L853">            buf.append('L').append(packageToPath(type)).append(';');</span>
+        }
+<span class="fc" id="L855">        return buf.toString();</span>
+    }
+
+    /**
+     * Tests if a character is part of a Java identifier.
+     *
+     * @param ch the character to test if it's part of an identifier.
+     * @return true, if character is one of (a, ... z, A, ... Z, 0, ... 9, _).
+     */
+    public static boolean isJavaIdentifierPart(final char ch) {
+<span class="fc bfc" id="L865" title="All 14 branches covered.">        return ch &gt;= 'a' &amp;&amp; ch &lt;= 'z' || ch &gt;= 'A' &amp;&amp; ch &lt;= 'Z' || ch &gt;= '0' &amp;&amp; ch &lt;= '9' || ch == '_';</span>
+    }
+
+    /**
+     * Tests if a bit is set.
+     *
+     * @param flag the flag value.
+     * @param i the bit position.
+     * @return true, if bit 'i' in 'flag' is set.
+     */
+    public static boolean isSet(final int flag, final int i) {
+<span class="fc bfc" id="L876" title="All 2 branches covered.">        return (flag &amp; pow2(i)) != 0;</span>
+    }
+
+    /**
+     * Converts argument list portion of method signature to string with all class names compacted.
+     *
+     * @param signature Method signature.
+     * @return String Array of argument types.
+     * @throws ClassFormatException if a class is malformed or cannot be interpreted as a class file
+     */
+    public static String[] methodSignatureArgumentTypes(final String signature) throws ClassFormatException {
+<span class="fc" id="L887">        return methodSignatureArgumentTypes(signature, true);</span>
+    }
+
+    /**
+     * Converts argument list portion of method signature to string.
+     *
+     * @param signature Method signature.
+     * @param chopit flag that determines whether chopping is executed or not.
+     * @return String Array of argument types.
+     * @throws ClassFormatException if a class is malformed or cannot be interpreted as a class file
+     */
+    public static String[] methodSignatureArgumentTypes(final String signature, final boolean chopit) throws ClassFormatException {
+<span class="fc" id="L899">        final List&lt;String&gt; vec = new ArrayList&lt;&gt;();</span>
+        int index;
+        try {
+            // Skip any type arguments to read argument declarations between '(' and ')'
+<span class="fc" id="L903">            index = signature.indexOf('(') + 1;</span>
+<span class="pc bpc" id="L904" title="1 of 2 branches missed.">            if (index &lt;= 0) {</span>
+<span class="nc" id="L905">                throw new InvalidMethodSignatureException(signature);</span>
+            }
+<span class="fc bfc" id="L907" title="All 2 branches covered.">            while (signature.charAt(index) != ')') {</span>
+<span class="fc" id="L908">                vec.add(typeSignatureToString(signature.substring(index), chopit));</span>
+                // corrected concurrent private static field acess
+<span class="fc" id="L910">                index += unwrap(CONSUMER_CHARS); // update position</span>
+            }
+<span class="nc" id="L912">        } catch (final StringIndexOutOfBoundsException e) { // Should never occur</span>
+<span class="nc" id="L913">            throw new InvalidMethodSignatureException(signature, e);</span>
+<span class="fc" id="L914">        }</span>
+<span class="fc" id="L915">        return vec.toArray(ArrayUtils.EMPTY_STRING_ARRAY);</span>
+    }
+
+    /**
+     * Converts return type portion of method signature to string with all class names compacted.
+     *
+     * @param signature Method signature.
+     * @return String representation of method return type.
+     * @throws ClassFormatException if a class is malformed or cannot be interpreted as a class file
+     */
+    public static String methodSignatureReturnType(final String signature) throws ClassFormatException {
+<span class="fc" id="L926">        return methodSignatureReturnType(signature, true);</span>
+    }
+
+    /**
+     * Converts return type portion of method signature to string.
+     *
+     * @param signature Method signature.
+     * @param chopit flag that determines whether chopping is executed or not.
+     * @return String representation of method return type.
+     * @throws ClassFormatException if a class is malformed or cannot be interpreted as a class file
+     */
+    public static String methodSignatureReturnType(final String signature, final boolean chopit) throws ClassFormatException {
+        try {
+            // Read return type after ')'
+<span class="fc" id="L940">            final int index = signature.lastIndexOf(')') + 1;</span>
+<span class="pc bpc" id="L941" title="1 of 2 branches missed.">            if (index &lt;= 0) {</span>
+<span class="nc" id="L942">                throw new InvalidMethodSignatureException(signature);</span>
+            }
+<span class="fc" id="L944">            return typeSignatureToString(signature.substring(index), chopit);</span>
+<span class="nc" id="L945">        } catch (final StringIndexOutOfBoundsException e) { // Should never occur</span>
+<span class="nc" id="L946">            throw new InvalidMethodSignatureException(signature, e);</span>
+        }
+    }
+
+    /**
+     * Converts method signature to string with all class names compacted.
+     *
+     * @param signature to convert.
+     * @param name of method.
+     * @param access flags of method.
+     * @return Human readable signature.
+     */
+    public static String methodSignatureToString(final String signature, final String name, final String access) {
+<span class="fc" id="L959">        return methodSignatureToString(signature, name, access, true);</span>
+    }
+
+    /**
+     * Converts method signature to string.
+     *
+     * @param signature to convert.
+     * @param name of method.
+     * @param access flags of method.
+     * @param chopit flag that determines whether chopping is executed or not.
+     * @return Human readable signature.
+     */
+    public static String methodSignatureToString(final String signature, final String name, final String access, final boolean chopit) {
+<span class="fc" id="L972">        return methodSignatureToString(signature, name, access, chopit, null);</span>
+    }
+
+    /**
+     * This method converts a method signature string into a Java type declaration like 'void main(String[])' and throws a
+     * 'ClassFormatException' when the parsed type is invalid.
+     *
+     * @param signature Method signature.
+     * @param name Method name.
+     * @param access Method access rights.
+     * @param chopit flag that determines whether chopping is executed or not.
+     * @param vars the LocalVariableTable for the method.
+     * @return Java type declaration.
+     * @throws ClassFormatException if a class is malformed or cannot be interpreted as a class file
+     */
+    public static String methodSignatureToString(final String signature, final String name, final String access, final boolean chopit,
+        final LocalVariableTable vars) throws ClassFormatException {
+<span class="fc" id="L989">        final StringBuilder buf = new StringBuilder(&quot;(&quot;);</span>
+        final String type;
+        int index;
+<span class="fc bfc" id="L992" title="All 2 branches covered.">        int varIndex = access.contains(&quot;static&quot;) ? 0 : 1;</span>
+        try {
+            // Skip any type arguments to read argument declarations between '(' and ')'
+<span class="fc" id="L995">            index = signature.indexOf('(') + 1;</span>
+<span class="pc bpc" id="L996" title="1 of 2 branches missed.">            if (index &lt;= 0) {</span>
+<span class="nc" id="L997">                throw new InvalidMethodSignatureException(signature);</span>
+            }
+<span class="fc bfc" id="L999" title="All 2 branches covered.">            while (signature.charAt(index) != ')') {</span>
+<span class="fc" id="L1000">                final String paramType = typeSignatureToString(signature.substring(index), chopit);</span>
+<span class="fc" id="L1001">                buf.append(paramType);</span>
+<span class="fc bfc" id="L1002" title="All 2 branches covered.">                if (vars != null) {</span>
+<span class="fc" id="L1003">                    final LocalVariable l = vars.getLocalVariable(varIndex, 0);</span>
+<span class="fc bfc" id="L1004" title="All 2 branches covered.">                    if (l != null) {</span>
+<span class="fc" id="L1005">                        buf.append(&quot; &quot;).append(l.getName());</span>
+                    }
+<span class="fc" id="L1007">                } else {</span>
+<span class="fc" id="L1008">                    buf.append(&quot; arg&quot;).append(varIndex);</span>
+                }
+<span class="fc bfc" id="L1010" title="All 4 branches covered.">                if (&quot;double&quot;.equals(paramType) || &quot;long&quot;.equals(paramType)) {</span>
+<span class="fc" id="L1011">                    varIndex += 2;</span>
+                } else {
+<span class="fc" id="L1013">                    varIndex++;</span>
+                }
+<span class="fc" id="L1015">                buf.append(&quot;, &quot;);</span>
+                // corrected concurrent private static field acess
+<span class="fc" id="L1017">                index += unwrap(CONSUMER_CHARS); // update position</span>
+<span class="fc" id="L1018">            }</span>
+<span class="fc" id="L1019">            index++; // update position</span>
+            // Read return type after ')'
+<span class="fc" id="L1021">            type = typeSignatureToString(signature.substring(index), chopit);</span>
+<span class="nc" id="L1022">        } catch (final StringIndexOutOfBoundsException e) { // Should never occur</span>
+<span class="nc" id="L1023">            throw new InvalidMethodSignatureException(signature, e);</span>
+<span class="fc" id="L1024">        }</span>
+        // ignore any throws information in the signature
+<span class="fc bfc" id="L1026" title="All 2 branches covered.">        if (buf.length() &gt; 1) {</span>
+<span class="fc" id="L1027">            buf.setLength(buf.length() - 2);</span>
+        }
+<span class="fc" id="L1029">        buf.append(&quot;)&quot;);</span>
+<span class="fc bfc" id="L1030" title="All 2 branches covered.">        return access + (!access.isEmpty() ? &quot; &quot; : &quot;&quot;) + // May be an empty string</span>
+<span class="fc" id="L1031">            type + &quot; &quot; + name + buf.toString();</span>
+    }
+
+    /**
+     * Converts string containing the method return and argument types to a byte code method signature.
+     *
+     * @param ret Return type of method.
+     * @param argv Types of method arguments.
+     * @return Byte code representation of method signature.
+     * @throws ClassFormatException if the signature is for Void
+     */
+    public static String methodTypeToSignature(final String ret, final String[] argv) throws ClassFormatException {
+<span class="fc" id="L1043">        final StringBuilder buf = new StringBuilder(&quot;(&quot;);</span>
+        String str;
+<span class="pc bpc" id="L1045" title="1 of 2 branches missed.">        if (argv != null) {</span>
+<span class="fc bfc" id="L1046" title="All 2 branches covered.">            for (final String element : argv) {</span>
+<span class="fc" id="L1047">                str = getSignature(element);</span>
+<span class="pc bpc" id="L1048" title="1 of 2 branches missed.">                if (str.endsWith(&quot;V&quot;)) {</span>
+<span class="nc" id="L1049">                    throw new ClassFormatException(&quot;Invalid type: &quot; + element);</span>
+                }
+<span class="fc" id="L1051">                buf.append(str);</span>
+            }
+        }
+<span class="fc" id="L1054">        str = getSignature(ret);</span>
+<span class="fc" id="L1055">        buf.append(&quot;)&quot;).append(str);</span>
+<span class="fc" id="L1056">        return buf.toString();</span>
+    }
+
+    /**
+     * Converts '.'s to '/'s.
+     *
+     * @param name Source.
+     * @return converted value.
+     * @since 6.7.0
+     */
+    public static String packageToPath(final String name) {
+<span class="fc" id="L1067">        return name.replace('.', '/');</span>
+    }
+
+    /**
+     * Converts a path to a package name.
+     *
+     * @param str the source path.
+     * @return a package name.
+     * @since 6.6.0
+     */
+    public static String pathToPackage(final String str) {
+<span class="fc" id="L1078">        return str.replace('/', '.');</span>
+    }
+
+    private static int pow2(final int n) {
+<span class="fc" id="L1082">        return 1 &lt;&lt; n;</span>
+    }
+
+    /**
+     * Prints an array to a string.
+     *
+     * @param obj the array to print.
+     * @return the string representation.
+     */
+    public static String printArray(final Object[] obj) {
+<span class="fc" id="L1092">        return printArray(obj, true);</span>
+    }
+
+    /**
+     * Prints an array to a string.
+     *
+     * @param obj the array to print.
+     * @param braces whether to include braces.
+     * @return the string representation.
+     */
+    public static String printArray(final Object[] obj, final boolean braces) {
+<span class="fc" id="L1103">        return printArray(obj, braces, false);</span>
+    }
+
+    /**
+     * Prints an array to a string.
+     *
+     * @param obj the array to print.
+     * @param braces whether to include braces.
+     * @param quote whether to quote elements.
+     * @return the string representation.
+     */
+    public static String printArray(final Object[] obj, final boolean braces, final boolean quote) {
+<span class="fc bfc" id="L1115" title="All 2 branches covered.">        if (obj == null) {</span>
+<span class="fc" id="L1116">            return null;</span>
+        }
+<span class="fc" id="L1118">        final StringBuilder buf = new StringBuilder();</span>
+<span class="fc bfc" id="L1119" title="All 2 branches covered.">        if (braces) {</span>
+<span class="fc" id="L1120">            buf.append('{');</span>
+        }
+<span class="fc bfc" id="L1122" title="All 2 branches covered.">        for (int i = 0; i &lt; obj.length; i++) {</span>
+<span class="fc bfc" id="L1123" title="All 2 branches covered.">            if (obj[i] != null) {</span>
+<span class="fc bfc" id="L1124" title="All 4 branches covered.">                buf.append(quote ? &quot;\&quot;&quot; : &quot;&quot;).append(obj[i]).append(quote ? &quot;\&quot;&quot; : &quot;&quot;);</span>
+            } else {
+<span class="fc" id="L1126">                buf.append(&quot;null&quot;);</span>
+            }
+<span class="fc bfc" id="L1128" title="All 2 branches covered.">            if (i &lt; obj.length - 1) {</span>
+<span class="fc" id="L1129">                buf.append(&quot;, &quot;);</span>
+            }
+        }
+<span class="fc bfc" id="L1132" title="All 2 branches covered.">        if (braces) {</span>
+<span class="fc" id="L1133">            buf.append('}');</span>
+        }
+<span class="fc" id="L1135">        return buf.toString();</span>
+    }
+
+    /**
+     * Prints an array to a stream.
+     *
+     * @param out the output stream.
+     * @param obj the array to print.
+     */
+    public static void printArray(final PrintStream out, final Object[] obj) {
+<span class="nc" id="L1145">        out.println(printArray(obj, true));</span>
+<span class="nc" id="L1146">    }</span>
+
+    /**
+     * Prints an array to a writer.
+     *
+     * @param out the output writer.
+     * @param obj the array to print.
+     */
+    public static void printArray(final PrintWriter out, final Object[] obj) {
+<span class="nc" id="L1155">        out.println(printArray(obj, true));</span>
+<span class="nc" id="L1156">    }</span>
+
+    /**
+     * Replace all occurrences of &lt;em&gt;old&lt;/em&gt; in &lt;em&gt;str&lt;/em&gt; with &lt;em&gt;new&lt;/em&gt;.
+     *
+     * @param str String to permute.
+     * @param old String to be replaced.
+     * @param new_ Replacement string.
+     * @return new String object.
+     */
+    public static String replace(String str, final String old, final String new_) {
+        int index;
+        int oldIndex;
+        try {
+<span class="fc bfc" id="L1170" title="All 2 branches covered.">            if (str.contains(old)) { // 'old' found in str</span>
+<span class="fc" id="L1171">                final StringBuilder buf = new StringBuilder();</span>
+<span class="fc" id="L1172">                oldIndex = 0; // String start offset</span>
+                // While we have something to replace
+<span class="fc bfc" id="L1174" title="All 2 branches covered.">                while ((index = str.indexOf(old, oldIndex)) != -1) {</span>
+<span class="fc" id="L1175">                    buf.append(str, oldIndex, index); // append prefix</span>
+<span class="fc" id="L1176">                    buf.append(new_); // append replacement</span>
+<span class="fc" id="L1177">                    oldIndex = index + old.length(); // Skip 'old'.length chars</span>
+                }
+<span class="fc" id="L1179">                buf.append(str.substring(oldIndex)); // append rest of string</span>
+<span class="fc" id="L1180">                str = buf.toString();</span>
+            }
+<span class="nc" id="L1182">        } catch (final StringIndexOutOfBoundsException e) { // Should not occur</span>
+<span class="nc" id="L1183">            System.err.println(e);</span>
+<span class="fc" id="L1184">        }</span>
+<span class="fc" id="L1185">        return str;</span>
+    }
+
+    /**
+     * Map opcode names to opcode numbers. E.g., return Constants.ALOAD for &quot;aload&quot;.
+     *
+     * @param name The opcode name.
+     * @return the value.
+     */
+    public static short searchOpcode(final String name) {
+<span class="fc" id="L1195">        final String lcName = StringUtils.toRootLowerCase(name);</span>
+<span class="fc bfc" id="L1196" title="All 2 branches covered.">        for (short i = 0; i &lt; Const.OPCODE_NAMES_LENGTH; i++) {</span>
+<span class="fc bfc" id="L1197" title="All 2 branches covered.">            if (Const.getOpcodeName(i).equals(lcName)) {</span>
+<span class="fc" id="L1198">                return i;</span>
+            }
+        }
+<span class="fc" id="L1201">        return -1;</span>
+    }
+
+    /**
+     * Sets a bit in a flag.
+     *
+     * @param flag the flag value.
+     * @param i the bit position.
+     * @return 'flag' with bit 'i' set to 1.
+     */
+    public static int setBit(final int flag, final int i) {
+<span class="fc" id="L1212">        return flag | pow2(i);</span>
+    }
+
+    /**
+     * Converts a signature to a string with all class names compacted. Class, Method and Type signatures are supported.
+     * Enum and Interface signatures are not supported.
+     *
+     * @param signature signature to convert.
+     * @return String containg human readable signature.
+     */
+    public static String signatureToString(final String signature) {
+<span class="fc" id="L1223">        return signatureToString(signature, true);</span>
+    }
+
+    /**
+     * Converts a signature to a string. Class, Method and Type signatures are supported. Enum and Interface signatures are
+     * not supported.
+     *
+     * @param signature signature to convert.
+     * @param chopit flag that determines whether chopping is executed or not.
+     * @return String containg human readable signature.
+     */
+    public static String signatureToString(final String signature, final boolean chopit) {
+<span class="fc" id="L1235">        String type = &quot;&quot;;</span>
+<span class="fc" id="L1236">        String typeParams = &quot;&quot;;</span>
+<span class="fc" id="L1237">        int index = 0;</span>
+<span class="pc bpc" id="L1238" title="1 of 2 branches missed.">        if (signature.charAt(0) == '&lt;') {</span>
+            // we have type parameters
+<span class="nc" id="L1240">            typeParams = typeParamTypesToString(signature, chopit);</span>
+<span class="nc" id="L1241">            index += unwrap(CONSUMER_CHARS); // update position</span>
+        }
+<span class="pc bpc" id="L1243" title="1 of 2 branches missed.">        if (signature.charAt(index) == '(') {</span>
+            // We have a Method signature.
+            // add types of arguments
+<span class="nc" id="L1246">            type = typeParams + typeSignaturesToString(signature.substring(index), chopit, ')');</span>
+<span class="nc" id="L1247">            index += unwrap(CONSUMER_CHARS); // update position</span>
+            // add return type
+<span class="nc" id="L1249">            type += typeSignatureToString(signature.substring(index), chopit);</span>
+<span class="nc" id="L1250">            index += unwrap(CONSUMER_CHARS); // update position</span>
+            // ignore any throws information in the signature
+<span class="nc" id="L1252">            return type;</span>
+        }
+        // Could be Class or Type...
+<span class="fc" id="L1255">        type = typeSignatureToString(signature.substring(index), chopit);</span>
+<span class="fc" id="L1256">        index += unwrap(CONSUMER_CHARS); // update position</span>
+<span class="pc bpc" id="L1257" title="2 of 4 branches missed.">        if (typeParams.isEmpty() &amp;&amp; index == signature.length()) {</span>
+            // We have a Type signature.
+<span class="fc" id="L1259">            return type;</span>
+        }
+        // We have a Class signature.
+<span class="nc" id="L1262">        final StringBuilder typeClass = new StringBuilder(typeParams);</span>
+<span class="nc" id="L1263">        typeClass.append(&quot; extends &quot;);</span>
+<span class="nc" id="L1264">        typeClass.append(type);</span>
+<span class="nc bnc" id="L1265" title="All 2 branches missed.">        if (index &lt; signature.length()) {</span>
+<span class="nc" id="L1266">            typeClass.append(&quot; implements &quot;);</span>
+<span class="nc" id="L1267">            typeClass.append(typeSignatureToString(signature.substring(index), chopit));</span>
+<span class="nc" id="L1268">            index += unwrap(CONSUMER_CHARS); // update position</span>
+        }
+<span class="nc bnc" id="L1270" title="All 2 branches missed.">        while (index &lt; signature.length()) {</span>
+<span class="nc" id="L1271">            typeClass.append(&quot;, &quot;);</span>
+<span class="nc" id="L1272">            typeClass.append(typeSignatureToString(signature.substring(index), chopit));</span>
+<span class="nc" id="L1273">            index += unwrap(CONSUMER_CHARS); // update position</span>
+        }
+<span class="nc" id="L1275">        return typeClass.toString();</span>
+    }
+
+    /**
+     * Convert bytes into hexadecimal string
+     *
+     * @param bytes an array of bytes to convert to hexadecimal.
+     * @return bytes as hexadecimal string, for example 00 fa 12 ...
+     */
+    public static String toHexString(final byte[] bytes) {
+<span class="fc" id="L1285">        final StringBuilder buf = new StringBuilder();</span>
+<span class="fc bfc" id="L1286" title="All 2 branches covered.">        for (int i = 0; i &lt; bytes.length; i++) {</span>
+<span class="fc" id="L1287">            final short b = byteToShort(bytes[i]);</span>
+<span class="fc" id="L1288">            final String hex = Integer.toHexString(b);</span>
+<span class="fc bfc" id="L1289" title="All 2 branches covered.">            if (b &lt; 0x10) {</span>
+<span class="fc" id="L1290">                buf.append('0');</span>
+            }
+<span class="fc" id="L1292">            buf.append(hex);</span>
+<span class="fc bfc" id="L1293" title="All 2 branches covered.">            if (i &lt; bytes.length - 1) {</span>
+<span class="fc" id="L1294">                buf.append(' ');</span>
+            }
+        }
+<span class="fc" id="L1297">        return buf.toString();</span>
+    }
+
+    /**
+     * Return type of method signature as a byte value as defined in &lt;em&gt;Constants&lt;/em&gt;
+     *
+     * @param signature in format described above.
+     * @return type of method signature.
+     * @see Const
+     * @throws ClassFormatException if signature is not a method signature
+     */
+    public static byte typeOfMethodSignature(final String signature) throws ClassFormatException {
+        try {
+<span class="pc bpc" id="L1310" title="1 of 2 branches missed.">            if (signature.charAt(0) != '(') {</span>
+<span class="nc" id="L1311">                throw new InvalidMethodSignatureException(signature);</span>
+            }
+<span class="fc" id="L1313">            final int index = signature.lastIndexOf(')') + 1;</span>
+<span class="fc" id="L1314">            return typeOfSignature(signature.substring(index));</span>
+<span class="nc" id="L1315">        } catch (final StringIndexOutOfBoundsException e) {</span>
+<span class="nc" id="L1316">            throw new InvalidMethodSignatureException(signature, e);</span>
+        }
+    }
+
+    /**
+     * Return type of signature as a byte value as defined in &lt;em&gt;Constants&lt;/em&gt;
+     *
+     * @param signature in format described above.
+     * @return type of signature.
+     * @see Const
+     * @throws ClassFormatException if signature isn't a known type
+     */
+    public static byte typeOfSignature(final String signature) throws ClassFormatException {
+        try {
+<span class="pc bpc" id="L1330" title="2 of 13 branches missed.">            switch (signature.charAt(0)) {</span>
+            case 'B':
+<span class="fc" id="L1332">                return Const.T_BYTE;</span>
+            case 'C':
+<span class="fc" id="L1334">                return Const.T_CHAR;</span>
+            case 'D':
+<span class="fc" id="L1336">                return Const.T_DOUBLE;</span>
+            case 'F':
+<span class="fc" id="L1338">                return Const.T_FLOAT;</span>
+            case 'I':
+<span class="fc" id="L1340">                return Const.T_INT;</span>
+            case 'J':
+<span class="fc" id="L1342">                return Const.T_LONG;</span>
+            case 'L':
+            case 'T':
+<span class="fc" id="L1345">                return Const.T_REFERENCE;</span>
+            case '[':
+<span class="fc" id="L1347">                return Const.T_ARRAY;</span>
+            case 'V':
+<span class="fc" id="L1349">                return Const.T_VOID;</span>
+            case 'Z':
+<span class="fc" id="L1351">                return Const.T_BOOLEAN;</span>
+            case 'S':
+<span class="fc" id="L1353">                return Const.T_SHORT;</span>
+            case '!':
+            case '+':
+            case '*':
+<span class="nc" id="L1357">                return typeOfSignature(signature.substring(1));</span>
+            default:
+<span class="nc" id="L1359">                throw new InvalidMethodSignatureException(signature);</span>
+            }
+<span class="nc" id="L1361">        } catch (final StringIndexOutOfBoundsException e) {</span>
+<span class="nc" id="L1362">            throw new InvalidMethodSignatureException(signature, e);</span>
+        }
+    }
+
+    /**
+     * Converts a type parameter list signature to a string.
+     *
+     * @param signature signature to convert.
+     * @param chopit flag that determines whether chopping is executed or not.
+     * @return String containg human readable signature.
+     */
+    private static String typeParamTypesToString(final String signature, final boolean chopit) {
+        // The first character is guranteed to be '&lt;'
+<span class="nc" id="L1375">        final StringBuilder typeParams = new StringBuilder(&quot;&lt;&quot;);</span>
+<span class="nc" id="L1376">        int index = 1; // skip the '&lt;'</span>
+        // get the first TypeParameter
+<span class="nc" id="L1378">        typeParams.append(typeParamTypeToString(signature.substring(index), chopit));</span>
+<span class="nc" id="L1379">        index += unwrap(CONSUMER_CHARS); // update position</span>
+        // are there more TypeParameters?
+<span class="nc bnc" id="L1381" title="All 2 branches missed.">        while (signature.charAt(index) != '&gt;') {</span>
+<span class="nc" id="L1382">            typeParams.append(&quot;, &quot;);</span>
+<span class="nc" id="L1383">            typeParams.append(typeParamTypeToString(signature.substring(index), chopit));</span>
+<span class="nc" id="L1384">            index += unwrap(CONSUMER_CHARS); // update position</span>
+        }
+<span class="nc" id="L1386">        wrap(CONSUMER_CHARS, index + 1); // account for the '&gt;' char</span>
+<span class="nc" id="L1387">        return typeParams.append(&quot;&gt;&quot;).toString();</span>
+    }
+
+    /**
+     * Converts a type parameter signature to a string.
+     *
+     * @param signature signature to convert.
+     * @param chopit flag that determines whether chopping is executed or not.
+     * @return String containg human readable signature.
+     */
+    private static String typeParamTypeToString(final String signature, final boolean chopit) {
+<span class="nc" id="L1398">        int index = signature.indexOf(':');</span>
+<span class="nc bnc" id="L1399" title="All 2 branches missed.">        if (index &lt;= 0) {</span>
+<span class="nc" id="L1400">            throw new ClassFormatException(&quot;Invalid type parameter signature: &quot; + signature);</span>
+        }
+        // get the TypeParameter identifier
+<span class="nc" id="L1403">        final StringBuilder typeParam = new StringBuilder(signature.substring(0, index));</span>
+<span class="nc" id="L1404">        index++; // account for the ':'</span>
+<span class="nc bnc" id="L1405" title="All 2 branches missed.">        if (signature.charAt(index) != ':') {</span>
+            // we have a class bound
+<span class="nc" id="L1407">            typeParam.append(&quot; extends &quot;);</span>
+<span class="nc" id="L1408">            typeParam.append(typeSignatureToString(signature.substring(index), chopit));</span>
+<span class="nc" id="L1409">            index += unwrap(CONSUMER_CHARS); // update position</span>
+        }
+        // look for interface bounds
+<span class="nc bnc" id="L1412" title="All 2 branches missed.">        while (signature.charAt(index) == ':') {</span>
+<span class="nc" id="L1413">            index++; // skip over the ':'</span>
+<span class="nc" id="L1414">            typeParam.append(&quot; &amp; &quot;);</span>
+<span class="nc" id="L1415">            typeParam.append(typeSignatureToString(signature.substring(index), chopit));</span>
+<span class="nc" id="L1416">            index += unwrap(CONSUMER_CHARS); // update position</span>
+        }
+<span class="nc" id="L1418">        wrap(CONSUMER_CHARS, index);</span>
+<span class="nc" id="L1419">        return typeParam.toString();</span>
+    }
+
+    /**
+     * Converts a list of type signatures to a string.
+     *
+     * @param signature signature to convert.
+     * @param chopit flag that determines whether chopping is executed or not.
+     * @param term character indicating the end of the list.
+     * @return String containg human readable signature.
+     */
+    private static String typeSignaturesToString(final String signature, final boolean chopit, final char term) {
+        // The first character will be an 'open' that matches the 'close' contained in term.
+<span class="nc" id="L1432">        final StringBuilder typeList = new StringBuilder(signature.substring(0, 1));</span>
+<span class="nc" id="L1433">        int index = 1; // skip the 'open' character</span>
+        // get the first Type in the list
+<span class="nc bnc" id="L1435" title="All 2 branches missed.">        if (signature.charAt(index) != term) {</span>
+<span class="nc" id="L1436">            typeList.append(typeSignatureToString(signature.substring(index), chopit));</span>
+<span class="nc" id="L1437">            index += unwrap(CONSUMER_CHARS); // update position</span>
+        }
+        // are there more types in the list?
+<span class="nc bnc" id="L1440" title="All 2 branches missed.">        while (signature.charAt(index) != term) {</span>
+<span class="nc" id="L1441">            typeList.append(&quot;, &quot;);</span>
+<span class="nc" id="L1442">            typeList.append(typeSignatureToString(signature.substring(index), chopit));</span>
+<span class="nc" id="L1443">            index += unwrap(CONSUMER_CHARS); // update position</span>
+        }
+<span class="nc" id="L1445">        wrap(CONSUMER_CHARS, index + 1); // account for the term char</span>
+<span class="nc" id="L1446">        return typeList.append(term).toString();</span>
+    }
+
+    /**
+     *
+     * This method converts a type signature string into a Java type declaration such as 'String[]' and throws a
+     * 'ClassFormatException' when the parsed type is invalid.
+     *
+     * @param signature type signature.
+     * @param chopit flag that determines whether chopping is executed or not.
+     * @return string containing human readable type signature.
+     * @throws ClassFormatException if a class is malformed or cannot be interpreted as a class file
+     * @since 6.4.0
+     */
+    public static String typeSignatureToString(final String signature, final boolean chopit) throws ClassFormatException {
+        // corrected concurrent private static field acess
+<span class="fc" id="L1462">        wrap(CONSUMER_CHARS, 1); // This is the default, read just one char like 'B'</span>
+        try {
+<span class="pc bpc" id="L1464" title="1 of 13 branches missed.">            switch (signature.charAt(0)) {</span>
+            case 'B':
+<span class="fc" id="L1466">                return &quot;byte&quot;;</span>
+            case 'C':
+<span class="fc" id="L1468">                return &quot;char&quot;;</span>
+            case 'D':
+<span class="fc" id="L1470">                return &quot;double&quot;;</span>
+            case 'F':
+<span class="fc" id="L1472">                return &quot;float&quot;;</span>
+            case 'I':
+<span class="fc" id="L1474">                return &quot;int&quot;;</span>
+            case 'J':
+<span class="fc" id="L1476">                return &quot;long&quot;;</span>
+            case 'T': { // TypeVariableSignature
+<span class="fc" id="L1478">                final int index = signature.indexOf(';'); // Look for closing ';'</span>
+<span class="pc bpc" id="L1479" title="1 of 2 branches missed.">                if (index &lt; 0) {</span>
+<span class="nc" id="L1480">                    throw new ClassFormatException(&quot;Invalid type variable signature: &quot; + signature);</span>
+                }
+                // corrected concurrent private static field acess
+<span class="fc" id="L1483">                wrap(CONSUMER_CHARS, index + 1); // &quot;Tblabla;&quot; 'T' and ';' are removed</span>
+<span class="fc" id="L1484">                return compactClassName(signature.substring(1, index), chopit);</span>
+            }
+            case 'L': { // Full class name
+                // should this be a while loop? can there be more than
+                // one generic clause? (markro)
+<span class="fc" id="L1489">                int fromIndex = signature.indexOf('&lt;'); // generic type?</span>
+<span class="fc bfc" id="L1490" title="All 2 branches covered.">                if (fromIndex &lt; 0) {</span>
+<span class="fc" id="L1491">                    fromIndex = 0;</span>
+                } else {
+<span class="fc" id="L1493">                    fromIndex = signature.indexOf('&gt;', fromIndex);</span>
+<span class="pc bpc" id="L1494" title="1 of 2 branches missed.">                    if (fromIndex &lt; 0) {</span>
+<span class="nc" id="L1495">                        throw new ClassFormatException(&quot;Invalid signature: &quot; + signature);</span>
+                    }
+                }
+<span class="fc" id="L1498">                final int index = signature.indexOf(';', fromIndex); // Look for closing ';'</span>
+<span class="pc bpc" id="L1499" title="1 of 2 branches missed.">                if (index &lt; 0) {</span>
+<span class="nc" id="L1500">                    throw new ClassFormatException(&quot;Invalid signature: &quot; + signature);</span>
+                }
+
+                // check to see if there are any TypeArguments
+<span class="fc" id="L1504">                final int bracketIndex = signature.substring(0, index).indexOf('&lt;');</span>
+<span class="fc bfc" id="L1505" title="All 2 branches covered.">                if (bracketIndex &lt; 0) {</span>
+                    // just a class identifier
+<span class="fc" id="L1507">                    wrap(CONSUMER_CHARS, index + 1); // &quot;Lblabla;&quot; 'L' and ';' are removed</span>
+<span class="fc" id="L1508">                    return compactClassName(signature.substring(1, index), chopit);</span>
+                }
+                // but make sure we are not looking past the end of the current item
+<span class="fc" id="L1511">                fromIndex = signature.indexOf(';');</span>
+<span class="pc bpc" id="L1512" title="1 of 2 branches missed.">                if (fromIndex &lt; 0) {</span>
+<span class="nc" id="L1513">                    throw new ClassFormatException(&quot;Invalid signature: &quot; + signature);</span>
+                }
+<span class="pc bpc" id="L1515" title="1 of 2 branches missed.">                if (fromIndex &lt; bracketIndex) {</span>
+                    // just a class identifier
+<span class="nc" id="L1517">                    wrap(CONSUMER_CHARS, fromIndex + 1); // &quot;Lblabla;&quot; 'L' and ';' are removed</span>
+<span class="nc" id="L1518">                    return compactClassName(signature.substring(1, fromIndex), chopit);</span>
+                }
+
+                // we have TypeArguments; build up partial result
+                // as we recurse for each TypeArgument
+<span class="fc" id="L1523">                final StringBuilder type = new StringBuilder(compactClassName(signature.substring(1, bracketIndex), chopit)).append(&quot;&lt;&quot;);</span>
+<span class="fc" id="L1524">                int consumedChars = bracketIndex + 1; // Shadows global var</span>
+
+                // check for wildcards
+<span class="fc bfc" id="L1527" title="All 2 branches covered.">                if (signature.charAt(consumedChars) == '+') {</span>
+<span class="fc" id="L1528">                    type.append(&quot;? extends &quot;);</span>
+<span class="fc" id="L1529">                    consumedChars++;</span>
+<span class="fc bfc" id="L1530" title="All 2 branches covered.">                } else if (signature.charAt(consumedChars) == '-') {</span>
+<span class="fc" id="L1531">                    type.append(&quot;? super &quot;);</span>
+<span class="fc" id="L1532">                    consumedChars++;</span>
+                }
+
+                // get the first TypeArgument
+<span class="pc bpc" id="L1536" title="1 of 2 branches missed.">                if (signature.charAt(consumedChars) == '*') {</span>
+<span class="nc" id="L1537">                    type.append(&quot;?&quot;);</span>
+<span class="nc" id="L1538">                    consumedChars++;</span>
+                } else {
+<span class="fc" id="L1540">                    type.append(typeSignatureToString(signature.substring(consumedChars), chopit));</span>
+                    // update our consumed count by the number of characters the for type argument
+<span class="fc" id="L1542">                    consumedChars = unwrap(CONSUMER_CHARS) + consumedChars;</span>
+<span class="fc" id="L1543">                    wrap(CONSUMER_CHARS, consumedChars);</span>
+                }
+
+                // are there more TypeArguments?
+<span class="fc bfc" id="L1547" title="All 2 branches covered.">                while (signature.charAt(consumedChars) != '&gt;') {</span>
+<span class="fc" id="L1548">                    type.append(&quot;, &quot;);</span>
+                    // check for wildcards
+<span class="pc bpc" id="L1550" title="1 of 2 branches missed.">                    if (signature.charAt(consumedChars) == '+') {</span>
+<span class="fc" id="L1551">                        type.append(&quot;? extends &quot;);</span>
+<span class="fc" id="L1552">                        consumedChars++;</span>
+<span class="nc bnc" id="L1553" title="All 2 branches missed.">                    } else if (signature.charAt(consumedChars) == '-') {</span>
+<span class="nc" id="L1554">                        type.append(&quot;? super &quot;);</span>
+<span class="nc" id="L1555">                        consumedChars++;</span>
+                    }
+<span class="pc bpc" id="L1557" title="1 of 2 branches missed.">                    if (signature.charAt(consumedChars) == '*') {</span>
+<span class="nc" id="L1558">                        type.append(&quot;?&quot;);</span>
+<span class="nc" id="L1559">                        consumedChars++;</span>
+                    } else {
+<span class="fc" id="L1561">                        type.append(typeSignatureToString(signature.substring(consumedChars), chopit));</span>
+                        // update our consumed count by the number of characters the for type argument
+<span class="fc" id="L1563">                        consumedChars = unwrap(CONSUMER_CHARS) + consumedChars;</span>
+<span class="fc" id="L1564">                        wrap(CONSUMER_CHARS, consumedChars);</span>
+                    }
+                }
+
+                // process the closing &quot;&gt;&quot;
+<span class="fc" id="L1569">                consumedChars++;</span>
+<span class="fc" id="L1570">                type.append(&quot;&gt;&quot;);</span>
+
+<span class="pc bpc" id="L1572" title="1 of 2 branches missed.">                if (signature.charAt(consumedChars) == '.') {</span>
+                    // we have a ClassTypeSignatureSuffix
+<span class="nc" id="L1574">                    type.append(&quot;.&quot;);</span>
+                    // convert SimpleClassTypeSignature to fake ClassTypeSignature
+                    // and then recurse to parse it
+<span class="nc" id="L1577">                    type.append(typeSignatureToString(&quot;L&quot; + signature.substring(consumedChars + 1), chopit));</span>
+                    // update our consumed count by the number of characters the for type argument
+                    // note that this count includes the &quot;L&quot; we added, but that is ok
+                    // as it accounts for the &quot;.&quot; we didn't consume
+<span class="nc" id="L1581">                    consumedChars = unwrap(CONSUMER_CHARS) + consumedChars;</span>
+<span class="nc" id="L1582">                    wrap(CONSUMER_CHARS, consumedChars);</span>
+<span class="nc" id="L1583">                    return type.toString();</span>
+                }
+<span class="pc bpc" id="L1585" title="1 of 2 branches missed.">                if (signature.charAt(consumedChars) != ';') {</span>
+<span class="nc" id="L1586">                    throw new ClassFormatException(&quot;Invalid signature: &quot; + signature);</span>
+                }
+<span class="fc" id="L1588">                wrap(CONSUMER_CHARS, consumedChars + 1); // remove final &quot;;&quot;</span>
+<span class="fc" id="L1589">                return type.toString();</span>
+            }
+            case 'S':
+<span class="fc" id="L1592">                return &quot;short&quot;;</span>
+            case 'Z':
+<span class="fc" id="L1594">                return &quot;boolean&quot;;</span>
+            case '[': { // Array declaration
+                int n;
+<span class="fc" id="L1597">                final StringBuilder brackets = new StringBuilder(); // Accumulate []'s</span>
+                // Count opening brackets and look for optional size argument
+<span class="fc bfc" id="L1599" title="All 2 branches covered.">                for (n = 0; signature.charAt(n) == '['; n++) {</span>
+<span class="fc" id="L1600">                    brackets.append(&quot;[]&quot;);</span>
+                }
+<span class="fc" id="L1602">                final int consumedChars = n; // Remember value</span>
+                // The rest of the string denotes a '&lt;field_type&gt;'
+<span class="fc" id="L1604">                final String type = typeSignatureToString(signature.substring(n), chopit);</span>
+                // corrected concurrent private static field acess
+                // consumed_chars += consumed_chars; is replaced by:
+<span class="fc" id="L1607">                final int temp = unwrap(CONSUMER_CHARS) + consumedChars;</span>
+<span class="fc" id="L1608">                wrap(CONSUMER_CHARS, temp);</span>
+<span class="fc" id="L1609">                return type + brackets.toString();</span>
+            }
+            case 'V':
+<span class="fc" id="L1612">                return &quot;void&quot;;</span>
+            default:
+<span class="nc" id="L1614">                throw new ClassFormatException(&quot;Invalid signature: '&quot; + signature + &quot;'&quot;);</span>
+            }
+<span class="nc" id="L1616">        } catch (final StringIndexOutOfBoundsException e) { // Should never occur</span>
+<span class="nc" id="L1617">            throw new ClassFormatException(&quot;Invalid signature: &quot; + signature, e);</span>
+        }
+    }
+
+    private static int unwrap(final ThreadLocal&lt;Integer&gt; tl) {
+<span class="fc" id="L1622">        return tl.get().intValue();</span>
+    }
+
+    private static void wrap(final ThreadLocal&lt;Integer&gt; tl, final int value) {
+<span class="fc" id="L1626">        tl.set(Integer.valueOf(value));</span>
+<span class="fc" id="L1627">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

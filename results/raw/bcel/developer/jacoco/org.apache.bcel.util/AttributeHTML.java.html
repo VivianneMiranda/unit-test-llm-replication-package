@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AttributeHTML.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.util</a> &gt; <span class="el_source">AttributeHTML.java</span></div><h1>AttributeHTML.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.util;
+
+import java.io.Closeable;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.classfile.Attribute;
+import org.apache.bcel.classfile.Code;
+import org.apache.bcel.classfile.CodeException;
+import org.apache.bcel.classfile.ConstantPool;
+import org.apache.bcel.classfile.ConstantValue;
+import org.apache.bcel.classfile.ExceptionTable;
+import org.apache.bcel.classfile.InnerClass;
+import org.apache.bcel.classfile.InnerClasses;
+import org.apache.bcel.classfile.LineNumber;
+import org.apache.bcel.classfile.LineNumberTable;
+import org.apache.bcel.classfile.LocalVariableTable;
+import org.apache.bcel.classfile.SourceFile;
+import org.apache.bcel.classfile.Utility;
+
+/**
+ * Convert found attributes into HTML file.
+ */
+final class AttributeHTML implements Closeable {
+
+    private final String className; // name of current class
+    private final PrintWriter printWriter; // file to write to
+    private int attrCount;
+    private final ConstantHTML constantHtml;
+    private final ConstantPool constantPool;
+
+    AttributeHTML(final String dir, final String className, final ConstantPool constantPool, final ConstantHTML constantHtml, final Charset charset)
+<span class="fc" id="L54">        throws FileNotFoundException, UnsupportedEncodingException {</span>
+<span class="fc" id="L55">        this.className = className;</span>
+<span class="fc" id="L56">        this.constantPool = constantPool;</span>
+<span class="fc" id="L57">        this.constantHtml = constantHtml;</span>
+<span class="fc" id="L58">        printWriter = new PrintWriter(dir + className + &quot;_attributes.html&quot;, charset.name());</span>
+<span class="fc" id="L59">        printWriter.print(&quot;&lt;HTML&gt;&lt;head&gt;&lt;meta charset=\&quot;&quot;);</span>
+<span class="fc" id="L60">        printWriter.print(charset.name());</span>
+<span class="fc" id="L61">        printWriter.println(&quot;\&quot;&gt;&lt;/head&gt;&quot;);</span>
+<span class="fc" id="L62">        printWriter.println(&quot;&lt;BODY BGCOLOR=\&quot;#C0C0C0\&quot;&gt;&lt;TABLE BORDER=0&gt;&quot;);</span>
+<span class="fc" id="L63">    }</span>
+
+    @Override
+    public void close() {
+<span class="fc" id="L67">        printWriter.println(&quot;&lt;/TABLE&gt;&lt;/BODY&gt;&lt;/HTML&gt;&quot;);</span>
+<span class="fc" id="L68">        printWriter.close();</span>
+<span class="fc" id="L69">    }</span>
+
+    private String codeLink(final int link, final int methodNumber) {
+<span class="fc" id="L72">        return &quot;&lt;A HREF=\&quot;&quot; + className + &quot;_code.html#code&quot; + methodNumber + &quot;@&quot; + link + &quot;\&quot; TARGET=Code&gt;&quot; + link + &quot;&lt;/A&gt;&quot;;</span>
+    }
+
+    void writeAttribute(final Attribute attribute, final String anchor) {
+<span class="fc" id="L76">        writeAttribute(attribute, anchor, 0);</span>
+<span class="fc" id="L77">    }</span>
+
+    void writeAttribute(final Attribute attribute, final String anchor, final int methodNumber) {
+<span class="fc" id="L80">        final byte tag = attribute.getTag();</span>
+        int index;
+<span class="pc bpc" id="L82" title="1 of 2 branches missed.">        if (tag == Const.ATTR_UNKNOWN) {</span>
+<span class="nc" id="L83">            return;</span>
+        }
+<span class="fc" id="L85">        attrCount++; // Increment number of attributes found so far</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        if (attrCount % 2 == 0) {</span>
+<span class="fc" id="L87">            printWriter.print(&quot;&lt;TR BGCOLOR=\&quot;#C0C0C0\&quot;&gt;&lt;TD&gt;&quot;);</span>
+        } else {
+<span class="fc" id="L89">            printWriter.print(&quot;&lt;TR BGCOLOR=\&quot;#A0A0A0\&quot;&gt;&lt;TD&gt;&quot;);</span>
+        }
+<span class="fc" id="L91">        printWriter.println(&quot;&lt;H4&gt;&lt;A NAME=\&quot;&quot; + anchor + &quot;\&quot;&gt;&quot; + attrCount + &quot; &quot; + Const.getAttributeName(tag) + &quot;&lt;/A&gt;&lt;/H4&gt;&quot;);</span>
+        /*
+         * Handle different attributes
+         */
+<span class="pc bpc" id="L95" title="1 of 8 branches missed.">        switch (tag) {</span>
+        case Const.ATTR_CODE:
+<span class="fc" id="L97">            final Code c = (Code) attribute;</span>
+            // Some directly printable values
+<span class="fc" id="L99">            printWriter.print(&quot;&lt;UL&gt;&lt;LI&gt;Maximum stack size = &quot; + c.getMaxStack() + &quot;&lt;/LI&gt;\n&lt;LI&gt;Number of local variables = &quot; + c.getMaxLocals()</span>
+                + &quot;&lt;/LI&gt;\n&lt;LI&gt;&lt;A HREF=\&quot;&quot; + className + &quot;_code.html#method&quot; + methodNumber + &quot;\&quot; TARGET=Code&gt;Byte code&lt;/A&gt;&lt;/LI&gt;&lt;/UL&gt;\n&quot;);
+            // Get handled exceptions and list them
+<span class="fc" id="L102">            final CodeException[] ce = c.getExceptionTable();</span>
+<span class="fc" id="L103">            final int len = ce.length;</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">            if (len &gt; 0) {</span>
+<span class="fc" id="L105">                printWriter.print(&quot;&lt;P&gt;&lt;B&gt;Exceptions handled&lt;/B&gt;&lt;UL&gt;&quot;);</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">                for (final CodeException cex : ce) {</span>
+<span class="fc" id="L107">                    final int catchType = cex.getCatchType(); // Index in constant pool</span>
+<span class="fc" id="L108">                    printWriter.print(&quot;&lt;LI&gt;&quot;);</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">                    if (catchType != 0) {</span>
+<span class="fc" id="L110">                        printWriter.print(constantHtml.referenceConstant(catchType)); // Create Link to _cp.html</span>
+                    } else {
+<span class="fc" id="L112">                        printWriter.print(&quot;Any Exception&quot;);</span>
+                    }
+<span class="fc" id="L114">                    printWriter.print(&quot;&lt;BR&gt;(Ranging from lines &quot; + codeLink(cex.getStartPC(), methodNumber) + &quot; to &quot; + codeLink(cex.getEndPC(), methodNumber)</span>
+<span class="fc" id="L115">                        + &quot;, handled at line &quot; + codeLink(cex.getHandlerPC(), methodNumber) + &quot;)&lt;/LI&gt;&quot;);</span>
+                }
+<span class="fc" id="L117">                printWriter.print(&quot;&lt;/UL&gt;&quot;);</span>
+            }
+            break;
+        case Const.ATTR_CONSTANT_VALUE:
+<span class="nc" id="L121">            index = ((ConstantValue) attribute).getConstantValueIndex();</span>
+            // Reference _cp.html
+<span class="nc" id="L123">            printWriter</span>
+<span class="nc" id="L124">                .print(&quot;&lt;UL&gt;&lt;LI&gt;&lt;A HREF=\&quot;&quot; + className + &quot;_cp.html#cp&quot; + index + &quot;\&quot; TARGET=\&quot;ConstantPool\&quot;&gt;Constant value index(&quot; + index + &quot;)&lt;/A&gt;&lt;/UL&gt;\n&quot;);</span>
+<span class="nc" id="L125">            break;</span>
+        case Const.ATTR_SOURCE_FILE:
+<span class="fc" id="L127">            index = ((SourceFile) attribute).getSourceFileIndex();</span>
+            // Reference _cp.html
+<span class="fc" id="L129">            printWriter</span>
+<span class="fc" id="L130">                .print(&quot;&lt;UL&gt;&lt;LI&gt;&lt;A HREF=\&quot;&quot; + className + &quot;_cp.html#cp&quot; + index + &quot;\&quot; TARGET=\&quot;ConstantPool\&quot;&gt;Source file index(&quot; + index + &quot;)&lt;/A&gt;&lt;/UL&gt;\n&quot;);</span>
+<span class="fc" id="L131">            break;</span>
+        case Const.ATTR_EXCEPTIONS:
+            // List thrown exceptions
+<span class="fc" id="L134">            final int[] indices = ((ExceptionTable) attribute).getExceptionIndexTable();</span>
+<span class="fc" id="L135">            printWriter.print(&quot;&lt;UL&gt;&quot;);</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">            for (final int indice : indices) {</span>
+<span class="fc" id="L137">                printWriter</span>
+<span class="fc" id="L138">                    .print(&quot;&lt;LI&gt;&lt;A HREF=\&quot;&quot; + className + &quot;_cp.html#cp&quot; + indice + &quot;\&quot; TARGET=\&quot;ConstantPool\&quot;&gt;Exception class index(&quot; + indice + &quot;)&lt;/A&gt;\n&quot;);</span>
+            }
+<span class="fc" id="L140">            printWriter.print(&quot;&lt;/UL&gt;\n&quot;);</span>
+<span class="fc" id="L141">            break;</span>
+        case Const.ATTR_LINE_NUMBER_TABLE:
+<span class="fc" id="L143">            final LineNumber[] lineNumbers = ((LineNumberTable) attribute).getLineNumberTable();</span>
+            // List line number pairs
+<span class="fc" id="L145">            printWriter.print(&quot;&lt;P&gt;&quot;);</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">            for (int i = 0; i &lt; lineNumbers.length; i++) {</span>
+<span class="fc" id="L147">                printWriter.print(&quot;(&quot; + lineNumbers[i].getStartPC() + &quot;,&amp;nbsp;&quot; + lineNumbers[i].getLineNumber() + &quot;)&quot;);</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">                if (i &lt; lineNumbers.length - 1) {</span>
+<span class="fc" id="L149">                    printWriter.print(&quot;, &quot;); // breakable</span>
+                }
+            }
+<span class="fc" id="L152">            break;</span>
+        case Const.ATTR_LOCAL_VARIABLE_TABLE:
+            // List name, range and type
+<span class="fc" id="L155">            printWriter.print(&quot;&lt;UL&gt;&quot;);</span>
+<span class="fc" id="L156">            ((LocalVariableTable) attribute).forEach(var -&gt; {</span>
+<span class="fc" id="L157">                final int sigIdx = var.getSignatureIndex();</span>
+<span class="fc" id="L158">                String signature = constantPool.getConstantUtf8(sigIdx).getBytes();</span>
+<span class="fc" id="L159">                signature = Utility.signatureToString(signature, false);</span>
+<span class="fc" id="L160">                final int start = var.getStartPC();</span>
+<span class="fc" id="L161">                final int end = start + var.getLength();</span>
+<span class="fc" id="L162">                printWriter.println(&quot;&lt;LI&gt;&quot; + Class2HTML.referenceType(signature) + &quot;&amp;nbsp;&lt;B&gt;&quot; + var.getName() + &quot;&lt;/B&gt; in slot %&quot; + var.getIndex()</span>
+                        + &quot;&lt;BR&gt;Valid from lines &lt;A HREF=\&quot;&quot; + className + &quot;_code.html#code&quot; + methodNumber + &quot;@&quot; + start + &quot;\&quot; TARGET=Code&gt;&quot; + start
+                        + &quot;&lt;/A&gt; to &lt;A HREF=\&quot;&quot; + className + &quot;_code.html#code&quot; + methodNumber + &quot;@&quot; + end + &quot;\&quot; TARGET=Code&gt;&quot; + end + &quot;&lt;/A&gt;&lt;/LI&gt;&quot;);
+<span class="fc" id="L165">            });</span>
+<span class="fc" id="L166">            printWriter.print(&quot;&lt;/UL&gt;\n&quot;);</span>
+<span class="fc" id="L167">            break;</span>
+        case Const.ATTR_INNER_CLASSES:
+            // List inner classes
+<span class="fc" id="L170">            printWriter.print(&quot;&lt;UL&gt;&quot;);</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">            for (final InnerClass clazz : ((InnerClasses) attribute).getInnerClasses()) {</span>
+                final String name;
+                final String access;
+<span class="fc" id="L174">                index = clazz.getInnerNameIndex();</span>
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">                if (index &gt; 0) {</span>
+<span class="fc" id="L176">                    name = constantPool.getConstantUtf8(index).getBytes();</span>
+                } else {
+<span class="nc" id="L178">                    name = &quot;&amp;lt;anonymous&amp;gt;&quot;;</span>
+                }
+<span class="fc" id="L180">                access = Utility.accessToString(clazz.getInnerAccessFlags());</span>
+<span class="fc" id="L181">                printWriter.print(&quot;&lt;LI&gt;&lt;FONT COLOR=\&quot;#FF0000\&quot;&gt;&quot; + access + &quot;&lt;/FONT&gt; &quot; + constantHtml.referenceConstant(clazz.getInnerClassIndex())</span>
+<span class="fc" id="L182">                    + &quot; in&amp;nbsp;class &quot; + constantHtml.referenceConstant(clazz.getOuterClassIndex()) + &quot; named &quot; + name + &quot;&lt;/LI&gt;\n&quot;);</span>
+            }
+<span class="fc" id="L184">            printWriter.print(&quot;&lt;/UL&gt;\n&quot;);</span>
+<span class="fc" id="L185">            break;</span>
+        default: // Such as Unknown attribute or Deprecated
+<span class="fc" id="L187">            printWriter.print(&quot;&lt;P&gt;&quot; + attribute);</span>
+        }
+<span class="fc" id="L189">        printWriter.println(&quot;&lt;/TD&gt;&lt;/TR&gt;&quot;);</span>
+<span class="fc" id="L190">        printWriter.flush();</span>
+<span class="fc" id="L191">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Frame.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.verifier.structurals</a> &gt; <span class="el_source">Frame.java</span></div><h1>Frame.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.verifier.structurals;
+
+/**
+ * This class represents a JVM execution frame; that means, a local variable array and an operand stack.
+ */
+
+public class Frame {
+
+    /**
+     * For instance initialization methods, it is important to remember which instance it is that is not initialized yet. It
+     * will be initialized invoking another constructor later. NULL means the instance already *is* initialized.
+     *
+     * @deprecated Use the getter/setter to access the field as it may be made private in a later release
+     */
+    @Deprecated
+    protected static UninitializedObjectType _this;
+
+    /**
+     * Gets the static _this reference.
+     *
+     * @return the _this.
+     * @since 6.0
+     */
+    public static UninitializedObjectType getThis() {
+<span class="fc" id="L43">        return _this;</span>
+    }
+
+    /**
+     * Sets the static _this reference.
+     *
+     * @param _this the _this to set.
+     * @since 6.0
+     */
+    public static void setThis(final UninitializedObjectType _this) {
+<span class="nc" id="L53">        Frame._this = _this;</span>
+<span class="nc" id="L54">    }</span>
+
+    /**
+     * The local variables.
+     */
+    private final LocalVariables locals;
+
+    /**
+     * The operand stack.
+     */
+    private final OperandStack stack;
+
+    /**
+     * Constructs a Frame.
+     *
+     * @param maxLocals the maximum number of local variables.
+     * @param maxStack the maximum stack size.
+     */
+<span class="nc" id="L72">    public Frame(final int maxLocals, final int maxStack) {</span>
+<span class="nc" id="L73">        locals = new LocalVariables(maxLocals);</span>
+<span class="nc" id="L74">        stack = new OperandStack(maxStack);</span>
+<span class="nc" id="L75">    }</span>
+
+    /**
+     * Constructs a Frame.
+     *
+     * @param locals the local variables.
+     * @param stack the operand stack.
+     */
+<span class="nc" id="L83">    public Frame(final LocalVariables locals, final OperandStack stack) {</span>
+<span class="nc" id="L84">        this.locals = locals;</span>
+<span class="nc" id="L85">        this.stack = stack;</span>
+<span class="nc" id="L86">    }</span>
+
+    /**
+     * Creates a clone of this frame.
+     *
+     * @return a clone of this frame.
+     */
+    @Override
+    protected Object clone() {
+<span class="nc" id="L95">        return new Frame(locals.getClone(), stack.getClone());</span>
+    }
+
+    /**
+     * Checks if this frame equals another object.
+     *
+     * @param o the object to compare.
+     * @return true if equal, false otherwise.
+     */
+    @Override
+    public boolean equals(final Object o) {
+<span class="nc bnc" id="L106" title="All 2 branches missed.">        if (!(o instanceof Frame)) {</span>
+<span class="nc" id="L107">            return false; // implies &quot;null&quot; is non-equal.</span>
+        }
+<span class="nc" id="L109">        final Frame f = (Frame) o;</span>
+<span class="nc bnc" id="L110" title="All 4 branches missed.">        return this.stack.equals(f.stack) &amp;&amp; this.locals.equals(f.locals);</span>
+    }
+
+    /**
+     * Gets a clone of this frame.
+     *
+     * @return a clone of this frame.
+     */
+    public Frame getClone() {
+<span class="nc" id="L119">        return (Frame) clone();</span>
+    }
+
+    /**
+     * Gets the local variables.
+     *
+     * @return the local variables.
+     */
+    public LocalVariables getLocals() {
+<span class="nc" id="L128">        return locals;</span>
+    }
+
+    /**
+     * Gets the operand stack.
+     *
+     * @return the operand stack.
+     */
+    public OperandStack getStack() {
+<span class="nc" id="L137">        return stack;</span>
+    }
+
+    /**
+     * @return a hash code value for the object.
+     */
+    @Override
+    public int hashCode() {
+<span class="nc" id="L145">        return stack.hashCode() ^ locals.hashCode();</span>
+    }
+
+    /**
+     * Returns a String representation of the Frame instance.
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L153">        final StringBuilder s = new StringBuilder(&quot;Local Variables:\n&quot;);</span>
+<span class="nc" id="L154">        s.append(locals);</span>
+<span class="nc" id="L155">        s.append(&quot;OperandStack:\n&quot;);</span>
+<span class="nc" id="L156">        s.append(stack);</span>
+<span class="nc" id="L157">        return s.toString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

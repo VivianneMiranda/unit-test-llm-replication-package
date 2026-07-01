@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InstructionHandle.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">InstructionHandle.java</span></div><h1>InstructionHandle.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.bcel.classfile.Utility;
+
+/**
+ * Instances of this class give users a handle to the instructions contained in an InstructionList. Instruction objects
+ * may be used more than once within a list, this is useful because it saves memory and may be much faster.
+ *
+ * Within an InstructionList an InstructionHandle object is wrapped around all instructions, that is, it implements a cell
+ * in a doubly-linked list. From the outside only the next and the previous instruction (handle) are accessible. One can
+ * traverse the list via an Enumeration returned by InstructionList.elements().
+ *
+ * @see Instruction
+ * @see BranchHandle
+ * @see InstructionList
+ */
+public class InstructionHandle {
+
+    /**
+     * Empty array.
+     *
+     * @since 6.6.0
+     */
+<span class="nc" id="L48">    public static final InstructionHandle[] EMPTY_ARRAY = {};</span>
+
+    /**
+     * Empty array.
+     */
+<span class="nc" id="L53">    static final InstructionTargeter[] EMPTY_INSTRUCTION_TARGETER_ARRAY = {};</span>
+
+    /**
+     * Factory method.
+     */
+    static InstructionHandle getInstructionHandle(final Instruction i) {
+<span class="nc" id="L59">        return new InstructionHandle(i);</span>
+    }
+
+    private InstructionHandle next;
+    private InstructionHandle prev;
+
+    private Instruction instruction;
+
+    /**
+     * @deprecated (since 6.0) will be made private; do not access directly, use getter/setter
+     */
+<span class="nc" id="L70">    @Deprecated</span>
+    protected int i_position = -1; // byte code offset of instruction
+    private Set&lt;InstructionTargeter&gt; targeters;
+
+    private Map&lt;Object, Object&gt; attributes;
+
+    /**
+     * Constructs an InstructionHandle.
+     *
+     * @param i the instruction.
+     */
+<span class="nc" id="L81">    protected InstructionHandle(final Instruction i) {</span>
+<span class="nc" id="L82">        setInstruction(i);</span>
+<span class="nc" id="L83">    }</span>
+
+    /**
+     * Convenience method, simply calls accept() on the contained instruction.
+     *
+     * @param v Visitor object.
+     */
+    public void accept(final Visitor v) {
+<span class="nc" id="L91">        instruction.accept(v);</span>
+<span class="nc" id="L92">    }</span>
+
+    /**
+     * Add an attribute to an instruction handle.
+     *
+     * @param key the key object to store/retrieve the attribute.
+     * @param attr the attribute to associate with this handle.
+     */
+    public void addAttribute(final Object key, final Object attr) {
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        if (attributes == null) {</span>
+<span class="nc" id="L102">            attributes = new HashMap&lt;&gt;(3);</span>
+        }
+<span class="nc" id="L104">        attributes.put(key, attr);</span>
+<span class="nc" id="L105">    }</span>
+
+    /**
+     * Does nothing.
+     *
+     * @deprecated Does nothing as of 6.3.1.
+     */
+    @Deprecated
+    protected void addHandle() {
+        // noop
+<span class="nc" id="L115">    }</span>
+
+    /**
+     * Denote this handle is being referenced by t.
+     *
+     * @param t the instruction targeter.
+     */
+    public void addTargeter(final InstructionTargeter t) {
+<span class="nc bnc" id="L123" title="All 2 branches missed.">        if (targeters == null) {</span>
+<span class="nc" id="L124">            targeters = new HashSet&lt;&gt;();</span>
+        }
+        // if (!targeters.contains(t))
+<span class="nc" id="L127">        targeters.add(t);</span>
+<span class="nc" id="L128">    }</span>
+
+    /**
+     * Delete contents, removes user access.
+     */
+    void dispose() {
+<span class="nc" id="L134">        next = prev = null;</span>
+<span class="nc" id="L135">        instruction.dispose();</span>
+<span class="nc" id="L136">        instruction = null;</span>
+<span class="nc" id="L137">        i_position = -1;</span>
+<span class="nc" id="L138">        attributes = null;</span>
+<span class="nc" id="L139">        removeAllTargeters();</span>
+<span class="nc" id="L140">    }</span>
+
+    /**
+     * Gets attribute of an instruction handle.
+     *
+     * @param key the key object to store/retrieve the attribute.
+     * @return the attribute value.
+     */
+    public Object getAttribute(final Object key) {
+<span class="nc bnc" id="L149" title="All 2 branches missed.">        return attributes != null ? attributes.get(key) : null;</span>
+    }
+
+    /**
+     * Gets all attributes associated with this handle.
+     *
+     * @return all attributes associated with this handle.
+     */
+    public Collection&lt;Object&gt; getAttributes() {
+<span class="nc bnc" id="L158" title="All 2 branches missed.">        if (attributes == null) {</span>
+<span class="nc" id="L159">            attributes = new HashMap&lt;&gt;(3);</span>
+        }
+<span class="nc" id="L161">        return attributes.values();</span>
+    }
+
+    /**
+     * Gets the instruction.
+     *
+     * @return the instruction.
+     */
+    public final Instruction getInstruction() {
+<span class="nc" id="L170">        return instruction;</span>
+    }
+
+    /**
+     * Gets the next instruction handle.
+     *
+     * @return the next instruction handle.
+     */
+    public final InstructionHandle getNext() {
+<span class="nc" id="L179">        return next;</span>
+    }
+
+    /**
+     * Gets the position.
+     *
+     * @return the position, the byte code offset of the contained instruction. This is accurate only after
+     *         InstructionList.setPositions() has been called.
+     */
+    public int getPosition() {
+<span class="nc" id="L189">        return i_position;</span>
+    }
+
+    /**
+     * Gets the previous instruction handle.
+     *
+     * @return the previous instruction handle.
+     */
+    public final InstructionHandle getPrev() {
+<span class="nc" id="L198">        return prev;</span>
+    }
+
+    /**
+     * Gets the targeters.
+     *
+     * @return null, if there are no targeters.
+     */
+    public InstructionTargeter[] getTargeters() {
+<span class="nc bnc" id="L207" title="All 2 branches missed.">        if (!hasTargeters()) {</span>
+<span class="nc" id="L208">            return EMPTY_INSTRUCTION_TARGETER_ARRAY;</span>
+        }
+<span class="nc" id="L210">        final InstructionTargeter[] t = new InstructionTargeter[targeters.size()];</span>
+<span class="nc" id="L211">        targeters.toArray(t);</span>
+<span class="nc" id="L212">        return t;</span>
+    }
+
+    /**
+     * Checks if this handle has targeters.
+     *
+     * @return true if this handle has targeters, false otherwise.
+     */
+    public boolean hasTargeters() {
+<span class="nc bnc" id="L221" title="All 4 branches missed.">        return targeters != null &amp;&amp; !targeters.isEmpty();</span>
+    }
+
+    /**
+     * Remove all targeters, if any.
+     */
+    public void removeAllTargeters() {
+<span class="nc bnc" id="L228" title="All 2 branches missed.">        if (targeters != null) {</span>
+<span class="nc" id="L229">            targeters.clear();</span>
+        }
+<span class="nc" id="L231">    }</span>
+
+    /**
+     * Delete an attribute of an instruction handle.
+     *
+     * @param key the key object to retrieve the attribute.
+     */
+    public void removeAttribute(final Object key) {
+<span class="nc bnc" id="L239" title="All 2 branches missed.">        if (attributes != null) {</span>
+<span class="nc" id="L240">            attributes.remove(key);</span>
+        }
+<span class="nc" id="L242">    }</span>
+
+    /**
+     * Denote this handle isn't referenced anymore by t.
+     *
+     * @param t the instruction targeter.
+     */
+    public void removeTargeter(final InstructionTargeter t) {
+<span class="nc bnc" id="L250" title="All 2 branches missed.">        if (targeters != null) {</span>
+<span class="nc" id="L251">            targeters.remove(t);</span>
+        }
+<span class="nc" id="L253">    }</span>
+
+    /**
+     * Replace current instruction contained in this handle. Old instruction is disposed using Instruction.dispose().
+     *
+     * @param i the new instruction.
+     */
+    public void setInstruction(final Instruction i) { // Overridden in BranchHandle TODO could be package-protected?
+<span class="nc bnc" id="L261" title="All 2 branches missed.">        if (i == null) {</span>
+<span class="nc" id="L262">            throw new ClassGenException(&quot;Assigning null to handle&quot;);</span>
+        }
+<span class="nc bnc" id="L264" title="All 4 branches missed.">        if (this.getClass() != BranchHandle.class &amp;&amp; i instanceof BranchInstruction) {</span>
+<span class="nc" id="L265">            throw new ClassGenException(&quot;Assigning branch instruction &quot; + i + &quot; to plain handle&quot;);</span>
+        }
+<span class="nc bnc" id="L267" title="All 2 branches missed.">        if (instruction != null) {</span>
+<span class="nc" id="L268">            instruction.dispose();</span>
+        }
+<span class="nc" id="L270">        instruction = i;</span>
+<span class="nc" id="L271">    }</span>
+
+    /**
+     * Sets the next instruction handle.
+     *
+     * @param next the next to set.
+     * @return the next instruction handle.
+     * @since 6.0
+     */
+    final InstructionHandle setNext(final InstructionHandle next) {
+<span class="nc" id="L281">        this.next = next;</span>
+<span class="nc" id="L282">        return next;</span>
+    }
+
+    /**
+     * Sets the position, the byte code offset of the contained instruction.
+     *
+     * @param pos the position.
+     */
+    void setPosition(final int pos) {
+<span class="nc" id="L291">        i_position = pos;</span>
+<span class="nc" id="L292">    }</span>
+
+    /**
+     * Sets the previous instruction handle.
+     *
+     * @param prev the prev to set.
+     * @return the previous instruction handle.
+     * @since 6.0
+     */
+    final InstructionHandle setPrev(final InstructionHandle prev) {
+<span class="nc" id="L302">        this.prev = prev;</span>
+<span class="nc" id="L303">        return prev;</span>
+    }
+
+    /**
+     * Temporarily swap the current instruction, without disturbing anything. Meant to be used by a debugger, implementing
+     * breakpoints. Current instruction is returned.
+     * &lt;p&gt;
+     * Warning: if this is used on a BranchHandle then some methods such as getPosition() will still refer to the original
+     * cached instruction, whereas other BH methods may affect the cache and the replacement instruction.
+     *
+     * @param i the replacement instruction.
+     * @return the old instruction.
+     */
+    // See BCEL-273
+    // TODO remove this method in any redesign of BCEL
+    public Instruction swapInstruction(final Instruction i) {
+<span class="nc" id="L319">        final Instruction oldInstruction = instruction;</span>
+<span class="nc" id="L320">        instruction = i;</span>
+<span class="nc" id="L321">        return oldInstruction;</span>
+    }
+
+    /**
+     * Gets a string representation of the contained instruction.
+     *
+     * @return a string representation of the contained instruction.
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L331">        return toString(true);</span>
+    }
+
+    /**
+     * Gets a verbose string representation of the contained instruction.
+     *
+     * @param verbose whether to be verbose.
+     * @return a (verbose) string representation of the contained instruction.
+     */
+    public String toString(final boolean verbose) {
+<span class="nc" id="L341">        return Utility.format(i_position, 4, false, ' ') + &quot;: &quot; + instruction.toString(verbose);</span>
+    }
+
+    /**
+     * Called by InstructionList.setPositions when setting the position for every instruction. In the presence of variable
+     * length instructions 'setPositions()' performs multiple passes over the instruction list to calculate the correct
+     * (byte) positions and offsets by calling this function.
+     *
+     * @param offset additional offset caused by preceding (variable length) instructions.
+     * @param maxOffset the maximum offset that may be caused by these instructions.
+     * @return additional offset caused by possible change of this instruction's length.
+     */
+    protected int updatePosition(final int offset, final int maxOffset) {
+<span class="nc" id="L354">        i_position += offset;</span>
+<span class="nc" id="L355">        return 0;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

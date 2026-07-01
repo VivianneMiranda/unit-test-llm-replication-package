@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Method.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">Method.java</span></div><h1>Method.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.classfile;
+
+import java.io.DataInput;
+import java.io.IOException;
+import java.util.Objects;
+
+import org.apache.bcel.generic.Type;
+import org.apache.bcel.util.BCELComparator;
+
+/**
+ * This class represents the method info structure, that is, the representation for a method in the class. See JVM
+ * specification for details. A method has access flags, a name, a signature and a number of attributes.
+ */
+public final class Method extends FieldOrMethod {
+
+    /**
+     * Empty array constant.
+     *
+     * @since 6.6.0
+     */
+<span class="fc" id="L39">    public static final Method[] EMPTY_ARRAY = {};</span>
+
+<span class="fc" id="L41">    private static BCELComparator&lt;Method&gt; bcelComparator = new BCELComparator&lt;Method&gt;() {</span>
+
+        @Override
+        public boolean equals(final Method a, final Method b) {
+<span class="nc bnc" id="L45" title="All 10 branches missed.">            return a == b || a != null &amp;&amp; b != null &amp;&amp; Objects.equals(a.getName(), b.getName()) &amp;&amp; Objects.equals(a.getSignature(), b.getSignature());</span>
+        }
+
+        @Override
+        public int hashCode(final Method o) {
+<span class="nc bnc" id="L50" title="All 2 branches missed.">            return o != null ? Objects.hash(o.getSignature(), o.getName()) : 0;</span>
+        }
+    };
+
+    /**
+     * Gets the comparison strategy object.
+     *
+     * @return Comparison strategy object.
+     */
+    public static BCELComparator&lt;Method&gt; getComparator() {
+<span class="nc" id="L60">        return bcelComparator;</span>
+    }
+
+    /**
+     * Sets the comparison strategy object.
+     *
+     * @param comparator Comparison strategy object.
+     */
+    public static void setComparator(final BCELComparator&lt;Method&gt; comparator) {
+<span class="nc" id="L69">        bcelComparator = comparator;</span>
+<span class="nc" id="L70">    }</span>
+
+    /** Annotations defined on the parameters of a method. */
+    private ParameterAnnotationEntry[] parameterAnnotationEntries;
+
+    /**
+     * Empty constructor, all attributes have to be defined via 'setXXX' methods. Use at your own risk.
+     */
+<span class="nc" id="L78">    public Method() {</span>
+<span class="nc" id="L79">    }</span>
+
+    /**
+     * Constructs object from file stream.
+     *
+     * @param file Input stream.
+     * @throws IOException if an I/O error occurs.
+     * @throws ClassFormatException if a class is malformed or cannot be interpreted as a class file.
+     */
+    Method(final DataInput file, final ConstantPool constantPool) throws IOException, ClassFormatException {
+<span class="fc" id="L89">        super(file, constantPool);</span>
+<span class="fc" id="L90">    }</span>
+
+    /**
+     * Constructs a Method.
+     *
+     * @param accessFlags Access rights of method.
+     * @param nameIndex Points to field name in constant pool.
+     * @param signatureIndex Points to encoded signature.
+     * @param attributes Collection of attributes.
+     * @param constantPool Array of constants.
+     */
+    public Method(final int accessFlags, final int nameIndex, final int signatureIndex, final Attribute[] attributes, final ConstantPool constantPool) {
+<span class="fc" id="L102">        super(accessFlags, nameIndex, signatureIndex, attributes, constantPool);</span>
+<span class="fc" id="L103">    }</span>
+
+    /**
+     * Initialize from another object. Note that both objects use the same references (shallow copy). Use clone() for a
+     * physical copy.
+     *
+     * @param c Source to copy.
+     */
+    public Method(final Method c) {
+<span class="nc" id="L112">        super(c);</span>
+<span class="nc" id="L113">    }</span>
+
+    /**
+     * Called by objects that are traversing the nodes of the tree implicitly defined by the contents of a Java class.
+     * I.e., the hierarchy of methods, fields, attributes, etc. spawns a tree of objects.
+     *
+     * @param v Visitor object.
+     */
+    @Override
+    public void accept(final Visitor v) {
+<span class="nc" id="L123">        v.visitMethod(this);</span>
+<span class="nc" id="L124">    }</span>
+
+    /**
+     * Creates a deep copy of this method.
+     *
+     * @param constantPool the constant pool.
+     * @return deep copy of this method.
+     */
+    public Method copy(final ConstantPool constantPool) {
+<span class="nc" id="L133">        return (Method) copy_(constantPool);</span>
+    }
+
+    /**
+     * Return value as defined by given BCELComparator strategy. By default two method objects are said to be equal when
+     * their names and signatures are equal.
+     *
+     * @see Object#equals(Object)
+     */
+    @Override
+    public boolean equals(final Object obj) {
+<span class="nc bnc" id="L144" title="All 4 branches missed.">        return obj instanceof Method &amp;&amp; bcelComparator.equals(this, (Method) obj);</span>
+    }
+
+    /**
+     * Gets array of method argument types.
+     *
+     * @return array of method argument types.
+     */
+    public Type[] getArgumentTypes() {
+<span class="nc" id="L153">        return Type.getArgumentTypes(getSignature());</span>
+    }
+
+    /**
+     * Gets Code attribute of method, if any.
+     *
+     * @return Code attribute of method, if any.
+     */
+    public Code getCode() {
+<span class="nc bnc" id="L162" title="All 2 branches missed.">        for (final Attribute attribute : super.getAttributes()) {</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">            if (attribute instanceof Code) {</span>
+<span class="nc" id="L164">                return (Code) attribute;</span>
+            }
+        }
+<span class="nc" id="L167">        return null;</span>
+    }
+
+    /**
+     * Gets ExceptionTable attribute of method, if any.
+     *
+     * @return ExceptionTable attribute of method, if any, that is, list all exceptions the method may throw not exception handlers.
+     */
+    public ExceptionTable getExceptionTable() {
+<span class="nc bnc" id="L176" title="All 2 branches missed.">        for (final Attribute attribute : super.getAttributes()) {</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">            if (attribute instanceof ExceptionTable) {</span>
+<span class="nc" id="L178">                return (ExceptionTable) attribute;</span>
+            }
+        }
+<span class="nc" id="L181">        return null;</span>
+    }
+
+    /**
+     * Gets LineNumberTable of code attribute if any.
+     *
+     * @return LineNumberTable of code attribute if any, for example the call is forwarded to the Code attribute.
+     */
+    public LineNumberTable getLineNumberTable() {
+<span class="nc" id="L190">        final Code code = getCode();</span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">        if (code == null) {</span>
+<span class="nc" id="L192">            return null;</span>
+        }
+<span class="nc" id="L194">        return code.getLineNumberTable();</span>
+    }
+
+    /**
+     * Gets LocalVariableTable of code attribute if any.
+     *
+     * @return LocalVariableTable of code attribute if any, for example the call is forwarded to the Code attribute.
+     */
+    public LocalVariableTable getLocalVariableTable() {
+<span class="nc" id="L203">        final Code code = getCode();</span>
+<span class="nc bnc" id="L204" title="All 2 branches missed.">        if (code == null) {</span>
+<span class="nc" id="L205">            return null;</span>
+        }
+<span class="nc" id="L207">        return code.getLocalVariableTable();</span>
+    }
+
+    /**
+     * Gets the local variable type table attribute {@link LocalVariableTypeTable}.
+     *
+     * @return LocalVariableTypeTable of code attribute if any, for example the call is forwarded to the Code attribute.
+     * @since 6.10.0
+     */
+    public LocalVariableTypeTable getLocalVariableTypeTable() {
+<span class="nc" id="L217">        final Code code = getCode();</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">        if (code == null) {</span>
+<span class="nc" id="L219">            return null;</span>
+        }
+<span class="nc" id="L221">        return code.getLocalVariableTypeTable();</span>
+    }
+
+    /**
+     * Gets Annotations on the parameters of a method.
+     *
+     * @return Annotations on the parameters of a method.
+     * @since 6.0
+     */
+    public ParameterAnnotationEntry[] getParameterAnnotationEntries() {
+<span class="nc bnc" id="L231" title="All 2 branches missed.">        if (parameterAnnotationEntries == null) {</span>
+<span class="nc" id="L232">            parameterAnnotationEntries = ParameterAnnotationEntry.createParameterAnnotationEntries(getAttributes());</span>
+        }
+<span class="nc" id="L234">        return parameterAnnotationEntries;</span>
+    }
+
+    /**
+     * Gets return type of method.
+     *
+     * @return return type of method.
+     */
+    public Type getReturnType() {
+<span class="nc" id="L243">        return Type.getReturnType(getSignature());</span>
+    }
+
+    /**
+     * Return value as defined by given BCELComparator strategy. By default return the hash code of the method's name XOR
+     * signature.
+     *
+     * @see Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+<span class="nc" id="L254">        return bcelComparator.hashCode(this);</span>
+    }
+
+    /**
+     * Return string representation close to declaration format, 'public static void main(String[] args) throws
+     * IOException', for example.
+     *
+     * @return String representation of the method.
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L265">        final String access = Utility.accessToString(super.getAccessFlags());</span>
+        // Get name and signature from constant pool
+<span class="nc" id="L267">        ConstantUtf8 c = super.getConstantPool().getConstantUtf8(super.getSignatureIndex());</span>
+<span class="nc" id="L268">        String signature = c.getBytes();</span>
+<span class="nc" id="L269">        c = super.getConstantPool().getConstantUtf8(super.getNameIndex());</span>
+<span class="nc" id="L270">        final String name = c.getBytes();</span>
+<span class="nc" id="L271">        signature = Utility.methodSignatureToString(signature, name, access, true, getLocalVariableTable());</span>
+<span class="nc" id="L272">        final StringBuilder buf = new StringBuilder(signature);</span>
+<span class="nc bnc" id="L273" title="All 2 branches missed.">        for (final Attribute attribute : super.getAttributes()) {</span>
+<span class="nc bnc" id="L274" title="All 4 branches missed.">            if (!(attribute instanceof Code || attribute instanceof ExceptionTable)) {</span>
+<span class="nc" id="L275">                buf.append(&quot; [&quot;).append(attribute).append(&quot;]&quot;);</span>
+            }
+        }
+<span class="nc" id="L278">        final ExceptionTable e = getExceptionTable();</span>
+<span class="nc bnc" id="L279" title="All 2 branches missed.">        if (e != null) {</span>
+<span class="nc" id="L280">            final String str = e.toString();</span>
+<span class="nc bnc" id="L281" title="All 2 branches missed.">            if (!str.isEmpty()) {</span>
+<span class="nc" id="L282">                buf.append(&quot;\n\t\tthrows &quot;).append(str);</span>
+            }
+        }
+<span class="nc" id="L285">        return buf.toString();</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

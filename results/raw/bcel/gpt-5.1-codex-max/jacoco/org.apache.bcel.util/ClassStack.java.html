@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClassStack.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.util</a> &gt; <span class="el_source">ClassStack.java</span></div><h1>ClassStack.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.util;
+
+import java.util.Stack;
+
+import org.apache.bcel.classfile.JavaClass;
+
+/**
+ * Utility class implementing a (typesafe) stack of JavaClass objects.
+ *
+ * @see Stack
+ */
+public class ClassStack {
+
+<span class="fc" id="L32">    private final Stack&lt;JavaClass&gt; stack = new Stack&lt;&gt;();</span>
+
+    /**
+     * Constructs a new ClassStack.
+     */
+<span class="fc" id="L37">    public ClassStack() {</span>
+<span class="fc" id="L38">    }</span>
+
+    /**
+     * Checks if the stack is empty.
+     *
+     * @return true if the stack is empty.
+     */
+    public boolean empty() {
+<span class="fc" id="L46">        return stack.empty();</span>
+    }
+
+    /**
+     * Pops a JavaClass from the stack.
+     *
+     * @return the JavaClass from the top of the stack.
+     */
+    public JavaClass pop() {
+<span class="fc" id="L55">        return stack.pop();</span>
+    }
+
+    /**
+     * Pushes a JavaClass onto the stack.
+     *
+     * @param clazz the JavaClass to push.
+     */
+    public void push(final JavaClass clazz) {
+<span class="fc" id="L64">        stack.push(clazz);</span>
+<span class="fc" id="L65">    }</span>
+
+    /**
+     * Gets the top JavaClass from the stack without removing it.
+     *
+     * @return the JavaClass at the top of the stack.
+     */
+    public JavaClass top() {
+<span class="fc" id="L73">        return stack.peek();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

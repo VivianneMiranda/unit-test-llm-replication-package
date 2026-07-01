@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LocalVariable.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">LocalVariable.java</span></div><h1>LocalVariable.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.classfile;
+
+import java.io.DataInput;
+import java.io.DataOutputStream;
+import java.io.IOException;
+
+import org.apache.bcel.Constants;
+import org.apache.bcel.util.Args;
+
+/**
+ * This class represents a local variable within a method. It contains its scope, name, signature and index on the
+ * method's frame. It is used both to represent an element of the LocalVariableTable as well as an element of the
+ * LocalVariableTypeTable. The nomenclature used here may be a bit confusing; while the two items have the same layout
+ * in a class file, a LocalVariableTable attribute contains a descriptor_index, not a signatureIndex. The
+ * LocalVariableTypeTable attribute does have a signatureIndex.
+ *
+ * @see org.apache.bcel.classfile.Utility for more details on the difference.
+ * @see LocalVariableTable
+ * @see LocalVariableTypeTable
+ */
+public final class LocalVariable implements Cloneable, Node, Constants {
+
+<span class="fc" id="L41">    static final LocalVariable[] EMPTY_ARRAY = {};</span>
+
+    /** Range in which the variable is valid. */
+    private int startPc;
+
+    private int length;
+
+    /** Index in constant pool of variable name. */
+    private int nameIndex;
+
+    /**
+     * Technically, a decscriptor_index for a local variable table entry and a signatureIndex for a local variable type table entry. Index of variable signature
+     */
+    private int signatureIndex;
+
+    /*
+     * Variable is index'th local variable on this method's frame.
+     */
+    private int index;
+
+    private ConstantPool constantPool;
+
+    /** Never changes; used to match up with LocalVariableTypeTable entries. */
+    private final int origIndex;
+
+    /**
+     * Constructs object from file stream.
+     *
+     * @param file Input stream.
+     * @throws IOException if an I/O error occurs.
+     */
+    LocalVariable(final DataInput file, final ConstantPool constantPool) throws IOException {
+<span class="fc" id="L73">        this(file.readUnsignedShort(), file.readUnsignedShort(), file.readUnsignedShort(), file.readUnsignedShort(), file.readUnsignedShort(), constantPool);</span>
+<span class="fc" id="L74">    }</span>
+
+    /**
+     * Constructs a LocalVariable.
+     *
+     * @param startPc Range in which the variable is valid.
+     * @param length length of validity.
+     * @param nameIndex Index in constant pool of variable name.
+     * @param signatureIndex Index of variable's signature.
+     * @param index Variable is 'index'th local variable on the method's frame.
+     * @param constantPool Array of constants.
+     */
+    public LocalVariable(final int startPc, final int length, final int nameIndex, final int signatureIndex, final int index, final ConstantPool constantPool) {
+<span class="fc" id="L87">        this(startPc, length, nameIndex, signatureIndex, index, constantPool, index);</span>
+<span class="fc" id="L88">    }</span>
+
+    /**
+     * Constructs a LocalVariable.
+     *
+     * @param startPc Range in which the variable is valid.
+     * @param length length of validity.
+     * @param nameIndex Index in constant pool of variable name.
+     * @param signatureIndex Index of variable's signature.
+     * @param index Variable is 'index'th local variable on the method's frame.
+     * @param constantPool Array of constants.
+     * @param origIndex Variable is 'index'th local variable on the method's frame prior to any changes.
+     */
+    public LocalVariable(final int startPc, final int length, final int nameIndex, final int signatureIndex, final int index, final ConstantPool constantPool,
+<span class="fc" id="L102">        final int origIndex) {</span>
+<span class="fc" id="L103">        this.startPc = Args.requireU2(startPc, &quot;startPc&quot;);</span>
+<span class="fc" id="L104">        this.length = Args.requireU2(length, &quot;length&quot;);</span>
+<span class="fc" id="L105">        this.nameIndex = Args.requireU2(nameIndex, &quot;nameIndex&quot;);</span>
+<span class="fc" id="L106">        this.signatureIndex = Args.requireU2(signatureIndex, &quot;signatureIndex&quot;);</span>
+<span class="fc" id="L107">        this.index = Args.requireU2(index, &quot;index&quot;);</span>
+<span class="fc" id="L108">        this.origIndex = Args.requireU2(origIndex, &quot;origIndex&quot;);</span>
+<span class="fc" id="L109">        this.constantPool = constantPool;</span>
+<span class="fc" id="L110">    }</span>
+
+    /**
+     * Initializes from another LocalVariable. Note that both objects use the same references (shallow copy). Use copy() for
+     * a physical copy.
+     *
+     * @param localVariable Another LocalVariable.
+     */
+    public LocalVariable(final LocalVariable localVariable) {
+<span class="nc" id="L119">        this(localVariable.getStartPC(), localVariable.getLength(), localVariable.getNameIndex(), localVariable.getSignatureIndex(), localVariable.getIndex(),</span>
+<span class="nc" id="L120">            localVariable.getConstantPool());</span>
+<span class="nc" id="L121">    }</span>
+
+    /**
+     * Called by objects that are traversing the nodes of the tree implicitly defined by the contents of a Java class.
+     * I.e., the hierarchy of methods, fields, attributes, etc. spawns a tree of objects.
+     *
+     * @param v Visitor object.
+     */
+    @Override
+    public void accept(final Visitor v) {
+<span class="nc" id="L131">        v.visitLocalVariable(this);</span>
+<span class="nc" id="L132">    }</span>
+
+    /**
+     * Creates a deep copy of this object.
+     *
+     * @return deep copy of this object.
+     */
+    public LocalVariable copy() {
+        try {
+<span class="nc" id="L141">            return (LocalVariable) clone();</span>
+<span class="nc" id="L142">        } catch (final CloneNotSupportedException e) {</span>
+            // TODO should this throw?
+        }
+<span class="nc" id="L145">        return null;</span>
+    }
+
+    /**
+     * Dumps local variable to file stream in binary format.
+     *
+     * @param dataOutputStream Output file stream.
+     * @throws IOException if an I/O error occurs.
+     * @see java.io.FilterOutputStream#out
+     */
+    public void dump(final DataOutputStream dataOutputStream) throws IOException {
+<span class="fc" id="L156">        dataOutputStream.writeShort(startPc);</span>
+<span class="fc" id="L157">        dataOutputStream.writeShort(length);</span>
+<span class="fc" id="L158">        dataOutputStream.writeShort(nameIndex);</span>
+<span class="fc" id="L159">        dataOutputStream.writeShort(signatureIndex);</span>
+<span class="fc" id="L160">        dataOutputStream.writeShort(index);</span>
+<span class="fc" id="L161">    }</span>
+
+    /**
+     * Gets the constant pool used by this object.
+     *
+     * @return Constant pool used by this object.
+     */
+    public ConstantPool getConstantPool() {
+<span class="nc" id="L169">        return constantPool;</span>
+    }
+
+    /**
+     * Gets the index of register where variable is stored.
+     *
+     * @return index of register where variable is stored.
+     */
+    public int getIndex() {
+<span class="fc" id="L178">        return index;</span>
+    }
+
+    /**
+     * Gets the length of validity.
+     *
+     * @return Variable is valid within getStartPC() .. getStartPC()+getLength().
+     */
+    public int getLength() {
+<span class="fc" id="L187">        return length;</span>
+    }
+
+    /**
+     * Gets the variable name.
+     *
+     * @return Variable name.
+     */
+    public String getName() {
+<span class="fc" id="L196">        return constantPool.getConstantUtf8(nameIndex).getBytes();</span>
+    }
+
+    /**
+     * Gets the index in constant pool of variable name.
+     *
+     * @return Index in constant pool of variable name.
+     */
+    public int getNameIndex() {
+<span class="nc" id="L205">        return nameIndex;</span>
+    }
+
+    /**
+     * Gets the index of register where variable was originally stored.
+     *
+     * @return index of register where variable was originally stored.
+     */
+    public int getOrigIndex() {
+<span class="fc" id="L214">        return origIndex;</span>
+    }
+
+    /**
+     * Gets the signature.
+     *
+     * @return Signature.
+     */
+    public String getSignature() {
+<span class="fc" id="L223">        return constantPool.getConstantUtf8(signatureIndex).getBytes();</span>
+    }
+
+    /**
+     * Gets the index in constant pool of variable signature.
+     *
+     * @return Index in constant pool of variable signature.
+     */
+    public int getSignatureIndex() {
+<span class="nc" id="L232">        return signatureIndex;</span>
+    }
+
+    /**
+     * Gets the start of range where the variable is valid.
+     *
+     * @return Start of range where the variable is valid.
+     */
+    public int getStartPC() {
+<span class="fc" id="L241">        return startPc;</span>
+    }
+
+    /**
+     * Sets the constant pool to be used for this object.
+     *
+     * @param constantPool Constant pool to be used for this object.
+     */
+    public void setConstantPool(final ConstantPool constantPool) {
+<span class="nc" id="L250">        this.constantPool = constantPool;</span>
+<span class="nc" id="L251">    }</span>
+
+    /**
+     * Sets the index in the local variable table of this variable.
+     *
+     * @param index the index in the local variable table of this variable.
+     */
+    public void setIndex(final int index) { // TODO unused
+<span class="nc" id="L259">        this.index = index;</span>
+<span class="nc" id="L260">    }</span>
+
+    /**
+     * Sets the length of this local variable.
+     *
+     * @param length the length of this local variable.
+     */
+    public void setLength(final int length) {
+<span class="nc" id="L268">        this.length = length;</span>
+<span class="nc" id="L269">    }</span>
+
+    /**
+     * Sets the index into the constant pool for the name of this variable.
+     *
+     * @param nameIndex the index into the constant pool for the name of this variable.
+     */
+    public void setNameIndex(final int nameIndex) { // TODO unused
+<span class="nc" id="L277">        this.nameIndex = nameIndex;</span>
+<span class="nc" id="L278">    }</span>
+
+    /**
+     * Sets the index into the constant pool for the signature of this variable.
+     *
+     * @param signatureIndex the index into the constant pool for the signature of this variable.
+     */
+    public void setSignatureIndex(final int signatureIndex) { // TODO unused
+<span class="nc" id="L286">        this.signatureIndex = signatureIndex;</span>
+<span class="nc" id="L287">    }</span>
+
+    /**
+     * Sets the range where the local variable is valid.
+     *
+     * @param startPc Specify range where the local variable is valid.
+     */
+    public void setStartPC(final int startPc) { // TODO unused
+<span class="nc" id="L295">        this.startPc = startPc;</span>
+<span class="nc" id="L296">    }</span>
+
+    /**
+     * Gets the string representation.
+     *
+     * @return string representation.
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L305">        return toStringShared(false);</span>
+    }
+
+    /*
+     * Helper method shared with LocalVariableTypeTable
+     */
+    String toStringShared(final boolean typeTable) {
+<span class="nc" id="L312">        final String name = getName();</span>
+<span class="nc" id="L313">        final String signature = Utility.signatureToString(getSignature(), false);</span>
+<span class="nc bnc" id="L314" title="All 2 branches missed.">        final String label = &quot;LocalVariable&quot; + (typeTable ? &quot;Types&quot; : &quot;&quot;);</span>
+<span class="nc" id="L315">        return label + &quot;(startPc = &quot; + startPc + &quot;, length = &quot; + length + &quot;, index = &quot; + index + &quot;:&quot; + signature + &quot; &quot; + name + &quot;)&quot;;</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

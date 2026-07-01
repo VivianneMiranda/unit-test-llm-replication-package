@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReferenceType.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">ReferenceType.java</span></div><h1>ReferenceType.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.Repository;
+import org.apache.bcel.classfile.JavaClass;
+
+/**
+ * Super class for object and array types.
+ */
+public abstract class ReferenceType extends Type {
+
+    /**
+     * Class is non-abstract but not instantiable from the outside.
+     */
+    ReferenceType() {
+<span class="fc" id="L34">        super(Const.T_OBJECT, &quot;&lt;null object&gt;&quot;);</span>
+<span class="fc" id="L35">    }</span>
+
+    /**
+     * Constructs a ReferenceType.
+     *
+     * @param t the type.
+     * @param s the signature.
+     */
+    protected ReferenceType(final byte t, final String s) {
+<span class="fc" id="L44">        super(t, s);</span>
+<span class="fc" id="L45">    }</span>
+
+    /**
+     * This commutative operation returns the first common superclass (narrowest ReferenceType referencing a class, not an
+     * interface). If one of the types is a superclass of the other, the former is returned. If &quot;this&quot; is NULL, then t
+     * is returned. If t is NULL, then &quot;this&quot; is returned. If &quot;this&quot; equals t ['this.equals(t)'] &quot;this&quot; is returned. If
+     * &quot;this&quot; or t is an ArrayType, then {@link #OBJECT} is returned. If &quot;this&quot; or t is a ReferenceType referencing an
+     * interface, then {@link #OBJECT} is returned. If not all of the two classes' superclasses cannot be found, &quot;null&quot; is
+     * returned. See the JVM specification edition 2, &quot;�4.9.2 The Bytecode Verifier&quot;.
+     *
+     * @param t the other type.
+     * @return the first common superclass.
+     * @throws ClassNotFoundException on failure to find superclasses of this type, or the type passed as a parameter.
+     * @deprecated Use getFirstCommonSuperclass(ReferenceType t) which has slightly changed semantics.
+     */
+    @Deprecated
+    public ReferenceType firstCommonSuperclass(final ReferenceType t) throws ClassNotFoundException {
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        if (equals(NULL)) {</span>
+<span class="nc" id="L63">            return t;</span>
+        }
+<span class="nc bnc" id="L65" title="All 4 branches missed.">        if (t.equals(NULL) || equals(t)) {</span>
+<span class="nc" id="L66">            return this;</span>
+            /*
+             * TODO: Above sounds a little arbitrary. On the other hand, there is no object referenced by {@link #NULL} so we can also
+             * say all the objects referenced by {@link #NULL} were derived from {@link Object}. However, the Java Language's
+             * &quot;instanceof&quot; operator proves us wrong: &quot;null&quot; is not referring to an instance of {@link Object} :)
+             */
+        }
+<span class="nc bnc" id="L73" title="All 4 branches missed.">        if (this instanceof ArrayType || t instanceof ArrayType) {</span>
+<span class="nc" id="L74">            return OBJECT;</span>
+            // TODO: Is there a proof of {@link #OBJECT} being the direct ancestor of every ArrayType?
+        }
+<span class="nc" id="L77">        return getFirstCommonSuperclassInternal(t);</span>
+    }
+
+    /**
+     * This commutative operation returns the first common superclass (narrowest ReferenceType referencing a class, not an
+     * interface). If one of the types is a superclass of the other, the former is returned. If &quot;this&quot; is NULL, then t
+     * is returned. If t is NULL, then &quot;this&quot; is returned. If &quot;this&quot; equals t ['this.equals(t)'] &quot;this&quot; is returned. If
+     * &quot;this&quot; or t is an ArrayType, then {@link #OBJECT} is returned; unless their dimensions match. Then an ArrayType of the
+     * same number of dimensions is returned, with its basic type being the first common super class of the basic types of
+     * &quot;this&quot; and t. If &quot;this&quot; or t is a ReferenceType referencing an interface, then {@link #OBJECT} is returned. If not all of
+     * the two classes' superclasses cannot be found, &quot;null&quot; is returned. See the JVM specification edition 2, &quot;�4.9.2 The
+     * Bytecode Verifier&quot;.
+     *
+     * @param t the other type.
+     * @return the first common superclass.
+     * @throws ClassNotFoundException on failure to find superclasses of this type, or the type passed as a parameter.
+     */
+    public ReferenceType getFirstCommonSuperclass(final ReferenceType t) throws ClassNotFoundException {
+<span class="nc bnc" id="L95" title="All 2 branches missed.">        if (equals(NULL)) {</span>
+<span class="nc" id="L96">            return t;</span>
+        }
+<span class="nc bnc" id="L98" title="All 4 branches missed.">        if (t.equals(NULL) || equals(t)) {</span>
+<span class="nc" id="L99">            return this;</span>
+            /*
+             * TODO: Above sounds a little arbitrary. On the other hand, there is no object referenced by {@link #NULL} so we can also
+             * say all the objects referenced by {@link #NULL} were derived from {@link Object}. However, the Java Language's
+             * &quot;instanceof&quot; operator proves us wrong: &quot;null&quot; is not referring to an instance of {@link Object} :)
+             */
+        }
+        /* This code is from a bug report by Konstantin Shagin &lt;konst@cs.technion.ac.il&gt; */
+<span class="nc bnc" id="L107" title="All 4 branches missed.">        if (this instanceof ArrayType &amp;&amp; t instanceof ArrayType) {</span>
+<span class="nc" id="L108">            final ArrayType arrType1 = (ArrayType) this;</span>
+<span class="nc" id="L109">            final ArrayType arrType2 = (ArrayType) t;</span>
+<span class="nc bnc" id="L110" title="All 4 branches missed.">            if (arrType1.getDimensions() == arrType2.getDimensions() &amp;&amp; arrType1.getBasicType() instanceof ObjectType</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">                &amp;&amp; arrType2.getBasicType() instanceof ObjectType) {</span>
+<span class="nc" id="L112">                return new ArrayType(((ObjectType) arrType1.getBasicType()).getFirstCommonSuperclass((ObjectType) arrType2.getBasicType()),</span>
+<span class="nc" id="L113">                    arrType1.getDimensions());</span>
+            }
+        }
+<span class="nc bnc" id="L116" title="All 4 branches missed.">        if (this instanceof ArrayType || t instanceof ArrayType) {</span>
+<span class="nc" id="L117">            return OBJECT;</span>
+            // TODO: Is there a proof of {@link #OBJECT} being the direct ancestor of every ArrayType?
+        }
+<span class="nc" id="L120">        return getFirstCommonSuperclassInternal(t);</span>
+    }
+
+    private ReferenceType getFirstCommonSuperclassInternal(final ReferenceType t) throws ClassNotFoundException {
+<span class="nc bnc" id="L124" title="All 6 branches missed.">        if (this instanceof ObjectType &amp;&amp; ((ObjectType) this).referencesInterfaceExact()</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">            || t instanceof ObjectType &amp;&amp; ((ObjectType) t).referencesInterfaceExact()) {</span>
+<span class="nc" id="L126">            return OBJECT;</span>
+            // TODO: The above line is correct comparing to the vmspec2. But one could
+            // make class file verification a bit stronger here by using the notion of
+            // superinterfaces or even castability or assignment compatibility.
+        }
+        // this and t are ObjectTypes, see above.
+<span class="nc" id="L132">        final ObjectType thiz = (ObjectType) this;</span>
+<span class="nc" id="L133">        final ObjectType other = (ObjectType) t;</span>
+<span class="nc" id="L134">        final JavaClass[] thizSups = Repository.getSuperClasses(thiz.getClassName());</span>
+<span class="nc" id="L135">        final JavaClass[] otherSups = Repository.getSuperClasses(other.getClassName());</span>
+<span class="nc bnc" id="L136" title="All 4 branches missed.">        if (thizSups == null || otherSups == null) {</span>
+<span class="nc" id="L137">            return null;</span>
+        }
+        // Waaahh...
+<span class="nc" id="L140">        final JavaClass[] thisSups = new JavaClass[thizSups.length + 1];</span>
+<span class="nc" id="L141">        final JavaClass[] tSups = new JavaClass[otherSups.length + 1];</span>
+<span class="nc" id="L142">        System.arraycopy(thizSups, 0, thisSups, 1, thizSups.length);</span>
+<span class="nc" id="L143">        System.arraycopy(otherSups, 0, tSups, 1, otherSups.length);</span>
+<span class="nc" id="L144">        thisSups[0] = Repository.lookupClass(thiz.getClassName());</span>
+<span class="nc" id="L145">        tSups[0] = Repository.lookupClass(other.getClassName());</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">        for (final JavaClass tSup : tSups) {</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">            for (final JavaClass thisSup : thisSups) {</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">                if (thisSup.equals(tSup)) {</span>
+<span class="nc" id="L149">                    return ObjectType.getInstance(thisSup.getClassName());</span>
+                }
+            }
+        }
+        // Huh? Did you ask for OBJECT's superclass??
+<span class="nc" id="L154">        return null;</span>
+    }
+
+    /**
+     * Return true iff this is assignment compatible with another type t as defined in the JVM specification; see the
+     * AASTORE definition there.
+     *
+     * @param t the other type.
+     * @return true iff this is assignment compatible with another type t.
+     * @throws ClassNotFoundException if any classes or interfaces required to determine assignment compatibility can't be
+     *         found.
+     */
+    public boolean isAssignmentCompatibleWith(final Type t) throws ClassNotFoundException {
+<span class="pc bpc" id="L167" title="1 of 2 branches missed.">        if (!(t instanceof ReferenceType)) {</span>
+<span class="nc" id="L168">            return false;</span>
+        }
+<span class="fc" id="L170">        final ReferenceType T = (ReferenceType) t;</span>
+<span class="pc bpc" id="L171" title="1 of 2 branches missed.">        if (equals(NULL)) {</span>
+<span class="nc" id="L172">            return true; // This is not explicitly stated, but clear. Isn't it?</span>
+        }
+        /*
+         * If this is a class type then
+         */
+<span class="pc bpc" id="L177" title="3 of 4 branches missed.">        if (this instanceof ObjectType &amp;&amp; ((ObjectType) this).referencesClassExact()) {</span>
+            /*
+             * If T is a class type, then this must be the same class as T, or this must be a subclass of T;
+             */
+<span class="nc bnc" id="L181" title="All 4 branches missed.">            if (T instanceof ObjectType &amp;&amp; ((ObjectType) T).referencesClassExact()</span>
+<span class="nc bnc" id="L182" title="All 4 branches missed.">                &amp;&amp; (equals(T) || Repository.instanceOf(((ObjectType) this).getClassName(), ((ObjectType) T).getClassName()))) {</span>
+<span class="nc" id="L183">                return true;</span>
+            }
+            /*
+             * If T is an interface type, this must implement interface T.
+             */
+<span class="nc bnc" id="L188" title="All 4 branches missed.">            if (T instanceof ObjectType &amp;&amp; ((ObjectType) T).referencesInterfaceExact()</span>
+<span class="nc bnc" id="L189" title="All 2 branches missed.">                &amp;&amp; Repository.implementationOf(((ObjectType) this).getClassName(), ((ObjectType) T).getClassName())) {</span>
+<span class="nc" id="L190">                return true;</span>
+            }
+        }
+        /*
+         * If this is an interface type, then:
+         */
+<span class="pc bpc" id="L196" title="3 of 4 branches missed.">        if (this instanceof ObjectType &amp;&amp; ((ObjectType) this).referencesInterfaceExact()) {</span>
+            /*
+             * If T is a class type, then T must be Object (�2.4.7).
+             */
+<span class="nc bnc" id="L200" title="All 6 branches missed.">            if (T instanceof ObjectType &amp;&amp; ((ObjectType) T).referencesClassExact() &amp;&amp; T.equals(OBJECT)) {</span>
+<span class="nc" id="L201">                return true;</span>
+            }
+            /*
+             * If T is an interface type, then T must be the same interface as this or a superinterface of this (�2.13.2).
+             */
+<span class="nc bnc" id="L206" title="All 4 branches missed.">            if (T instanceof ObjectType &amp;&amp; ((ObjectType) T).referencesInterfaceExact()</span>
+<span class="nc bnc" id="L207" title="All 4 branches missed.">                &amp;&amp; (equals(T) || Repository.implementationOf(((ObjectType) this).getClassName(), ((ObjectType) T).getClassName()))) {</span>
+<span class="nc" id="L208">                return true;</span>
+            }
+        }
+        /*
+         * If this is an array type, namely, the type SC[], that is, an array of components of type SC, then:
+         */
+<span class="pc bpc" id="L214" title="1 of 2 branches missed.">        if (this instanceof ArrayType) {</span>
+            /*
+             * If T is a class type, then T must be Object (�2.4.7).
+             */
+<span class="pc bpc" id="L218" title="5 of 6 branches missed.">            if (T instanceof ObjectType &amp;&amp; ((ObjectType) T).referencesClassExact() &amp;&amp; T.equals(OBJECT)) {</span>
+<span class="nc" id="L219">                return true;</span>
+            }
+            /*
+             * If T is an array type TC[], that is, an array of components of type TC, then one of the following must be true:
+             */
+<span class="pc bpc" id="L224" title="1 of 2 branches missed.">            if (T instanceof ArrayType) {</span>
+                /*
+                 * TC and SC are the same primitive type (�2.4.1).
+                 */
+<span class="fc" id="L228">                final Type sc = ((ArrayType) this).getElementType();</span>
+<span class="fc" id="L229">                final Type tc = ((ArrayType) T).getElementType();</span>
+<span class="pc bpc" id="L230" title="3 of 6 branches missed.">                if (sc instanceof BasicType &amp;&amp; tc instanceof BasicType &amp;&amp; sc.equals(tc)) {</span>
+<span class="fc" id="L231">                    return true;</span>
+                }
+                /*
+                 * TC and SC are reference types (�2.4.6), and type SC is assignable to TC by these runtime rules.
+                 */
+<span class="nc bnc" id="L236" title="All 6 branches missed.">                if (tc instanceof ReferenceType &amp;&amp; sc instanceof ReferenceType &amp;&amp; ((ReferenceType) sc).isAssignmentCompatibleWith(tc)) {</span>
+<span class="nc" id="L237">                    return true;</span>
+                }
+            }
+            /* If T is an interface type, T must be one of the interfaces implemented by arrays (�2.15). */
+            // TODO: Check if this is still valid or find a way to dynamically find out which
+            // interfaces arrays implement. However, as of the JVM specification edition 2, there
+            // are at least two different pages where assignment compatibility is defined and
+            // on one of them &quot;interfaces implemented by arrays&quot; is exchanged with &quot;'Cloneable' or
+            // 'java.io.Serializable'&quot;
+<span class="nc bnc" id="L246" title="All 4 branches missed.">            if (T instanceof ObjectType &amp;&amp; ((ObjectType) T).referencesInterfaceExact()) {</span>
+<span class="nc bnc" id="L247" title="All 2 branches missed.">                for (final String element : Const.getInterfacesImplementedByArrays()) {</span>
+<span class="nc bnc" id="L248" title="All 2 branches missed.">                    if (T.equals(ObjectType.getInstance(element))) {</span>
+<span class="nc" id="L249">                        return true;</span>
+                    }
+<span class="nc" id="L251">                }</span>
+            }
+        }
+<span class="nc" id="L254">        return false; // default.</span>
+    }
+
+    /**
+     * Return true iff this type is castable to another type t as defined in the JVM specification. The case where this is
+     * {@link #NULL} is not defined (see the CHECKCAST definition in the JVM specification). However, because for example CHECKCAST
+     * doesn't throw a ClassCastException when casting a null reference to any Object, true is returned in this case.
+     *
+     * @param t the other type.
+     * @return true iff this type is castable to another type t.
+     * @throws ClassNotFoundException if any classes or interfaces required to determine assignment compatibility can't be
+     *         found.
+     */
+    public boolean isCastableTo(final Type t) throws ClassNotFoundException {
+<span class="nc bnc" id="L268" title="All 2 branches missed.">        if (equals(NULL)) {</span>
+<span class="nc" id="L269">            return t instanceof ReferenceType; // If this is ever changed in isAssignmentCompatible()</span>
+        }
+<span class="nc" id="L271">        return isAssignmentCompatibleWith(t);</span>
+        /*
+         * Yes, it's true: It's the same definition. See vmspec2 AASTORE / CHECKCAST definitions.
+         */
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

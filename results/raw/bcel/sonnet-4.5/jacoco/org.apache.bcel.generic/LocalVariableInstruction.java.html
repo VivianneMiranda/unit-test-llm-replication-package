@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LocalVariableInstruction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">LocalVariableInstruction.java</span></div><h1>LocalVariableInstruction.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import java.io.DataOutputStream;
+import java.io.IOException;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.util.ByteSequence;
+
+/**
+ * Abstract super class for instructions dealing with local variables.
+ */
+public abstract class LocalVariableInstruction extends Instruction implements TypedInstruction, IndexedInstruction {
+
+    /**
+     * @deprecated (since 6.0) will be made private; do not access directly, use getter/setter
+     */
+<span class="pc" id="L35">    @Deprecated</span>
+    protected int n = -1; // index of referenced variable
+
+<span class="pc" id="L38">    private short cTag = -1; // compact version, such as ILOAD_0</span>
+<span class="pc" id="L39">    private short canonTag = -1; // canonical tag such as ILOAD</span>
+
+    /**
+     * Empty constructor needed for Instruction.readInstruction. Also used by IINC()!
+     */
+<span class="nc" id="L44">    LocalVariableInstruction() {</span>
+<span class="nc" id="L45">    }</span>
+
+    /**
+     * Empty constructor needed for Instruction.readInstruction. Not to be used otherwise. tag and length are defined in
+     * readInstruction and initFromFile, respectively.
+     */
+<span class="nc" id="L51">    LocalVariableInstruction(final short canonTag, final short cTag) {</span>
+<span class="nc" id="L52">        this.canonTag = canonTag;</span>
+<span class="nc" id="L53">        this.cTag = cTag;</span>
+<span class="nc" id="L54">    }</span>
+
+    /**
+     * Constructs a LocalVariableInstruction.
+     *
+     * @param opcode Instruction opcode.
+     * @param cTag Instruction number for compact version, ALOAD_0, for example.
+     * @param n local variable index (unsigned short).
+     */
+    protected LocalVariableInstruction(final short opcode, final short cTag, final int n) {
+<span class="fc" id="L64">        super(opcode, (short) 2);</span>
+<span class="fc" id="L65">        this.cTag = cTag;</span>
+<span class="fc" id="L66">        canonTag = opcode;</span>
+<span class="fc" id="L67">        setIndex(n);</span>
+<span class="fc" id="L68">    }</span>
+
+    /**
+     * Dumps instruction as byte code to stream out.
+     *
+     * @param out Output stream.
+     */
+    @Override
+    public void dump(final DataOutputStream out) throws IOException {
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        if (wide()) {</span>
+<span class="nc" id="L78">            out.writeByte(Const.WIDE);</span>
+        }
+<span class="nc" id="L80">        out.writeByte(super.getOpcode());</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        if (super.getLength() &gt; 1) { // Otherwise ILOAD_n, instruction, for example.</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">            if (wide()) {</span>
+<span class="nc" id="L83">                out.writeShort(n);</span>
+            } else {
+<span class="nc" id="L85">                out.writeByte(n);</span>
+            }
+        }
+<span class="nc" id="L88">    }</span>
+
+    /**
+     * Gets the canonical tag for instruction, for example, ALOAD for ALOAD_0.
+     *
+     * @return canonical tag for instruction, for example, ALOAD for ALOAD_0.
+     */
+    public short getCanonicalTag() {
+<span class="nc" id="L96">        return canonTag;</span>
+    }
+
+    /**
+     * @return local variable index (n) referred by this instruction.
+     */
+    @Override
+    public final int getIndex() {
+<span class="nc" id="L104">        return n;</span>
+    }
+
+    /**
+     * Returns the type associated with the instruction - in case of ALOAD or ASTORE Type.OBJECT is returned. This is just a
+     * bit incorrect, because ALOAD and ASTORE may work on every ReferenceType (including Type.NULL) and ASTORE may even
+     * work on a ReturnaddressType.
+     *
+     * @return type associated with the instruction.
+     */
+    @Override
+    public Type getType(final ConstantPoolGen cp) {
+<span class="nc bnc" id="L116" title="All 6 branches missed.">        switch (canonTag) {</span>
+        case Const.ILOAD:
+        case Const.ISTORE:
+<span class="nc" id="L119">            return Type.INT;</span>
+        case Const.LLOAD:
+        case Const.LSTORE:
+<span class="nc" id="L122">            return Type.LONG;</span>
+        case Const.DLOAD:
+        case Const.DSTORE:
+<span class="nc" id="L125">            return Type.DOUBLE;</span>
+        case Const.FLOAD:
+        case Const.FSTORE:
+<span class="nc" id="L128">            return Type.FLOAT;</span>
+        case Const.ALOAD:
+        case Const.ASTORE:
+<span class="nc" id="L131">            return Type.OBJECT;</span>
+        default:
+<span class="nc" id="L133">            throw new ClassGenException(&quot;Unknown case in switch&quot; + canonTag);</span>
+        }
+    }
+
+    /**
+     * Reads needed data (for example index) from file.
+     *
+     * &lt;pre&gt;
+     * (ILOAD &amp;lt;= tag &amp;lt;= ALOAD_3) || (ISTORE &amp;lt;= tag &amp;lt;= ASTORE_3)
+     * &lt;/pre&gt;
+     */
+    @Override
+    protected void initFromFile(final ByteSequence bytes, final boolean wide) throws IOException {
+<span class="nc bnc" id="L146" title="All 2 branches missed.">        if (wide) {</span>
+<span class="nc" id="L147">            n = bytes.readUnsignedShort();</span>
+<span class="nc" id="L148">            super.setLength(4);</span>
+        } else {
+<span class="nc" id="L150">            final short opcode = super.getOpcode();</span>
+<span class="nc bnc" id="L151" title="All 8 branches missed.">            if (opcode &gt;= Const.ILOAD &amp;&amp; opcode &lt;= Const.ALOAD || opcode &gt;= Const.ISTORE &amp;&amp; opcode &lt;= Const.ASTORE) {</span>
+<span class="nc" id="L152">                n = bytes.readUnsignedByte();</span>
+<span class="nc" id="L153">                super.setLength(2);</span>
+            } else {
+<span class="nc bnc" id="L155" title="All 2 branches missed.">                if (opcode &lt;= Const.ALOAD_3) { // compact load instruction such as ILOAD_2</span>
+<span class="nc" id="L156">                    n = (opcode - Const.ILOAD_0) % 4;</span>
+                } else { // Assert ISTORE_0 &lt;= tag &lt;= ASTORE_3
+<span class="nc" id="L158">                    n = (opcode - Const.ISTORE_0) % 4;</span>
+                }
+<span class="nc" id="L160">                super.setLength(1);</span>
+            }
+        }
+<span class="nc" id="L163">    }</span>
+
+    /**
+     * Sets the local variable index. also updates opcode and length TODO Why?
+     *
+     * @see #setIndexOnly(int)
+     */
+    @Override
+    public void setIndex(final int n) { // TODO could be package-protected?
+<span class="pc bpc" id="L172" title="2 of 4 branches missed.">        if (n &lt; 0 || n &gt; Const.MAX_SHORT) {</span>
+<span class="nc" id="L173">            throw new ClassGenException(&quot;Illegal value: &quot; + n);</span>
+        }
+<span class="fc" id="L175">        this.n = n;</span>
+        // Cannot be &lt; 0 as this is checked above
+<span class="pc bpc" id="L177" title="1 of 2 branches missed.">        if (n &lt;= 3) { // Use more compact instruction xLOAD_n</span>
+<span class="fc" id="L178">            super.setOpcode((short) (cTag + n));</span>
+<span class="fc" id="L179">            super.setLength(1);</span>
+        } else {
+<span class="nc" id="L181">            super.setOpcode(canonTag);</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">            if (wide()) {</span>
+<span class="nc" id="L183">                super.setLength(4);</span>
+            } else {
+<span class="nc" id="L185">                super.setLength(2);</span>
+            }
+        }
+<span class="fc" id="L188">    }</span>
+
+    /**
+     * Sets the index of the referenced variable (n) only
+     *
+     * @since 6.0
+     * @see #setIndex(int)
+     */
+    final void setIndexOnly(final int n) {
+<span class="nc" id="L197">        this.n = n;</span>
+<span class="nc" id="L198">    }</span>
+
+    /**
+     * Long output format:
+     *
+     * &amp;lt;name of opcode&amp;gt; &quot;[&quot;&amp;lt;opcode number&amp;gt;&quot;]&quot; &quot;(&quot;&amp;lt;length of instruction&amp;gt;&quot;)&quot; &quot;&amp;lt;&quot;&amp;lt; local variable
+     * index&amp;gt;&quot;&amp;gt;&quot;
+     *
+     * @param verbose long/short format switch.
+     * @return mnemonic for instruction.
+     */
+    @Override
+    public String toString(final boolean verbose) {
+<span class="nc" id="L211">        final short opcode = super.getOpcode();</span>
+<span class="nc bnc" id="L212" title="All 8 branches missed.">        if (opcode &gt;= Const.ILOAD_0 &amp;&amp; opcode &lt;= Const.ALOAD_3 || opcode &gt;= Const.ISTORE_0 &amp;&amp; opcode &lt;= Const.ASTORE_3) {</span>
+<span class="nc" id="L213">            return super.toString(verbose);</span>
+        }
+<span class="nc" id="L215">        return super.toString(verbose) + &quot; &quot; + n;</span>
+    }
+
+    private boolean wide() {
+<span class="nc bnc" id="L219" title="All 2 branches missed.">        return n &gt; Const.MAX_BYTE;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

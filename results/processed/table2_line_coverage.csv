@@ -1,0 +1,9 @@
+project,test_suite_origin,mean_pct,median_pct,std_dev_pct,n_classes
+Commons CLI,Developer,98.35,100.0,3.81,42
+Commons CLI,GPT-5.1 Codex Max,57.71,67.24,39.71,42
+Commons CLI,Opus 4.5,94.69,100.0,8.22,42
+Commons CLI,Sonnet 4.5,86.73,95.26,16.6,42
+Commons BCEL,Developer,73.48,82.64,30.88,406
+Commons BCEL,GPT-5.1 Codex Max,19.49,17.43,24.21,406
+Commons BCEL,Opus 4.5,80.24,95.06,28.0,406
+Commons BCEL,Sonnet 4.5,17.61,0.36,25.7,406

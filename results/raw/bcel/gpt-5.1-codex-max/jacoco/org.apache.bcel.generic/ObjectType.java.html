@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ObjectType.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">ObjectType.java</span></div><h1>ObjectType.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.Repository;
+import org.apache.bcel.classfile.JavaClass;
+import org.apache.bcel.classfile.Utility;
+
+/**
+ * Denotes reference such as {@link String}.
+ */
+public class ObjectType extends ReferenceType {
+
+    /**
+     * Constructs a new instance.
+     *
+     * @param className fully qualified class name, for example {@link String}.
+     * @return a new instance.
+     * @since 6.0
+     */
+    public static ObjectType getInstance(final String className) {
+<span class="fc" id="L39">        return new ObjectType(className);</span>
+    }
+
+    private final String className; // Class name of type
+
+    /**
+     * Constructs a new instance.
+     *
+     * @param className fully qualified class name, for example {@link String}.
+     */
+    public ObjectType(final String className) {
+<span class="fc" id="L50">        super(Const.T_REFERENCE, &quot;L&quot; + Utility.packageToPath(className) + &quot;;&quot;);</span>
+<span class="fc" id="L51">        this.className = Utility.pathToPackage(className);</span>
+<span class="fc" id="L52">    }</span>
+
+    /**
+     * Java Virtual Machine Specification edition 2, 5.4.4 Access Control.
+     *
+     * @param accessor the accessing type.
+     * @return true if accessible.
+     * @throws ClassNotFoundException if the class referenced by this type can't be found.
+     */
+    public boolean accessibleTo(final ObjectType accessor) throws ClassNotFoundException {
+<span class="fc" id="L62">        final JavaClass jc = Repository.lookupClass(className);</span>
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">        if (jc.isPublic()) {</span>
+<span class="fc" id="L64">            return true;</span>
+        }
+<span class="nc" id="L66">        final JavaClass acc = Repository.lookupClass(accessor.className);</span>
+<span class="nc" id="L67">        return acc.getPackageName().equals(jc.getPackageName());</span>
+    }
+
+    /**
+     * @return true if both type objects refer to the same class.
+     */
+    @Override
+    public boolean equals(final Object type) {
+<span class="fc bfc" id="L75" title="All 4 branches covered.">        return type instanceof ObjectType &amp;&amp; ((ObjectType) type).className.equals(className);</span>
+    }
+
+    /**
+     * @return name of referenced class.
+     */
+    @Override
+    public String getClassName() {
+<span class="fc" id="L83">        return className;</span>
+    }
+
+    /**
+     * Gets the hash code.
+     *
+     * @return a hash code value for the object.
+     */
+    @Override
+    public int hashCode() {
+<span class="fc" id="L93">        return className.hashCode();</span>
+    }
+
+    /**
+     * If &quot;this&quot; doesn't reference a class, it references an interface or a non-existant entity.
+     *
+     * @return true if it references a class, false otherwise.
+     * @deprecated (since 6.0) this method returns an inaccurate result if the class or interface referenced cannot be
+     *             found: use referencesClassExact() instead
+     */
+    @Deprecated
+    public boolean referencesClass() {
+        try {
+<span class="nc" id="L106">            final JavaClass jc = Repository.lookupClass(className);</span>
+<span class="nc" id="L107">            return jc.isClass();</span>
+<span class="nc" id="L108">        } catch (final ClassNotFoundException e) {</span>
+<span class="nc" id="L109">            return false;</span>
+        }
+    }
+
+    /**
+     * Return true if this type references a class, false if it references an interface.
+     *
+     * @return true if the type references a class, false if it references an interface.
+     * @throws ClassNotFoundException if the class or interface referenced by this type can't be found
+     */
+    public boolean referencesClassExact() throws ClassNotFoundException {
+<span class="fc" id="L120">        final JavaClass jc = Repository.lookupClass(className);</span>
+<span class="fc" id="L121">        return jc.isClass();</span>
+    }
+
+    /**
+     * If &quot;this&quot; doesn't reference an interface, it references a class or a non-existant entity.
+     *
+     * @return true if it references an interface, false otherwise.
+     * @deprecated (since 6.0) this method returns an inaccurate result if the class or interface referenced cannot be
+     *             found: use referencesInterfaceExact() instead
+     */
+    @Deprecated
+    public boolean referencesInterface() {
+        try {
+<span class="nc" id="L134">            final JavaClass jc = Repository.lookupClass(className);</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">            return !jc.isClass();</span>
+<span class="nc" id="L136">        } catch (final ClassNotFoundException e) {</span>
+<span class="nc" id="L137">            return false;</span>
+        }
+    }
+
+    /**
+     * Return true if this type references an interface, false if it references a class.
+     *
+     * @return true if the type references an interface, false if it references a class.
+     * @throws ClassNotFoundException if the class or interface referenced by this type can't be found
+     */
+    public boolean referencesInterfaceExact() throws ClassNotFoundException {
+<span class="fc" id="L148">        final JavaClass jc = Repository.lookupClass(className);</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        return !jc.isClass();</span>
+    }
+
+    /**
+     * Return true if this type is a subclass of given ObjectType.
+     *
+     * @param superclass the superclass to check against.
+     * @return true if this is a subclass.
+     * @throws ClassNotFoundException if any of this class's superclasses can't be found.
+     */
+    public boolean subclassOf(final ObjectType superclass) throws ClassNotFoundException {
+<span class="pc bpc" id="L160" title="1 of 4 branches missed.">        if (referencesInterfaceExact() || superclass.referencesInterfaceExact()) {</span>
+<span class="fc" id="L161">            return false;</span>
+        }
+<span class="fc" id="L163">        return Repository.instanceOf(this.className, superclass.className);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

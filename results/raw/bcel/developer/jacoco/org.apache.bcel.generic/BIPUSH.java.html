@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BIPUSH.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">BIPUSH.java</span></div><h1>BIPUSH.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import java.io.DataOutputStream;
+import java.io.IOException;
+
+import org.apache.bcel.util.ByteSequence;
+
+/**
+ * BIPUSH - Push byte on stack
+ *
+ * &lt;pre&gt;
+ * Stack: ... -&amp;gt; ..., value
+ * &lt;/pre&gt;
+ */
+public class BIPUSH extends Instruction implements ConstantPushInstruction {
+
+    private byte b;
+
+    /**
+     * Empty constructor needed for Instruction.readInstruction. Not to be used otherwise.
+     */
+<span class="fc" id="L40">    BIPUSH() {</span>
+<span class="fc" id="L41">    }</span>
+
+    /**
+     * Push byte on stack.
+     *
+     * @param b the byte value to push.
+     */
+    public BIPUSH(final byte b) {
+<span class="nc" id="L49">        super(org.apache.bcel.Const.BIPUSH, (short) 2);</span>
+<span class="nc" id="L50">        this.b = b;</span>
+<span class="nc" id="L51">    }</span>
+
+    /**
+     * Call corresponding visitor method(s). The order is: Call visitor methods of implemented interfaces first, then call
+     * methods according to the class hierarchy in descending order, that is, the most specific visitXXX() call comes last.
+     *
+     * @param v Visitor object.
+     */
+    @Override
+    public void accept(final Visitor v) {
+<span class="fc" id="L61">        v.visitPushInstruction(this);</span>
+<span class="fc" id="L62">        v.visitStackProducer(this);</span>
+<span class="fc" id="L63">        v.visitTypedInstruction(this);</span>
+<span class="fc" id="L64">        v.visitConstantPushInstruction(this);</span>
+<span class="fc" id="L65">        v.visitBIPUSH(this);</span>
+<span class="fc" id="L66">    }</span>
+
+    /**
+     * Dumps instruction as byte code to stream out.
+     */
+    @Override
+    public void dump(final DataOutputStream out) throws IOException {
+<span class="fc" id="L73">        super.dump(out);</span>
+<span class="fc" id="L74">        out.writeByte(b);</span>
+<span class="fc" id="L75">    }</span>
+
+    /**
+     * @return Type.BYTE.
+     */
+    @Override
+    public Type getType(final ConstantPoolGen cp) {
+<span class="nc" id="L82">        return Type.BYTE;</span>
+    }
+
+    @Override
+    public Number getValue() {
+<span class="nc" id="L87">        return Integer.valueOf(b);</span>
+    }
+
+    /**
+     * Reads needed data (for example index) from file.
+     */
+    @Override
+    protected void initFromFile(final ByteSequence bytes, final boolean wide) throws IOException {
+<span class="fc" id="L95">        super.setLength(2);</span>
+<span class="fc" id="L96">        b = bytes.readByte();</span>
+<span class="fc" id="L97">    }</span>
+
+    /**
+     * @return mnemonic for instruction.
+     */
+    @Override
+    public String toString(final boolean verbose) {
+<span class="nc" id="L104">        return super.toString(verbose) + &quot; &quot; + b;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

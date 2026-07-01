@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClassElementValueGen.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">ClassElementValueGen.java</span></div><h1>ClassElementValueGen.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import java.io.DataOutputStream;
+import java.io.IOException;
+
+import org.apache.bcel.classfile.ClassElementValue;
+import org.apache.bcel.classfile.ConstantUtf8;
+import org.apache.bcel.classfile.ElementValue;
+
+/**
+ * Generates class element values in annotations.
+ *
+ * @since 6.0
+ */
+public class ClassElementValueGen extends ElementValueGen {
+    // For primitive types and string type, this points to the value entry in
+    // the cpool
+    // For 'class' this points to the class entry in the cpool
+    private final int idx;
+
+    /**
+     * Constructs a ClassElementValueGen.
+     *
+     * @param value the class element value.
+     * @param cpool the constant pool generator.
+     * @param copyPoolEntries whether to copy pool entries.
+     */
+    public ClassElementValueGen(final ClassElementValue value, final ConstantPoolGen cpool, final boolean copyPoolEntries) {
+<span class="nc" id="L47">        super(CLASS, cpool);</span>
+<span class="nc bnc" id="L48" title="All 2 branches missed.">        if (copyPoolEntries) {</span>
+            // idx = cpool.addClass(value.getClassString());
+<span class="nc" id="L50">            idx = cpool.addUtf8(value.getClassString());</span>
+        } else {
+<span class="nc" id="L52">            idx = value.getIndex();</span>
+        }
+<span class="nc" id="L54">    }</span>
+
+    /**
+     * Constructs a ClassElementValueGen.
+     *
+     * @param typeIdx the type index.
+     * @param cpool the constant pool generator.
+     */
+    protected ClassElementValueGen(final int typeIdx, final ConstantPoolGen cpool) {
+<span class="nc" id="L63">        super(CLASS, cpool);</span>
+<span class="nc" id="L64">        this.idx = typeIdx;</span>
+<span class="nc" id="L65">    }</span>
+
+    /**
+     * Constructs a ClassElementValueGen.
+     *
+     * @param t the object type.
+     * @param cpool the constant pool generator.
+     */
+    public ClassElementValueGen(final ObjectType t, final ConstantPoolGen cpool) {
+<span class="nc" id="L74">        super(CLASS, cpool);</span>
+        // this.idx = cpool.addClass(t);
+<span class="nc" id="L76">        idx = cpool.addUtf8(t.getSignature());</span>
+<span class="nc" id="L77">    }</span>
+
+    @Override
+    public void dump(final DataOutputStream dos) throws IOException {
+<span class="nc" id="L81">        dos.writeByte(super.getElementValueType()); // u1 kind of value</span>
+<span class="nc" id="L82">        dos.writeShort(idx);</span>
+<span class="nc" id="L83">    }</span>
+
+    /**
+     * Gets the class string.
+     *
+     * @return the class string.
+     */
+    public String getClassString() {
+<span class="nc" id="L91">        final ConstantUtf8 cu8 = (ConstantUtf8) getConstantPool().getConstant(idx);</span>
+<span class="nc" id="L92">        return cu8.getBytes();</span>
+        // ConstantClass c = (ConstantClass) getConstantPool().getConstant(idx);
+        // ConstantUtf8 utf8 =
+        // (ConstantUtf8) getConstantPool().getConstant(c.getNameIndex());
+        // return utf8.getBytes();
+    }
+
+    /**
+     * Return immutable variant of this ClassElementValueGen.
+     *
+     * @return immutable variant of this ClassElementValueGen.
+     */
+    @Override
+    public ElementValue getElementValue() {
+<span class="nc" id="L106">        return new ClassElementValue(super.getElementValueType(), idx, getConstantPool().getConstantPool());</span>
+    }
+
+    /**
+     * Gets the index.
+     *
+     * @return the index.
+     */
+    public int getIndex() {
+<span class="nc" id="L115">        return idx;</span>
+    }
+
+    @Override
+    public String stringifyValue() {
+<span class="nc" id="L120">        return getClassString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

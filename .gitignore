@@ -1,0 +1,37 @@
+# Duplicate paper at repo root (canonical copy is paper/paper.pdf)
+_SAST26___Submission__Unit_Test_and_LLM*.pdf
+
+# Build outputs
+projects/*/
+!projects/README.md
+commons-bcel/**/target/
+commons-cli/**/target/
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs and temp
+logs/*.log
+logs/maven/
+*.tmp
+
+# Secrets and local config
+.env
+config/anonymization-terms.txt
+**/api-keys*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Large raw outputs (optional: uncomment if storing locally only)
+# results/raw/**

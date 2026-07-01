@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ParameterAnnotations.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">ParameterAnnotations.java</span></div><h1>ParameterAnnotations.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.classfile;
+
+import java.io.DataInput;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.stream.Stream;
+
+/**
+ * base class for parameter annotations
+ *
+ * @since 6.0
+ */
+public abstract class ParameterAnnotations extends Attribute implements Iterable&lt;ParameterAnnotationEntry&gt; {
+
+<span class="fc" id="L34">    private static final ParameterAnnotationEntry[] EMPTY_ARRAY = {};</span>
+
+    /** Table of parameter annotations */
+    private ParameterAnnotationEntry[] parameterAnnotationTable;
+
+    /**
+     * Constructs a new instance.
+     *
+     * @param parameterAnnotationType the subclass type of the parameter annotation.
+     * @param nameIndex Index pointing to the name &lt;em&gt;Code&lt;/em&gt;.
+     * @param length Content length in bytes.
+     * @param input Input stream.
+     * @param constantPool Array of constants.
+     */
+    ParameterAnnotations(final byte parameterAnnotationType, final int nameIndex, final int length, final DataInput input, final ConstantPool constantPool)
+        throws IOException {
+<span class="fc" id="L50">        this(parameterAnnotationType, nameIndex, length, (ParameterAnnotationEntry[]) null, constantPool);</span>
+<span class="fc" id="L51">        final int numParameters = input.readUnsignedByte();</span>
+<span class="fc" id="L52">        parameterAnnotationTable = new ParameterAnnotationEntry[numParameters];</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        for (int i = 0; i &lt; numParameters; i++) {</span>
+<span class="fc" id="L54">            parameterAnnotationTable[i] = new ParameterAnnotationEntry(input, constantPool);</span>
+        }
+<span class="fc" id="L56">    }</span>
+
+    /**
+     * Constructs a new instance.
+     *
+     * @param parameterAnnotationType the subclass type of the parameter annotation.
+     * @param nameIndex Index pointing to the name &lt;em&gt;Code&lt;/em&gt;.
+     * @param length Content length in bytes.
+     * @param parameterAnnotationTable the actual parameter annotations.
+     * @param constantPool Array of constants.
+     */
+    public ParameterAnnotations(final byte parameterAnnotationType, final int nameIndex, final int length,
+        final ParameterAnnotationEntry[] parameterAnnotationTable, final ConstantPool constantPool) {
+<span class="fc" id="L69">        super(parameterAnnotationType, nameIndex, length, constantPool);</span>
+<span class="fc" id="L70">        this.parameterAnnotationTable = parameterAnnotationTable;</span>
+<span class="fc" id="L71">    }</span>
+
+    /**
+     * Called by objects that are traversing the nodes of the tree implicitly defined by the contents of a Java class.
+     * I.e., the hierarchy of methods, fields, attributes, etc. spawns a tree of objects.
+     *
+     * @param v Visitor object.
+     */
+    @Override
+    public void accept(final Visitor v) {
+<span class="nc" id="L81">        v.visitParameterAnnotation(this);</span>
+<span class="nc" id="L82">    }</span>
+
+    /**
+     * @return deep copy of this attribute.
+     */
+    @Override
+    public Attribute copy(final ConstantPool constantPool) {
+<span class="fc" id="L89">        return (Attribute) clone();</span>
+    }
+
+    @Override
+    public void dump(final DataOutputStream dos) throws IOException {
+<span class="nc" id="L94">        super.dump(dos);</span>
+<span class="nc" id="L95">        dos.writeByte(parameterAnnotationTable.length);</span>
+
+<span class="nc bnc" id="L97" title="All 2 branches missed.">        for (final ParameterAnnotationEntry element : parameterAnnotationTable) {</span>
+<span class="nc" id="L98">            element.dump(dos);</span>
+        }
+
+<span class="nc" id="L101">    }</span>
+
+    /**
+     * Gets the parameter annotation entries.
+     *
+     * @return the array of parameter annotation entries in this parameter annotation.
+     */
+    public ParameterAnnotationEntry[] getParameterAnnotationEntries() {
+<span class="fc" id="L109">        return parameterAnnotationTable;</span>
+    }
+
+    /**
+     * Gets the parameter annotation table.
+     *
+     * @return the parameter annotation entry table.
+     */
+    public final ParameterAnnotationEntry[] getParameterAnnotationTable() {
+<span class="fc" id="L118">        return parameterAnnotationTable;</span>
+    }
+
+    @Override
+    public Iterator&lt;ParameterAnnotationEntry&gt; iterator() {
+<span class="fc" id="L123">        return Stream.of(parameterAnnotationTable).iterator();</span>
+    }
+
+    /**
+     * Sets the parameter annotation table.
+     *
+     * @param parameterAnnotationTable the entries to set in this parameter annotation.
+     */
+    public final void setParameterAnnotationTable(final ParameterAnnotationEntry[] parameterAnnotationTable) {
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">        this.parameterAnnotationTable = parameterAnnotationTable != null ? parameterAnnotationTable : EMPTY_ARRAY;</span>
+<span class="fc" id="L133">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

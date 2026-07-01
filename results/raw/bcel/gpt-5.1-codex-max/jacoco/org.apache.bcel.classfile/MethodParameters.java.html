@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MethodParameters.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">MethodParameters.java</span></div><h1>MethodParameters.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.apache.bcel.classfile;
+
+import java.io.DataInput;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.stream.Stream;
+
+import org.apache.bcel.Const;
+
+/**
+ * This class represents a MethodParameters attribute.
+ *
+ * @see &lt;a href=&quot;https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.24&quot;&gt; The class File Format :
+ *      The MethodParameters Attribute&lt;/a&gt;
+ * @since 6.0
+ */
+public class MethodParameters extends Attribute implements Iterable&lt;MethodParameter&gt; {
+
+    /**
+     * Empty array.
+     */
+<span class="fc" id="L43">    private static final MethodParameter[] EMPTY_ARRAY = {};</span>
+
+<span class="fc" id="L45">    private MethodParameter[] parameters = EMPTY_ARRAY;</span>
+
+    MethodParameters(final int nameIndex, final int length, final DataInput input, final ConstantPool constantPool) throws IOException {
+<span class="fc" id="L48">        super(Const.ATTR_METHOD_PARAMETERS, nameIndex, length, constantPool);</span>
+<span class="fc" id="L49">        final int parameterCount = input.readUnsignedByte();</span>
+<span class="fc" id="L50">        parameters = new MethodParameter[parameterCount];</span>
+<span class="fc bfc" id="L51" title="All 2 branches covered.">        for (int i = 0; i &lt; parameterCount; i++) {</span>
+<span class="fc" id="L52">            parameters[i] = new MethodParameter(input);</span>
+        }
+<span class="fc" id="L54">    }</span>
+
+    @Override
+    public void accept(final Visitor v) {
+<span class="nc" id="L58">        v.visitMethodParameters(this);</span>
+<span class="nc" id="L59">    }</span>
+
+    @Override
+    public Attribute copy(final ConstantPool constantPool) {
+<span class="nc" id="L63">        final MethodParameters c = (MethodParameters) clone();</span>
+<span class="nc" id="L64">        c.parameters = new MethodParameter[parameters.length];</span>
+<span class="nc" id="L65">        Arrays.setAll(c.parameters, i -&gt; parameters[i].copy());</span>
+<span class="nc" id="L66">        c.setConstantPool(constantPool);</span>
+<span class="nc" id="L67">        return c;</span>
+    }
+
+    /**
+     * Dumps method parameters attribute to file stream in binary format.
+     *
+     * @param file Output file stream.
+     * @throws IOException if an I/O error occurs.
+     */
+    @Override
+    public void dump(final DataOutputStream file) throws IOException {
+<span class="fc" id="L78">        super.dump(file);</span>
+<span class="fc" id="L79">        file.writeByte(parameters.length);</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">        for (final MethodParameter parameter : parameters) {</span>
+<span class="fc" id="L81">            parameter.dump(file);</span>
+        }
+<span class="fc" id="L83">    }</span>
+
+    /**
+     * Gets the method parameters.
+     *
+     * @return the method parameters.
+     */
+    public MethodParameter[] getParameters() {
+<span class="nc" id="L91">        return parameters;</span>
+    }
+
+    @Override
+    public Iterator&lt;MethodParameter&gt; iterator() {
+<span class="nc" id="L96">        return Stream.of(parameters).iterator();</span>
+    }
+
+    /**
+     * Sets the method parameters.
+     *
+     * @param parameters the method parameters to set.
+     */
+    public void setParameters(final MethodParameter[] parameters) {
+<span class="nc bnc" id="L105" title="All 2 branches missed.">        this.parameters = parameters != null ? parameters : EMPTY_ARRAY;</span>
+<span class="nc" id="L106">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

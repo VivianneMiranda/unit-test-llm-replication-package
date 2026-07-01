@@ -1,0 +1,23 @@
+{
+  "description": "Defines which projects are shipped in this replication artifact.",
+  "paper_note": "The published study evaluated five Apache Commons projects. This artifact includes two projects for which complete test suites and metric runs are available.",
+  "included_project_ids": ["bcel", "cli"],
+  "excluded_project_ids": ["collections", "compress", "lang"],
+  "exclusion_reason": "Original test suites and executed metric outputs for Collections, Compress, and Lang are no longer available to the authors.",
+  "artifact_runs": {
+    "total": 8,
+    "description": "2 projects × 4 test-suite origins (developer + 3 LLMs)"
+  },
+  "paper_runs": {
+    "total": 20,
+    "description": "5 projects × 4 test-suite origins"
+  },
+  "replication_claims": {
+    "full_paper_tables_2_to_4": false,
+    "full_paper_figures_2_to_5": false,
+    "methodology_and_prompt": true,
+    "bcel_and_cli_complete_pipeline": true,
+    "per_project_tables_for_included_subset": true
+  },
+  "manuscript_wording_hint": "State that the anonymized package reproduces the protocol and provides complete artifacts for Commons BCEL and Commons CLI; results for the other three paper projects are reported in the manuscript only."
+}

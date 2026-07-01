@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LocalVariables.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.verifier.structurals</a> &gt; <span class="el_source">LocalVariables.java</span></div><h1>LocalVariables.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.verifier.structurals;
+
+import org.apache.bcel.generic.ReferenceType;
+import org.apache.bcel.generic.Type;
+import org.apache.bcel.verifier.exc.AssertionViolatedException;
+import org.apache.bcel.verifier.exc.StructuralCodeConstraintException;
+import org.apache.commons.lang3.ArrayFill;
+
+/**
+ * This class implements an array of local variables used for symbolic JVM simulation.
+ */
+public class LocalVariables implements Cloneable {
+
+    /** The Type[] containing the local variable slots. */
+    private final Type[] locals;
+
+    /**
+     * Creates a new LocalVariables object.
+     *
+     * @param localVariableCount local variable count.
+     */
+<span class="nc" id="L40">    public LocalVariables(final int localVariableCount) {</span>
+<span class="nc" id="L41">        locals = ArrayFill.fill(new Type[localVariableCount], Type.UNKNOWN);</span>
+<span class="nc" id="L42">    }</span>
+
+    /**
+     * Returns a deep copy of this object; for example the clone operates on a new local variable array. However, the Type objects
+     * in the array are shared.
+     */
+    @Override
+    public Object clone() {
+<span class="nc" id="L50">        final LocalVariables lvs = new LocalVariables(locals.length);</span>
+<span class="nc" id="L51">        System.arraycopy(this.locals, 0, lvs.locals, 0, locals.length);</span>
+<span class="nc" id="L52">        return lvs;</span>
+    }
+
+    /*
+     * Fulfills the general contract of Object.equals().
+     */
+    @Override
+    public boolean equals(final Object o) {
+<span class="nc bnc" id="L60" title="All 2 branches missed.">        if (!(o instanceof LocalVariables)) {</span>
+<span class="nc" id="L61">            return false;</span>
+        }
+<span class="nc" id="L63">        final LocalVariables lv = (LocalVariables) o;</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        if (this.locals.length != lv.locals.length) {</span>
+<span class="nc" id="L65">            return false;</span>
+        }
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        for (int i = 0; i &lt; this.locals.length; i++) {</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">            if (!this.locals[i].equals(lv.locals[i])) {</span>
+                // System.out.println(this.locals[i]+&quot; is not &quot;+lv.locals[i]);
+<span class="nc" id="L70">                return false;</span>
+            }
+        }
+<span class="nc" id="L73">        return true;</span>
+    }
+
+    /**
+     * Returns the type of the local variable slot index.
+     *
+     * @param slotIndex Slot to look up.
+     * @return the type of the local variable slot index.
+     */
+    public Type get(final int slotIndex) {
+<span class="nc" id="L83">        return locals[slotIndex];</span>
+    }
+
+    /**
+     * Returns a (correctly typed) clone of this object. This is equivalent to ((LocalVariables) this.clone()).
+     *
+     * @return a (correctly typed) clone of this object.
+     */
+    public LocalVariables getClone() {
+<span class="nc" id="L92">        return (LocalVariables) clone();</span>
+    }
+
+    /**
+     * @return a hash code value for the object.
+     */
+    @Override
+    public int hashCode() {
+<span class="nc" id="L100">        return locals.length;</span>
+    }
+
+    /**
+     * Replaces all occurrences of {@code uninitializedObjectType} in this local variables set with an &quot;initialized&quot;
+     * ObjectType.
+     *
+     * @param uninitializedObjectType the object to match.
+     */
+    public void initializeObject(final UninitializedObjectType uninitializedObjectType) {
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        for (int i = 0; i &lt; locals.length; i++) {</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">            if (locals[i] == uninitializedObjectType) {</span>
+<span class="nc" id="L112">                locals[i] = uninitializedObjectType.getInitialized();</span>
+            }
+        }
+<span class="nc" id="L115">    }</span>
+
+    /**
+     * Returns the number of local variable slots.
+     *
+     * @return the number of local variable slots.
+     */
+    public int maxLocals() {
+<span class="nc" id="L123">        return locals.length;</span>
+    }
+
+    /**
+     * Merges two local variables sets as described in the Java Virtual Machine Specification, Second Edition, section
+     * 4.9.2, page 146.
+     *
+     * @param localVariable other local variable.
+     */
+    public void merge(final LocalVariables localVariable) {
+
+<span class="nc bnc" id="L134" title="All 2 branches missed.">        if (this.locals.length != localVariable.locals.length) {</span>
+<span class="nc" id="L135">            throw new AssertionViolatedException(&quot;Merging LocalVariables of different size?!? From different methods or what?!?&quot;);</span>
+        }
+
+<span class="nc bnc" id="L138" title="All 2 branches missed.">        for (int i = 0; i &lt; locals.length; i++) {</span>
+<span class="nc" id="L139">            merge(localVariable, i);</span>
+        }
+<span class="nc" id="L141">    }</span>
+
+    /**
+     * Merges a single local variable.
+     *
+     * @see #merge(LocalVariables)
+     */
+    private void merge(final LocalVariables lv, final int i) {
+        try {
+
+            // We won't accept an unitialized object if we know it was initialized;
+            // compare vmspec2, 4.9.4, last paragraph.
+<span class="nc bnc" id="L153" title="All 4 branches missed.">            if (!(locals[i] instanceof UninitializedObjectType) &amp;&amp; lv.locals[i] instanceof UninitializedObjectType) {</span>
+<span class="nc" id="L154">                throw new StructuralCodeConstraintException(&quot;Backwards branch with an uninitialized object in the local variables detected.&quot;);</span>
+            }
+            // Even harder, what about _different_ uninitialized object types?!
+<span class="nc bnc" id="L157" title="All 6 branches missed.">            if (!locals[i].equals(lv.locals[i]) &amp;&amp; locals[i] instanceof UninitializedObjectType &amp;&amp; lv.locals[i] instanceof UninitializedObjectType) {</span>
+<span class="nc" id="L158">                throw new StructuralCodeConstraintException(&quot;Backwards branch with an uninitialized object in the local variables detected.&quot;);</span>
+            }
+            // If we just didn't know that it was initialized, we have now learned.
+<span class="nc bnc" id="L161" title="All 4 branches missed.">            if (locals[i] instanceof UninitializedObjectType &amp;&amp; !(lv.locals[i] instanceof UninitializedObjectType)) {</span>
+<span class="nc" id="L162">                locals[i] = ((UninitializedObjectType) locals[i]).getInitialized();</span>
+            }
+<span class="nc bnc" id="L164" title="All 4 branches missed.">            if (locals[i] instanceof ReferenceType &amp;&amp; lv.locals[i] instanceof ReferenceType) {</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">                if (!locals[i].equals(lv.locals[i])) { // needed in case of two UninitializedObjectType instances</span>
+<span class="nc" id="L166">                    final Type sup = ((ReferenceType) locals[i]).getFirstCommonSuperclass((ReferenceType) lv.locals[i]);</span>
+
+<span class="nc bnc" id="L168" title="All 2 branches missed.">                    if (sup == null) {</span>
+                        // We should have checked this in Pass2!
+<span class="nc" id="L170">                        throw new AssertionViolatedException(&quot;Could not load all the super classes of '&quot; + locals[i] + &quot;' and '&quot; + lv.locals[i] + &quot;'.&quot;);</span>
+                    }
+<span class="nc" id="L172">                    locals[i] = sup;</span>
+<span class="nc" id="L173">                }</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">            } else if (!locals[i].equals(lv.locals[i])) {</span>
+                /*
+                 * TODO if ((locals[i] instanceof org.apache.bcel.generic.ReturnaddressType) &amp;&amp; (lv.locals[i] instanceof
+                 * org.apache.bcel.generic.ReturnaddressType)) { //System.err.println(&quot;merging &quot;+locals[i]+&quot; and &quot;+lv.locals[i]); throw
+                 * new AssertionViolatedException(&quot;Merging different ReturnAddresses: '&quot;+locals[i]+&quot;' and '&quot;+lv.locals[i]+&quot;'.&quot;); }
+                 */
+<span class="nc" id="L180">                locals[i] = Type.UNKNOWN;</span>
+            }
+<span class="nc" id="L182">        } catch (final ClassNotFoundException e) {</span>
+            // FIXME: maybe not the best way to handle this
+<span class="nc" id="L184">            throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="nc" id="L185">        }</span>
+<span class="nc" id="L186">    }</span>
+
+    /**
+     * Sets a new Type for the given local variable slot.
+     *
+     * @param slotIndex Target slot index.
+     * @param type Type to save at the given slot index.
+     */
+    public void set(final int slotIndex, final Type type) { // TODO could be package-protected?
+<span class="nc bnc" id="L195" title="All 8 branches missed.">        if (type == Type.BYTE || type == Type.SHORT || type == Type.BOOLEAN || type == Type.CHAR) {</span>
+<span class="nc" id="L196">            throw new AssertionViolatedException(&quot;LocalVariables do not know about '&quot; + type + &quot;'. Use Type.INT instead.&quot;);</span>
+        }
+<span class="nc" id="L198">        locals[slotIndex] = type;</span>
+<span class="nc" id="L199">    }</span>
+
+    /**
+     * Returns a String representation of this object.
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L206">        final StringBuilder sb = new StringBuilder();</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">        for (int i = 0; i &lt; locals.length; i++) {</span>
+<span class="nc" id="L208">            sb.append(Integer.toString(i));</span>
+<span class="nc" id="L209">            sb.append(&quot;: &quot;);</span>
+<span class="nc" id="L210">            sb.append(locals[i]);</span>
+<span class="nc" id="L211">            sb.append(&quot;\n&quot;);</span>
+        }
+<span class="nc" id="L213">        return sb.toString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

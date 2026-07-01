@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperandStack.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.verifier.structurals</a> &gt; <span class="el_source">OperandStack.java</span></div><h1>OperandStack.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.verifier.structurals;
+
+import java.util.ArrayList;
+
+import org.apache.bcel.generic.ObjectType;
+import org.apache.bcel.generic.ReferenceType;
+import org.apache.bcel.generic.Type;
+import org.apache.bcel.verifier.exc.AssertionViolatedException;
+import org.apache.bcel.verifier.exc.StructuralCodeConstraintException;
+
+/**
+ * This class implements a stack used for symbolic JVM stack simulation. [It's used as an operand stack substitute.]
+ * Elements of this stack are {@link Type} objects.
+ */
+public class OperandStack implements Cloneable {
+
+    /** We hold the stack information here. */
+<span class="nc" id="L36">    private ArrayList&lt;Type&gt; stack = new ArrayList&lt;&gt;();</span>
+
+    /** The maximum number of stack slots this OperandStack instance may hold. */
+    private final int maxStack;
+
+    /**
+     * Creates an empty stack with a maximum of maxStack slots.
+     *
+     * @param maxStack the maximum stack size.
+     */
+<span class="nc" id="L46">    public OperandStack(final int maxStack) {</span>
+<span class="nc" id="L47">        this.maxStack = maxStack;</span>
+<span class="nc" id="L48">    }</span>
+
+    /**
+     * Creates an otherwise empty stack with a maximum of maxStack slots and the ObjectType 'obj' at the top.
+     *
+     * @param maxStack the maximum stack size.
+     * @param obj the object type to place at the top.
+     */
+<span class="nc" id="L56">    public OperandStack(final int maxStack, final ObjectType obj) {</span>
+<span class="nc" id="L57">        this.maxStack = maxStack;</span>
+<span class="nc" id="L58">        push(obj);</span>
+<span class="nc" id="L59">    }</span>
+
+    /**
+     * Clears the stack.
+     */
+    public void clear() {
+<span class="nc" id="L65">        stack = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L66">    }</span>
+
+    /**
+     * Returns a deep copy of this object; that means, the clone operates on a new stack. However, the Type objects on the
+     * stack are shared.
+     */
+    @Override
+    public Object clone() {
+<span class="nc" id="L74">        final OperandStack newstack = new OperandStack(this.maxStack);</span>
+        @SuppressWarnings(&quot;unchecked&quot;) // OK because this.stack is the same type
+<span class="nc" id="L76">        final ArrayList&lt;Type&gt; clone = (ArrayList&lt;Type&gt;) this.stack.clone();</span>
+<span class="nc" id="L77">        newstack.stack = clone;</span>
+<span class="nc" id="L78">        return newstack;</span>
+    }
+
+    /**
+     * Returns true if and only if this OperandStack equals another, meaning equal lengths and equal objects on the stacks.
+     */
+    @Override
+    public boolean equals(final Object o) {
+<span class="nc bnc" id="L86" title="All 2 branches missed.">        if (!(o instanceof OperandStack)) {</span>
+<span class="nc" id="L87">            return false;</span>
+        }
+<span class="nc" id="L89">        final OperandStack s = (OperandStack) o;</span>
+<span class="nc" id="L90">        return this.stack.equals(s.stack);</span>
+    }
+
+    /**
+     * Returns a (typed!) clone of this.
+     *
+     * @return a clone of this operand stack.
+     * @see #clone()
+     */
+    public OperandStack getClone() {
+<span class="nc" id="L100">        return (OperandStack) clone();</span>
+    }
+
+    /**
+     * Gets the hash code.
+     *
+     * @return a hash code value for the object.
+     */
+    @Override
+    public int hashCode() {
+<span class="nc" id="L110">        return stack.hashCode();</span>
+    }
+
+    /**
+     * Replaces all occurrences of u in this OperandStack instance with an &quot;initialized&quot; ObjectType.
+     *
+     * @param u the uninitialized object type.
+     */
+    public void initializeObject(final UninitializedObjectType u) {
+<span class="nc bnc" id="L119" title="All 2 branches missed.">        for (int i = 0; i &lt; stack.size(); i++) {</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">            if (stack.get(i) == u) {</span>
+<span class="nc" id="L121">                stack.set(i, u.getInitialized());</span>
+            }
+        }
+<span class="nc" id="L124">    }</span>
+
+    /**
+     * Returns true IFF this OperandStack is empty.
+     *
+     * @return true if empty, false otherwise.
+     */
+    public boolean isEmpty() {
+<span class="nc" id="L132">        return stack.isEmpty();</span>
+    }
+
+    /**
+     * Returns the number of stack slots this stack can hold.
+     *
+     * @return the maximum stack size.
+     */
+    public int maxStack() {
+<span class="nc" id="L141">        return this.maxStack;</span>
+    }
+
+    /**
+     * Merges another stack state into this instance's stack state. See the Java Virtual Machine Specification, Second
+     * Edition, page 146: 4.9.2 for details.
+     *
+     * @param s the stack to merge.
+     */
+    public void merge(final OperandStack s) {
+        try {
+<span class="nc bnc" id="L152" title="All 4 branches missed.">            if (slotsUsed() != s.slotsUsed() || size() != s.size()) {</span>
+<span class="nc" id="L153">                throw new StructuralCodeConstraintException(&quot;Cannot merge stacks of different size:\nOperandStack A:\n&quot; + this + &quot;\nOperandStack B:\n&quot; + s);</span>
+            }
+
+<span class="nc bnc" id="L156" title="All 2 branches missed.">            for (int i = 0; i &lt; size(); i++) {</span>
+                // If the object _was_ initialized and we're supposed to merge
+                // in some uninitialized object, we reject the code (see vmspec2, 4.9.4, last paragraph).
+<span class="nc bnc" id="L159" title="All 4 branches missed.">                if (!(stack.get(i) instanceof UninitializedObjectType) &amp;&amp; s.stack.get(i) instanceof UninitializedObjectType) {</span>
+<span class="nc" id="L160">                    throw new StructuralCodeConstraintException(&quot;Backwards branch with an uninitialized object on the stack detected.&quot;);</span>
+                }
+                // Even harder, we're not initialized but are supposed to broaden
+                // the known object type
+<span class="nc bnc" id="L164" title="All 4 branches missed.">                if (!stack.get(i).equals(s.stack.get(i)) &amp;&amp; stack.get(i) instanceof UninitializedObjectType</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">                    &amp;&amp; !(s.stack.get(i) instanceof UninitializedObjectType)) {</span>
+<span class="nc" id="L166">                    throw new StructuralCodeConstraintException(&quot;Backwards branch with an uninitialized object on the stack detected.&quot;);</span>
+                }
+                // on the other hand...
+<span class="nc bnc" id="L169" title="All 4 branches missed.">                if (stack.get(i) instanceof UninitializedObjectType &amp;&amp; !(s.stack.get(i) instanceof UninitializedObjectType)) { // that has been initialized by</span>
+                                                                                                                               // now
+<span class="nc" id="L171">                    stack.set(i, ((UninitializedObjectType) stack.get(i)).getInitialized()); // note that.</span>
+                }
+<span class="nc bnc" id="L173" title="All 2 branches missed.">                if (!stack.get(i).equals(s.stack.get(i))) {</span>
+<span class="nc bnc" id="L174" title="All 4 branches missed.">                    if (!(stack.get(i) instanceof ReferenceType) || !(s.stack.get(i) instanceof ReferenceType)) {</span>
+<span class="nc" id="L175">                        throw new StructuralCodeConstraintException(&quot;Cannot merge stacks of different types:\nStack A:\n&quot; + this + &quot;\nStack B:\n&quot; + s);</span>
+                    }
+<span class="nc" id="L177">                    stack.set(i, ((ReferenceType) stack.get(i)).getFirstCommonSuperclass((ReferenceType) s.stack.get(i)));</span>
+                }
+            }
+<span class="nc" id="L180">        } catch (final ClassNotFoundException e) {</span>
+            // FIXME: maybe not the best way to handle this
+<span class="nc" id="L182">            throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="nc" id="L183">        }</span>
+<span class="nc" id="L184">    }</span>
+
+    /**
+     * Returns the element on top of the stack. The element is not popped off the stack!
+     *
+     * @return the top element.
+     */
+    public Type peek() {
+<span class="nc" id="L192">        return peek(0);</span>
+    }
+
+    /**
+     * Returns the element that's i elements below the top element; that means, iff i==0 the top element is returned. The
+     * element is not popped off the stack!
+     *
+     * @param i the depth.
+     * @return the element at the specified depth.
+     */
+    public Type peek(final int i) {
+<span class="nc" id="L203">        return stack.get(size() - i - 1);</span>
+    }
+
+    /**
+     * Returns the element on top of the stack. The element is popped off the stack.
+     *
+     * @return the popped element.
+     */
+    public Type pop() {
+<span class="nc" id="L212">        return stack.remove(size() - 1);</span>
+    }
+
+    /**
+     * Pops i elements off the stack. Always returns null.
+     *
+     * @param count the number of elements to pop.
+     * @return Always returns null.
+     */
+    public Type pop(final int count) {
+<span class="nc bnc" id="L222" title="All 2 branches missed.">        for (int j = 0; j &lt; count; j++) {</span>
+<span class="nc" id="L223">            pop();</span>
+        }
+<span class="nc" id="L225">        return null;</span>
+    }
+
+    /**
+     * Pushes a Type object onto the stack.
+     *
+     * @param type the type to push.
+     */
+    public void push(final Type type) {
+<span class="nc bnc" id="L234" title="All 2 branches missed.">        if (type == null) {</span>
+<span class="nc" id="L235">            throw new AssertionViolatedException(&quot;Cannot push NULL onto OperandStack.&quot;);</span>
+        }
+<span class="nc bnc" id="L237" title="All 8 branches missed.">        if (type == Type.BOOLEAN || type == Type.CHAR || type == Type.BYTE || type == Type.SHORT) {</span>
+<span class="nc" id="L238">            throw new AssertionViolatedException(&quot;The OperandStack does not know about '&quot; + type + &quot;'; use Type.INT instead.&quot;);</span>
+        }
+<span class="nc bnc" id="L240" title="All 2 branches missed.">        if (slotsUsed() &gt;= maxStack) {</span>
+<span class="nc" id="L241">            throw new AssertionViolatedException(&quot;OperandStack too small, should have thrown proper Exception elsewhere. Stack: &quot; + this);</span>
+        }
+<span class="nc" id="L243">        stack.add(type);</span>
+<span class="nc" id="L244">    }</span>
+
+    /**
+     * Returns the size of this OperandStack; that means, how many Type objects there are.
+     *
+     * @return the stack size.
+     */
+    public int size() {
+<span class="nc" id="L252">        return stack.size();</span>
+    }
+
+    /**
+     * Returns the number of stack slots used.
+     *
+     * @return the number of slots used.
+     * @see #maxStack()
+     */
+    public int slotsUsed() {
+        /*
+         * XXX change this to a better implementation using a variable that keeps track of the actual slotsUsed()-value
+         * monitoring all push()es and pop()s.
+         */
+<span class="nc" id="L266">        int slots = 0;</span>
+<span class="nc bnc" id="L267" title="All 2 branches missed.">        for (int i = 0; i &lt; stack.size(); i++) {</span>
+<span class="nc" id="L268">            slots += peek(i).getSize();</span>
+        }
+<span class="nc" id="L270">        return slots;</span>
+    }
+
+    /**
+     * Returns a String representation of this OperandStack instance.
+     *
+     * @return string representation.
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L280">        final StringBuilder sb = new StringBuilder();</span>
+<span class="nc" id="L281">        sb.append(&quot;Slots used: &quot;);</span>
+<span class="nc" id="L282">        sb.append(slotsUsed());</span>
+<span class="nc" id="L283">        sb.append(&quot; MaxStack: &quot;);</span>
+<span class="nc" id="L284">        sb.append(maxStack);</span>
+<span class="nc" id="L285">        sb.append(&quot;.\n&quot;);</span>
+<span class="nc bnc" id="L286" title="All 2 branches missed.">        for (int i = 0; i &lt; size(); i++) {</span>
+<span class="nc" id="L287">            sb.append(peek(i));</span>
+<span class="nc" id="L288">            sb.append(&quot; (Size: &quot;);</span>
+<span class="nc" id="L289">            sb.append(String.valueOf(peek(i).getSize()));</span>
+<span class="nc" id="L290">            sb.append(&quot;)\n&quot;);</span>
+        }
+<span class="nc" id="L292">        return sb.toString();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

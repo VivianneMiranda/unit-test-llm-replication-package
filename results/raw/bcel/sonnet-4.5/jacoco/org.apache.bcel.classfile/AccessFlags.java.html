@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AccessFlags.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">AccessFlags.java</span></div><h1>AccessFlags.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.classfile;
+
+import org.apache.bcel.Const;
+
+/**
+ * Super class for all objects that have modifiers like private, final, ... I.e. classes, fields, and methods.
+ */
+public abstract class AccessFlags {
+
+    /**
+     * Access flags.
+     *
+     * @deprecated (since 6.0) will be made private; do not access directly, use getter/setter.
+     */
+    @java.lang.Deprecated
+    protected int access_flags; // TODO not used externally at present
+
+    /**
+     * Constructs a new instance.
+     */
+<span class="fc" id="L39">    public AccessFlags() {</span>
+<span class="fc" id="L40">    }</span>
+
+    /**
+     * Constructs a new instance.
+     *
+     * @param accessFlags initial access flags.
+     */
+<span class="nc" id="L47">    public AccessFlags(final int accessFlags) {</span>
+<span class="nc" id="L48">        access_flags = accessFlags;</span>
+<span class="nc" id="L49">    }</span>
+
+    /**
+     * Gets access flags.
+     *
+     * @return Access flags of the object aka. &quot;modifiers&quot;.
+     */
+    public final int getAccessFlags() {
+<span class="nc" id="L57">        return access_flags;</span>
+    }
+
+    /**
+     * Gets access flags.
+     *
+     * @return Access flags of the object also known as modifiers.
+     */
+    public final int getModifiers() {
+<span class="nc" id="L66">        return access_flags;</span>
+    }
+
+    /**
+     * Tests whether the abstract bit is on.
+     *
+     * @return whether the abstract bit is on.
+     */
+    public final boolean isAbstract() {
+<span class="nc" id="L75">        return test(Const.ACC_ABSTRACT);</span>
+    }
+
+    /**
+     * Sets the abstract bit.
+     *
+     * @param flag The new value.
+     */
+    public final void isAbstract(final boolean flag) {
+<span class="nc" id="L84">        setFlag(Const.ACC_ABSTRACT, flag);</span>
+<span class="nc" id="L85">    }</span>
+
+    /**
+     * Tests whether the annotation bit is on.
+     *
+     * @return whether the annotation bit is on.
+     */
+    public final boolean isAnnotation() {
+<span class="nc" id="L93">        return test(Const.ACC_ANNOTATION);</span>
+    }
+
+    /**
+     * Sets the annotation bit.
+     *
+     * @param flag The new value.
+     */
+    public final void isAnnotation(final boolean flag) {
+<span class="nc" id="L102">        setFlag(Const.ACC_ANNOTATION, flag);</span>
+<span class="nc" id="L103">    }</span>
+
+    /**
+     * Tests whether the enum bit is on.
+     *
+     * @return whether the enum bit is on.
+     */
+    public final boolean isEnum() {
+<span class="nc" id="L111">        return test(Const.ACC_ENUM);</span>
+    }
+
+    /**
+     * Sets the enum bit.
+     *
+     * @param flag The new value.
+     */
+    public final void isEnum(final boolean flag) {
+<span class="nc" id="L120">        setFlag(Const.ACC_ENUM, flag);</span>
+<span class="nc" id="L121">    }</span>
+
+    /**
+     * Tests whether the final bit is on.
+     *
+     * @return whether the final bit is on.
+     */
+    public final boolean isFinal() {
+<span class="nc" id="L129">        return test(Const.ACC_FINAL);</span>
+    }
+
+    /**
+     * Sets the final bit.
+     *
+     * @param flag The new value.
+     */
+    public final void isFinal(final boolean flag) {
+<span class="nc" id="L138">        setFlag(Const.ACC_FINAL, flag);</span>
+<span class="nc" id="L139">    }</span>
+
+    /**
+     * Tests whether the interface bit is on.
+     *
+     * @return whether the interface bit is on.
+     */
+    public final boolean isInterface() {
+<span class="nc" id="L147">        return test(Const.ACC_INTERFACE);</span>
+    }
+
+    /**
+     * Sets the interface bit.
+     *
+     * @param flag The new value.
+     */
+    public final void isInterface(final boolean flag) {
+<span class="nc" id="L156">        setFlag(Const.ACC_INTERFACE, flag);</span>
+<span class="nc" id="L157">    }</span>
+
+    /**
+     * Tests whether the native bit is on.
+     *
+     * @return whether the native bit is on.
+     */
+    public final boolean isNative() {
+<span class="nc" id="L165">        return test(Const.ACC_NATIVE);</span>
+    }
+
+    /**
+     * Sets the native bit.
+     *
+     * @param flag The new value.
+     */
+    public final void isNative(final boolean flag) {
+<span class="nc" id="L174">        setFlag(Const.ACC_NATIVE, flag);</span>
+<span class="nc" id="L175">    }</span>
+
+    /**
+     * Tests whether the private bit is on.
+     *
+     * @return whether the private bit is on.
+     */
+    public final boolean isPrivate() {
+<span class="nc" id="L183">        return test(Const.ACC_PRIVATE);</span>
+    }
+
+    /**
+     * Sets the private bit.
+     *
+     * @param flag The new value.
+     */
+    public final void isPrivate(final boolean flag) {
+<span class="nc" id="L192">        setFlag(Const.ACC_PRIVATE, flag);</span>
+<span class="nc" id="L193">    }</span>
+
+    /**
+     * Tests whether the protected bit is on.
+     *
+     * @return whether the protected bit is on.
+     */
+    public final boolean isProtected() {
+<span class="nc" id="L201">        return test(Const.ACC_PROTECTED);</span>
+    }
+
+    /**
+     * Sets the protected bit.
+     *
+     * @param flag The new value.
+     */
+    public final void isProtected(final boolean flag) {
+<span class="nc" id="L210">        setFlag(Const.ACC_PROTECTED, flag);</span>
+<span class="nc" id="L211">    }</span>
+
+    /**
+     * Tests whether the public bit is on.
+     *
+     * @return whether the public bit is on.
+     */
+    public final boolean isPublic() {
+<span class="nc" id="L219">        return test(Const.ACC_PUBLIC);</span>
+    }
+
+    /**
+     * Sets the public bit.
+     *
+     * @param flag The new value.
+     */
+    public final void isPublic(final boolean flag) {
+<span class="nc" id="L228">        setFlag(Const.ACC_PUBLIC, flag);</span>
+<span class="nc" id="L229">    }</span>
+
+    /**
+     * Tests whether the static bit is on.
+     *
+     * @return whether the static bit is on.
+     */
+    public final boolean isStatic() {
+<span class="nc" id="L237">        return test(Const.ACC_STATIC);</span>
+    }
+
+    /**
+     * Sets the static bit.
+     *
+     * @param flag The new value.
+     */
+    public final void isStatic(final boolean flag) {
+<span class="nc" id="L246">        setFlag(Const.ACC_STATIC, flag);</span>
+<span class="nc" id="L247">    }</span>
+
+    /**
+     * Tests whether the strict bit is on.
+     *
+     * @return whether the strict bit is on.
+     */
+    public final boolean isStrictfp() {
+<span class="nc" id="L255">        return test(Const.ACC_STRICT);</span>
+    }
+
+    /**
+     * Sets the strict bit.
+     *
+     * @param flag The new value.
+     */
+    public final void isStrictfp(final boolean flag) {
+<span class="nc" id="L264">        setFlag(Const.ACC_STRICT, flag);</span>
+<span class="nc" id="L265">    }</span>
+
+    /**
+     * Tests whether the synchronized bit is on.
+     *
+     * @return whether the synchronized bit is on.
+     */
+    public final boolean isSynchronized() {
+<span class="nc" id="L273">        return test(Const.ACC_SYNCHRONIZED);</span>
+    }
+
+    /**
+     * Sets the synchronized bit.
+     *
+     * @param flag The new value.
+     */
+    public final void isSynchronized(final boolean flag) {
+<span class="nc" id="L282">        setFlag(Const.ACC_SYNCHRONIZED, flag);</span>
+<span class="nc" id="L283">    }</span>
+
+    /**
+     * Tests whether the synthetic bit is on.
+     *
+     * @return whether the synthetic bit is on.
+     */
+    public final boolean isSynthetic() {
+<span class="nc" id="L291">        return test(Const.ACC_SYNTHETIC);</span>
+    }
+
+    /**
+     * Sets the synthetic bit.
+     *
+     * @param flag The new value.
+     */
+    public final void isSynthetic(final boolean flag) {
+<span class="nc" id="L300">        setFlag(Const.ACC_SYNTHETIC, flag);</span>
+<span class="nc" id="L301">    }</span>
+
+    /**
+     * Tests whether the transient bit is on.
+     *
+     * @return whether the varargs bit is on.
+     */
+    public final boolean isTransient() {
+<span class="nc" id="L309">        return test(Const.ACC_TRANSIENT);</span>
+    }
+
+    /**
+     * Sets the varargs bit.
+     *
+     * @param flag The new value.
+     */
+    public final void isTransient(final boolean flag) {
+<span class="nc" id="L318">        setFlag(Const.ACC_TRANSIENT, flag);</span>
+<span class="nc" id="L319">    }</span>
+
+    /**
+     * Tests whether the varargs bit is on.
+     *
+     * @return whether the varargs bit is on.
+     */
+    public final boolean isVarArgs() {
+<span class="nc" id="L327">        return test(Const.ACC_VARARGS);</span>
+    }
+
+    /**
+     * Sets the varargs bit.
+     *
+     * @param flag The new value.
+     */
+    public final void isVarArgs(final boolean flag) {
+<span class="nc" id="L336">        setFlag(Const.ACC_VARARGS, flag);</span>
+<span class="nc" id="L337">    }</span>
+
+    /**
+     * Tests whether the volatile bit is on.
+     *
+     * @return whether the volatile bit is on.
+     */
+    public final boolean isVolatile() {
+<span class="nc" id="L345">        return test(Const.ACC_VOLATILE);</span>
+    }
+
+    /**
+     * Sets the volatile bit.
+     *
+     * @param flag The new value.
+     */
+    public final void isVolatile(final boolean flag) {
+<span class="nc" id="L354">        setFlag(Const.ACC_VOLATILE, flag);</span>
+<span class="nc" id="L355">    }</span>
+
+    /**
+     * Sets access flags also known as modifiers.
+     *
+     * @param accessFlags Access flags of the object.
+     */
+    public final void setAccessFlags(final int accessFlags) {
+<span class="nc" id="L363">        this.access_flags = accessFlags;</span>
+<span class="nc" id="L364">    }</span>
+
+    private void setFlag(final int flag, final boolean set) {
+<span class="nc bnc" id="L367" title="All 2 branches missed.">        if ((access_flags &amp; flag) != 0) { // Flag is set already</span>
+<span class="nc bnc" id="L368" title="All 2 branches missed.">            if (!set) {</span>
+<span class="nc" id="L369">                access_flags ^= flag;</span>
+            }
+<span class="nc bnc" id="L371" title="All 2 branches missed.">        } else if (set) {</span>
+<span class="nc" id="L372">            access_flags |= flag;</span>
+        }
+<span class="nc" id="L374">    }</span>
+
+    /**
+     * Sets access flags aka &quot;modifiers&quot;.
+     *
+     * @param accessFlags Access flags of the object.
+     */
+    public final void setModifiers(final int accessFlags) {
+<span class="nc" id="L382">        setAccessFlags(accessFlags);</span>
+<span class="nc" id="L383">    }</span>
+
+    /**
+     * Tests whether the bit is on.
+     *
+     * @param test the bit to test.
+     * @return whether the bit is on.
+     */
+    private boolean test(final short test) {
+<span class="nc bnc" id="L392" title="All 2 branches missed.">        return (access_flags &amp; test) != 0;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

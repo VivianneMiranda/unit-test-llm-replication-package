@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="../style.css">
+</head>
+<body>
+
+
+<h1>Util.java</h1>
+
+<table class="src">
+
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_1'/>
+1
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_1'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/*</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_2'/>
+2
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_2'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  Licensed to the Apache Software Foundation (ASF) under one or more</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_3'/>
+3
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_3'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  contributor license agreements.  See the NOTICE file distributed with</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_4'/>
+4
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_4'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  this work for additional information regarding copyright ownership.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_5'/>
+5
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_5'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  The ASF licenses this file to You under the Apache License, Version 2.0</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_6'/>
+6
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_6'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  (the &#34;License&#34;); you may not use this file except in compliance with</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_7'/>
+7
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_7'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  the License.  You may obtain a copy of the License at</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_8'/>
+8
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_8'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_9'/>
+9
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_9'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      https://www.apache.org/licenses/LICENSE-2.0</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_10'/>
+10
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_10'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_11'/>
+11
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_11'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  Unless required by applicable law or agreed to in writing, software</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_12'/>
+12
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_12'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  distributed under the License is distributed on an &#34;AS IS&#34; BASIS,</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_13'/>
+13
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_13'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_14'/>
+14
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_14'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  See the License for the specific language governing permissions and</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_15'/>
+15
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_15'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  limitations under the License.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_16'/>
+16
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_16'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_17'/>
+17
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_17'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_18'/>
+18
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_18'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>package org.apache.commons.cli;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_19'/>
+19
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_19'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_20'/>
+20
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_20'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.apache.commons.cli.help.OptionFormatter;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_21'/>
+21
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_21'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_22'/>
+22
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_22'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_23'/>
+23
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_23'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * Contains useful helper methods for classes within this package.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_24'/>
+24
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_24'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_25'/>
+25
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_25'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>final class Util {</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_26'/>
+26
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_26'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_27'/>
+27
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_27'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    /**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_28'/>
+28
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_28'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * An empty immutable {@code String} array.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_29'/>
+29
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_29'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     */</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_30'/>
+30
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_30'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    static final String[] EMPTY_STRING_ARRAY = {};</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_31'/>
+31
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_31'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_32'/>
+32
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_32'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    /**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_33'/>
+33
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_33'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * Tests whether the given array is null or empty.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_34'/>
+34
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_34'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     *</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_35'/>
+35
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_35'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * @param array the array to test.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_36'/>
+36
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_36'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * @return the given array is null or empty.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_37'/>
+37
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_37'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_38'/>
+38
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_38'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    static boolean isEmpty(final Object[] array) {</span></pre></td></tr>
+
+
+<tr>
+<td class='uncovered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_39'/>
+39
+</td>
+<td class='survived'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_39'>3</a>
+<span>
+
+1. isEmpty : negated conditional &rarr; NO_COVERAGE<br/>
+
+2. isEmpty : replaced boolean return with true for org/apache/commons/cli/Util::isEmpty &rarr; NO_COVERAGE<br/>
+
+3. isEmpty : negated conditional &rarr; NO_COVERAGE<br/>
+
+</span>
+</span>
+</td>
+<td class='uncovered'><pre><span  class='survived'>        return array == null || array.length == 0;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_40'/>
+40
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_40'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_41'/>
+41
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_41'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_42'/>
+42
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_42'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    /**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_43'/>
+43
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_43'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * Tests whether the given string is null or empty.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_44'/>
+44
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_44'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     *</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_45'/>
+45
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_45'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * @param str The string to test.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_46'/>
+46
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_46'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * @return Whether the given string is null or empty.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_47'/>
+47
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_47'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_48'/>
+48
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_48'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    static boolean isEmpty(final String str) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_49'/>
+49
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_49'>3</a>
+<span>
+
+1. isEmpty : replaced boolean return with true for org/apache/commons/cli/Util::isEmpty &rarr; KILLED<br/>
+
+2. isEmpty : negated conditional &rarr; KILLED<br/>
+
+3. isEmpty : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        return str == null || str.isEmpty();</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_50'/>
+50
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_50'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_51'/>
+51
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_51'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_52'/>
+52
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_52'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    /**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_53'/>
+53
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_53'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * Removes the leading and trailing quotes from {@code str}. E.g. if str is &#39;&#34;one two&#34;&#39;, then &#39;one two&#39; is returned.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_54'/>
+54
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_54'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     *</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_55'/>
+55
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_55'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * @param str The string from which the leading and trailing quotes should be removed.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_56'/>
+56
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_56'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * @return The string without the leading and trailing quotes.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_57'/>
+57
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_57'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_58'/>
+58
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_58'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    static String stripLeadingAndTrailingQuotes(final String str) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_59'/>
+59
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_59'>1</a>
+<span>
+
+1. stripLeadingAndTrailingQuotes : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        if (isEmpty(str)) {</span></pre></td></tr>
+
+
+<tr>
+<td class='uncovered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_60'/>
+60
+</td>
+<td class='survived'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_60'>1</a>
+<span>
+
+1. stripLeadingAndTrailingQuotes : replaced return value with &#34;&#34; for org/apache/commons/cli/Util::stripLeadingAndTrailingQuotes &rarr; NO_COVERAGE<br/>
+
+</span>
+</span>
+</td>
+<td class='uncovered'><pre><span  class='survived'>            return str;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_61'/>
+61
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_61'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        }</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_62'/>
+62
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_62'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        final int length = str.length();</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_63'/>
+63
+</td>
+<td class='survived'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_63'>6</a>
+<span>
+
+1. stripLeadingAndTrailingQuotes : changed conditional boundary &rarr; SURVIVED<br/>
+
+2. stripLeadingAndTrailingQuotes : negated conditional &rarr; KILLED<br/>
+
+3. stripLeadingAndTrailingQuotes : negated conditional &rarr; KILLED<br/>
+
+4. stripLeadingAndTrailingQuotes : Replaced integer subtraction with addition &rarr; KILLED<br/>
+
+5. stripLeadingAndTrailingQuotes : negated conditional &rarr; KILLED<br/>
+
+6. stripLeadingAndTrailingQuotes : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='survived'>        if (length &#62; 1 &#38;&#38; str.startsWith(&#34;\&#34;&#34;) &#38;&#38; str.endsWith(&#34;\&#34;&#34;) &#38;&#38; str.substring(1, length - 1).indexOf(&#39;&#34;&#39;) == -1) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_64'/>
+64
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_64'>2</a>
+<span>
+
+1. stripLeadingAndTrailingQuotes : replaced return value with &#34;&#34; for org/apache/commons/cli/Util::stripLeadingAndTrailingQuotes &rarr; KILLED<br/>
+
+2. stripLeadingAndTrailingQuotes : Replaced integer subtraction with addition &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>            return str.substring(1, length - 1);</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_65'/>
+65
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_65'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        }</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_66'/>
+66
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_66'>1</a>
+<span>
+
+1. stripLeadingAndTrailingQuotes : replaced return value with &#34;&#34; for org/apache/commons/cli/Util::stripLeadingAndTrailingQuotes &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        return str;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_67'/>
+67
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_67'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_68'/>
+68
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_68'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_69'/>
+69
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_69'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    /**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_70'/>
+70
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_70'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * Removes the hyphens from the beginning of {@code str} and return the new String.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_71'/>
+71
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_71'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     *</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_72'/>
+72
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_72'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * @param str The string from which the hyphens should be removed.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_73'/>
+73
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_73'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     * @return the new String.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_74'/>
+74
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_74'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>     */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_75'/>
+75
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_75'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    static String stripLeadingHyphens(final String str) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_76'/>
+76
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_76'>1</a>
+<span>
+
+1. stripLeadingHyphens : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        if (isEmpty(str)) {</span></pre></td></tr>
+
+
+<tr>
+<td class='uncovered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_77'/>
+77
+</td>
+<td class='survived'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_77'>1</a>
+<span>
+
+1. stripLeadingHyphens : replaced return value with &#34;&#34; for org/apache/commons/cli/Util::stripLeadingHyphens &rarr; NO_COVERAGE<br/>
+
+</span>
+</span>
+</td>
+<td class='uncovered'><pre><span  class='survived'>            return str;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_78'/>
+78
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_78'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        }</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_79'/>
+79
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_79'>1</a>
+<span>
+
+1. stripLeadingHyphens : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        if (str.startsWith(OptionFormatter.DEFAULT_LONG_OPT_PREFIX)) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_80'/>
+80
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_80'>1</a>
+<span>
+
+1. stripLeadingHyphens : replaced return value with &#34;&#34; for org/apache/commons/cli/Util::stripLeadingHyphens &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>            return str.substring(2);</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_81'/>
+81
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_81'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        }</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_82'/>
+82
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_82'>1</a>
+<span>
+
+1. stripLeadingHyphens : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        if (str.startsWith(OptionFormatter.DEFAULT_OPT_PREFIX)) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_83'/>
+83
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_83'>1</a>
+<span>
+
+1. stripLeadingHyphens : replaced return value with &#34;&#34; for org/apache/commons/cli/Util::stripLeadingHyphens &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>            return str.substring(1);</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_84'/>
+84
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_84'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        }</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_85'/>
+85
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_85'>1</a>
+<span>
+
+1. stripLeadingHyphens : replaced return value with &#34;&#34; for org/apache/commons/cli/Util::stripLeadingHyphens &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        return str;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_86'/>
+86
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_86'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_87'/>
+87
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_87'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='uncovered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_88'/>
+88
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_88'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='uncovered'><pre><span  class=''>    private Util() {</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_89'/>
+89
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_89'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        // no instances</span></pre></td></tr>
+
+
+<tr>
+<td class='uncovered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_90'/>
+90
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_90'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='uncovered'><pre><span  class=''>    }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@25c8d646_91'/>
+91
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_91'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>}</span></pre></td></tr>
+
+
+
+<tr><td></td><td></td><td><h2>Mutations</h2></td></tr>
+
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@25c8d646_39'>39</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_39'/> 
+
+<p class='NO_COVERAGE'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>isEmpty<br/><b>Killed by : </b>none</span></span> negated conditional &rarr; NO_COVERAGE</span>
+</div> <p class='NO_COVERAGE'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>isEmpty<br/><b>Killed by : </b>none</span></span> replaced boolean return with true for org/apache/commons/cli/Util::isEmpty &rarr; NO_COVERAGE</span>
+</div> <p class='NO_COVERAGE'><span class='pop'>3.<span><b>3</b><br/><b>Location : </b>isEmpty<br/><b>Killed by : </b>none</span></span> negated conditional &rarr; NO_COVERAGE</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@25c8d646_49'>49</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_49'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>isEmpty<br/><b>Killed by : </b>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testRtrim()]</span></span> replaced boolean return with true for org/apache/commons/cli/Util::isEmpty &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>isEmpty<br/><b>Killed by : </b>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testRtrim()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>3.<span><b>3</b><br/><b>Location : </b>isEmpty<br/><b>Killed by : </b>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testRtrim()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@25c8d646_59'>59</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_59'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>stripLeadingAndTrailingQuotes<br/><b>Killed by : </b>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testBuilderStripQuotes()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@25c8d646_60'>60</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_60'/> 
+
+<p class='NO_COVERAGE'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>stripLeadingAndTrailingQuotes<br/><b>Killed by : </b>none</span></span> replaced return value with &#34;&#34; for org/apache/commons/cli/Util::stripLeadingAndTrailingQuotes &rarr; NO_COVERAGE</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@25c8d646_63'>63</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_63'/> 
+
+<p class='SURVIVED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>stripLeadingAndTrailingQuotes<br/><b>Killed by : </b>none</span></span> changed conditional boundary &rarr; SURVIVED</span>
+<a title="Click to view covering tests" class="view-covered-by-tests" onClick="document.getElementById('MutationIdentifier-[location=Location-[clazz=org.apache.commons.cli.Util,-method=stripLeadingAndTrailingQuotes,-methodDesc=(Ljava/lang/String;)Ljava/lang/String;],-indexes=[20],-mutator=org.pitest.mutationtest.engine.gregor.mutators.ConditionalsBoundaryMutator]').style.display=(document.getElementById('MutationIdentifier-[location=Location-[clazz=org.apache.commons.cli.Util,-method=stripLeadingAndTrailingQuotes,-methodDesc=(Ljava/lang/String;)Ljava/lang/String;],-indexes=[20],-mutator=org.pitest.mutationtest.engine.gregor.mutators.ConditionalsBoundaryMutator]').style.display == 'block')?'none':'block';">Covering tests</a>
+<div class="covered-tests" id="MutationIdentifier-[location=Location-[clazz=org.apache.commons.cli.Util,-method=stripLeadingAndTrailingQuotes,-methodDesc=(Ljava/lang/String;)Ljava/lang/String;],-indexes=[20],-mutator=org.pitest.mutationtest.engine.gregor.mutators.ConditionalsBoundaryMutator]" style="display:none;">Covered by tests:
+<ul>
+<li>org.apache.commons.cli.BasicParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.BasicParserTest]/[method:testParseWithRequiredOption()]</li> <li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseShortOptionWithArgument()]</li> <li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetOptionValue()]</li> <li>org.apache.commons.cli.BasicParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.BasicParserTest]/[method:testParseWithArgument()]</li> <li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseWithRequiredOption()]</li> <li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testParseWithArgument()]</li> <li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testParseShortOptionWithEquals()]</li> <li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetOptionValueWithOption()]</li> <li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseLongOptionWithArgument()]</li> <li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testParseLongOptionWithEquals()]</li> <li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseWithPropertiesOverridden()]</li> <li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testBuilderStripQuotes()]</li> <li>org.apache.commons.cli.PosixParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PosixParserTest]/[method:testParseLongOptionWithEquals()]</li> <li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseOptionalArgWithValue()]</li> <li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetParsedOptionValueChar()]</li> <li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testParseJavaProperty()]</li> <li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetOptionValuesWithOption()]</li> <li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseNegativeNumber()]</li> <li>org.apache.commons.cli.PosixParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PosixParserTest]/[method:testParseBurstedOptionsWithArgument()]</li> <li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetOptionValues()]</li> <li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetParsedOptionValues()]</li> <li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testOptionGroup()]</li> <li>org.apache.commons.cli.PatternOptionBuilderTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PatternOptionBuilderTest]/[method:testParseAndParse()]</li> <li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetParsedOptionValue()]</li> 
+</ul>
+</div></div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>stripLeadingAndTrailingQuotes<br/><b>Killed by : </b>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testBuilderStripQuotes()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>3.<span><b>3</b><br/><b>Location : </b>stripLeadingAndTrailingQuotes<br/><b>Killed by : </b>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testBuilderStripQuotes()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>4.<span><b>4</b><br/><b>Location : </b>stripLeadingAndTrailingQuotes<br/><b>Killed by : </b>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testBuilderStripQuotes()]</span></span> Replaced integer subtraction with addition &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>5.<span><b>5</b><br/><b>Location : </b>stripLeadingAndTrailingQuotes<br/><b>Killed by : </b>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testBuilderStripQuotes()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>6.<span><b>6</b><br/><b>Location : </b>stripLeadingAndTrailingQuotes<br/><b>Killed by : </b>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testBuilderStripQuotes()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@25c8d646_64'>64</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_64'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>stripLeadingAndTrailingQuotes<br/><b>Killed by : </b>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testBuilderStripQuotes()]</span></span> replaced return value with &#34;&#34; for org/apache/commons/cli/Util::stripLeadingAndTrailingQuotes &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>stripLeadingAndTrailingQuotes<br/><b>Killed by : </b>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testBuilderStripQuotes()]</span></span> Replaced integer subtraction with addition &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@25c8d646_66'>66</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_66'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>stripLeadingAndTrailingQuotes<br/><b>Killed by : </b>org.apache.commons.cli.BasicParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.BasicParserTest]/[method:testParseWithRequiredOption()]</span></span> replaced return value with &#34;&#34; for org/apache/commons/cli/Util::stripLeadingAndTrailingQuotes &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@25c8d646_76'>76</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_76'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>stripLeadingHyphens<br/><b>Killed by : </b>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testHasLongOption()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@25c8d646_77'>77</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_77'/> 
+
+<p class='NO_COVERAGE'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>stripLeadingHyphens<br/><b>Killed by : </b>none</span></span> replaced return value with &#34;&#34; for org/apache/commons/cli/Util::stripLeadingHyphens &rarr; NO_COVERAGE</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@25c8d646_79'>79</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_79'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>stripLeadingHyphens<br/><b>Killed by : </b>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testGetOptionGroupForNonGroupOption()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@25c8d646_80'>80</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_80'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>stripLeadingHyphens<br/><b>Killed by : </b>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testHasLongOption()]</span></span> replaced return value with &#34;&#34; for org/apache/commons/cli/Util::stripLeadingHyphens &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@25c8d646_82'>82</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_82'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>stripLeadingHyphens<br/><b>Killed by : </b>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testGetOptionGroupForNonGroupOption()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@25c8d646_83'>83</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_83'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>stripLeadingHyphens<br/><b>Killed by : </b>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testHasShortOption()]</span></span> replaced return value with &#34;&#34; for org/apache/commons/cli/Util::stripLeadingHyphens &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@25c8d646_85'>85</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@25c8d646_85'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>stripLeadingHyphens<br/><b>Killed by : </b>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testGetOptionGroupForNonGroupOption()]</span></span> replaced return value with &#34;&#34; for org/apache/commons/cli/Util::stripLeadingHyphens &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+</table>
+
+
+<h2>Active mutators</h2>
+<ul>
+
+<li class='mutator'>CONDITIONALS_BOUNDARY</li>
+
+<li class='mutator'>EMPTY_RETURNS</li>
+
+<li class='mutator'>FALSE_RETURNS</li>
+
+<li class='mutator'>INCREMENTS</li>
+
+<li class='mutator'>INVERT_NEGS</li>
+
+<li class='mutator'>MATH</li>
+
+<li class='mutator'>NEGATE_CONDITIONALS</li>
+
+<li class='mutator'>NULL_RETURNS</li>
+
+<li class='mutator'>PRIMITIVE_RETURNS</li>
+
+<li class='mutator'>TRUE_RETURNS</li>
+
+<li class='mutator'>VOID_METHOD_CALLS</li>
+
+</ul>
+
+<h2>Tests examined</h2>
+<ul>
+<li>org.apache.commons.cli.BasicParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.BasicParserTest]/[method:testParseWithRequiredOption()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseShortOptionWithArgument()] (0 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetOptionValue()] (0 ms)</li><li>org.apache.commons.cli.BasicParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.BasicParserTest]/[method:testParseWithArgument()] (2 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseWithRequiredOption()] (0 ms)</li><li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testParseWithArgument()] (0 ms)</li><li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testParseShortOptionWithEquals()] (0 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetOptionValueWithOption()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseLongOptionWithArgument()] (0 ms)</li><li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testParseLongOptionWithEquals()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseWithPropertiesOverridden()] (0 ms)</li><li>org.apache.commons.cli.PosixParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PosixParserTest]/[method:testParseLongOptionWithEquals()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseOptionalArgWithValue()] (0 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetParsedOptionValueChar()] (0 ms)</li><li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testParseJavaProperty()] (0 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetOptionValuesWithOption()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseNegativeNumber()] (0 ms)</li><li>org.apache.commons.cli.PosixParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PosixParserTest]/[method:testParseBurstedOptionsWithArgument()] (0 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetOptionValues()] (2 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetParsedOptionValues()] (0 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testOptionGroup()] (1 ms)</li><li>org.apache.commons.cli.PatternOptionBuilderTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PatternOptionBuilderTest]/[method:testParseAndParse()] (0 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetParsedOptionValue()] (10 ms)</li><li>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testGetOptionNonExistent()] (0 ms)</li><li>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testGetOptionGroupForNonGroupOption()] (0 ms)</li><li>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testGetMatchingOptionsExactMatch()] (0 ms)</li><li>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testHasLongOption()] (0 ms)</li><li>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testAddOptionWithShortAndDescription()] (0 ms)</li><li>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testHasShortOption()] (0 ms)</li><li>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testAddRequiredOption()] (0 ms)</li><li>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testGetMatchingOptions()] (0 ms)</li><li>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testHasOption()] (0 ms)</li><li>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testAddOptionWithShortLongHasArgAndDescription()] (0 ms)</li><li>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testAddOptionWithShortHasArgAndDescription()] (0 ms)</li><li>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testAddOption()] (0 ms)</li><li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testFlattenWithKnownOption()] (0 ms)</li><li>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testAddOptions()] (0 ms)</li><li>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testAddOptionsDuplicateThrows()] (1 ms)</li><li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testFlattenWithUnknownOption()] (0 ms)</li><li>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testGetOption()] (0 ms)</li><li>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testOptionsInGroupAreNotRequired()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testNullArguments()] (0 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testBuilderGet()] (0 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testBuilder()] (0 ms)</li><li>org.apache.commons.cli.OptionsTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionsTest]/[method:testAddOptionGroup()] (0 ms)</li><li>org.apache.commons.cli.PatternOptionBuilderTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PatternOptionBuilderTest]/[method:testParsePatternSimpleOption()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testEmptyArguments()] (0 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetOptionValuesNull()] (0 ms)</li><li>org.apache.commons.cli.UnrecognizedOptionExceptionTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.UnrecognizedOptionExceptionTest]/[method:testFromParsing()] (0 ms)</li><li>org.apache.commons.cli.PatternOptionBuilderTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PatternOptionBuilderTest]/[method:testParsePatternWithRequiredOption()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseWithUnknownDefaultProperty()] (1 ms)</li><li>org.apache.commons.cli.PatternOptionBuilderTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PatternOptionBuilderTest]/[method:testParsePatternMultipleOptions()] (0 ms)</li><li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testParseNullArguments()] (0 ms)</li><li>org.apache.commons.cli.PosixParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PosixParserTest]/[method:testParseNullArguments()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testConstructorWithoutPartialMatching()] (1 ms)</li><li>org.apache.commons.cli.BasicParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.BasicParserTest]/[method:testParseUnrecognizedOption()] (1 ms)</li><li>org.apache.commons.cli.BasicParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.BasicParserTest]/[method:testParseWithNullArguments()] (1 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetOptionValueWithSupplierDefault()] (1 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseUnrecognizedOption()] (2 ms)</li><li>org.apache.commons.cli.PosixParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PosixParserTest]/[method:testBurstTokenWithStopAtNonOption()] (0 ms)</li><li>org.apache.commons.cli.UnrecognizedOptionExceptionTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.UnrecognizedOptionExceptionTest]/[method:testFromParsingLongOption()] (1 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testBuilderPartialMatchingDisabled()] (1 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetOptionValueWithDefault()] (1 ms)</li><li>org.apache.commons.cli.PosixParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PosixParserTest]/[method:testBurstUnknownOption()] (0 ms)</li><li>org.apache.commons.cli.PosixParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PosixParserTest]/[method:testParseAmbiguousOption()] (0 ms)</li><li>org.apache.commons.cli.PatternOptionBuilderTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PatternOptionBuilderTest]/[method:testParsePatternWithDateArg()] (0 ms)</li><li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testParseUnrecognizedPartialLongOption()] (0 ms)</li><li>org.apache.commons.cli.PatternOptionBuilderTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PatternOptionBuilderTest]/[method:testParsePatternWithURLArg()] (0 ms)</li><li>org.apache.commons.cli.PatternOptionBuilderTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PatternOptionBuilderTest]/[method:testParsePatternWithExistingFileArg()] (0 ms)</li><li>org.apache.commons.cli.PatternOptionBuilderTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PatternOptionBuilderTest]/[method:testParsePatternWithFileArg()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseWithBooleanPropertyFalse()] (0 ms)</li><li>org.apache.commons.cli.PosixParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PosixParserTest]/[method:testParseUnrecognizedOption()] (0 ms)</li><li>org.apache.commons.cli.PatternOptionBuilderTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PatternOptionBuilderTest]/[method:testParsePatternWithFilesArg()] (0 ms)</li><li>org.apache.commons.cli.PatternOptionBuilderTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PatternOptionBuilderTest]/[method:testParsePatternWithStringArg()] (0 ms)</li><li>org.apache.commons.cli.PatternOptionBuilderTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PatternOptionBuilderTest]/[method:testParsePatternWithClassArg()] (0 ms)</li><li>org.apache.commons.cli.AmbiguousOptionExceptionTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.AmbiguousOptionExceptionTest]/[method:testFromParsing()] (0 ms)</li><li>org.apache.commons.cli.PatternOptionBuilderTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PatternOptionBuilderTest]/[method:testParsePatternWithNumberArg()] (0 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetParsedOptionValueWithDefault()] (1 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetOptions()] (0 ms)</li><li>org.apache.commons.cli.PatternOptionBuilderTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PatternOptionBuilderTest]/[method:testParsePatternWithRequiredAndType()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseAmbiguousOption()] (1 ms)</li><li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testParseUnrecognizedLongOption()] (1 ms)</li><li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testParseUnrecognizedOption()] (1 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testIterator()] (0 ms)</li><li>org.apache.commons.cli.BasicParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.BasicParserTest]/[method:testParseMissingArgument()] (1 ms)</li><li>org.apache.commons.cli.PatternOptionBuilderTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PatternOptionBuilderTest]/[method:testParsePatternWithObjectArg()] (1 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetArgs()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseWithBooleanProperty()] (0 ms)</li><li>org.apache.commons.cli.BasicParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.BasicParserTest]/[method:testParseShortOption()] (0 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetArgList()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseShortOption()] (0 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetOptionCount()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testReusableParser()] (0 ms)</li><li>org.apache.commons.cli.PatternOptionBuilderTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PatternOptionBuilderTest]/[method:testParsePatternComplex()] (0 ms)</li><li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testParseMissingArgument()] (1 ms)</li><li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testParseShortOption()] (0 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testHasOption()] (0 ms)</li><li>org.apache.commons.cli.PosixParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PosixParserTest]/[method:testParseMissingArgument()] (0 ms)</li><li>org.apache.commons.cli.BasicParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.BasicParserTest]/[method:testParseStopAtNonOption()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseDoubleDash()] (0 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetOptionCountForOption()] (1 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseLongOption()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseMissingArgument()] (1 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseStopAtNonOption()] (0 ms)</li><li>org.apache.commons.cli.MissingArgumentExceptionTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.MissingArgumentExceptionTest]/[method:testFromParsing()] (1 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testConstructorWithPartialMatching()] (0 ms)</li><li>org.apache.commons.cli.BasicParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.BasicParserTest]/[method:testParseDoubleDash()] (1 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testHasOptionWithOption()] (1 ms)</li><li>org.apache.commons.cli.BasicParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.BasicParserTest]/[method:testParseMultipleOptions()] (1 ms)</li><li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testParseLongOption()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParsePartialLongOption()] (1 ms)</li><li>org.apache.commons.cli.BasicParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.BasicParserTest]/[method:testParseOptionGroupExclusive()] (0 ms)</li><li>org.apache.commons.cli.PosixParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PosixParserTest]/[method:testParseShortOption()] (0 ms)</li><li>org.apache.commons.cli.BasicParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.BasicParserTest]/[method:testParseLongOption()] (3 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseSingleDash()] (1 ms)</li><li>org.apache.commons.cli.OptionGroupTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionGroupTest]/[method:testMutualExclusivity()] (0 ms)</li><li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testParseSingleDash()] (0 ms)</li><li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testParseDoubleDash()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseWithProperties()] (0 ms)</li><li>org.apache.commons.cli.PosixParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PosixParserTest]/[method:testParseShortOptionAsLong()] (0 ms)</li><li>org.apache.commons.cli.PosixParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PosixParserTest]/[method:testParseSingleDash()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseShortOptionWithEqualsArgument()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseDoNotStopAtNonOption()] (1 ms)</li><li>org.apache.commons.cli.GnuParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.GnuParserTest]/[method:testParseStopAtNonOption()] (0 ms)</li><li>org.apache.commons.cli.PosixParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PosixParserTest]/[method:testParseDoubleDash()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseLongOptionWithEqualsArgument()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseMultipleJavaProperties()] (0 ms)</li><li>org.apache.commons.cli.OptionGroupTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.OptionGroupTest]/[method:testRequiredGroupProvided()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseConcatenatedShortOptions()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseOptionalArg()] (0 ms)</li><li>org.apache.commons.cli.PosixParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PosixParserTest]/[method:testParseLongOption()] (1 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetOptionProperties()] (0 ms)</li><li>org.apache.commons.cli.PosixParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PosixParserTest]/[method:testParsePartialMatch()] (0 ms)</li><li>org.apache.commons.cli.PosixParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PosixParserTest]/[method:testParseBurstedOptions()] (0 ms)</li><li>org.apache.commons.cli.BasicParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.BasicParserTest]/[method:testParseOptionGroup()] (1 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetOptionPropertiesWithOption()] (1 ms)</li><li>org.apache.commons.cli.PosixParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.PosixParserTest]/[method:testParseStopAtNonOption()] (1 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseJavaProperty()] (0 ms)</li><li>org.apache.commons.cli.CommandLineTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.CommandLineTest]/[method:testGetOptionPropertiesSingleValue()] (1 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testBuilderStripQuotes()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testLongOptionWithPrefix()] (0 ms)</li><li>org.apache.commons.cli.DefaultParserTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.DefaultParserTest]/[method:testParseConcatenatedShortOptionsWithArgument()] (0 ms)</li><li>org.apache.commons.cli.AlreadySelectedExceptionTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.AlreadySelectedExceptionTest]/[method:testFromParsing()] (12 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testRtrim()] (0 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testPrintHelpEmptySyntaxThrows()] (1 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testPrintHelpNullSyntaxThrows()] (1 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testRenderWrappedText()] (0 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testPrintWrappedWithPadding()] (0 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testPrintUsageSimple()] (0 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testPrintWrapped()] (0 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testPrintUsage()] (0 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testLongOptOnlyOption()] (0 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testRequiredOptionInUsage()] (0 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testPrintOptions()] (0 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testRenderOptions()] (0 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testCustomComparator()] (1 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testOptionWithArgName()] (0 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testPrintHelpWithWidth()] (0 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testPrintHelpBasic()] (0 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testPrintHelpToPrintWriter()] (0 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testPrintHelpWithHeaderAndFooter()] (2 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testOptionGroupInUsage()] (0 ms)</li><li>org.apache.commons.cli.HelpFormatterTest.[engine:junit-jupiter]/[class:org.apache.commons.cli.HelpFormatterTest]/[method:testPrintHelpWithAutoUsage()] (1 ms)</li>
+</ul>
+
+<br/>
+
+Report generated by <a href='https://pitest.org'>PIT</a> 1.25.5 <a href='https://github.com/sponsors/hcoles'>support</a>
+
+</body>
+</html>

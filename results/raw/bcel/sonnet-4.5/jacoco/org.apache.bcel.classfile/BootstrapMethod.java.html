@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BootstrapMethod.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">BootstrapMethod.java</span></div><h1>BootstrapMethod.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.apache.bcel.classfile;
+
+import java.io.DataInput;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Arrays;
+
+import org.apache.bcel.Const;
+import org.apache.commons.lang3.ArrayUtils;
+
+/**
+ * This class represents a bootstrap method attribute, that is, the bootstrap method ref, the number of bootstrap arguments
+ * and an array of the bootstrap arguments.
+ *
+ * @see &lt;a href=&quot;https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.23&quot;&gt; The class File Format :
+ *      The BootstrapMethods Attribute&lt;/a&gt;
+ * @since 6.0
+ */
+public class BootstrapMethod implements Cloneable {
+
+<span class="nc" id="L40">    static final BootstrapMethod[] EMPTY_ARRAY = {};</span>
+
+    /** Index of the CONSTANT_MethodHandle_info structure in the constant_pool table */
+    private int bootstrapMethodRef;
+
+    /** Array of references to the constant_pool table */
+    private int[] bootstrapArguments;
+
+    /**
+     * Initialize from another object.
+     *
+     * @param c Source to copy.
+     */
+    public BootstrapMethod(final BootstrapMethod c) {
+<span class="nc" id="L54">        this(c.getBootstrapMethodRef(), c.getBootstrapArguments());</span>
+<span class="nc" id="L55">    }</span>
+
+    /**
+     * Constructs object from input stream.
+     *
+     * @param input Input stream.
+     * @throws IOException if an I/O error occurs.
+     */
+    BootstrapMethod(final DataInput input) throws IOException {
+<span class="nc" id="L64">        this(input.readUnsignedShort(), input.readUnsignedShort());</span>
+
+<span class="nc bnc" id="L66" title="All 2 branches missed.">        for (int i = 0; i &lt; bootstrapArguments.length; i++) {</span>
+<span class="nc" id="L67">            bootstrapArguments[i] = input.readUnsignedShort();</span>
+        }
+<span class="nc" id="L69">    }</span>
+
+    // helper method
+    private BootstrapMethod(final int bootstrapMethodRef, final int numBootstrapArguments) {
+<span class="nc" id="L73">        this(bootstrapMethodRef, new int[numBootstrapArguments]);</span>
+<span class="nc" id="L74">    }</span>
+
+    /**
+     * Constructs a BootstrapMethod.
+     *
+     * @param bootstrapMethodRef int index into constant_pool of CONSTANT_MethodHandle.
+     * @param bootstrapArguments int[] indices into constant_pool of CONSTANT_[type]_info.
+     */
+<span class="nc" id="L82">    public BootstrapMethod(final int bootstrapMethodRef, final int[] bootstrapArguments) {</span>
+<span class="nc" id="L83">        this.bootstrapMethodRef = bootstrapMethodRef;</span>
+<span class="nc" id="L84">        setBootstrapArguments(bootstrapArguments);</span>
+<span class="nc" id="L85">    }</span>
+
+    /**
+     * Creates a deep copy of this object.
+     *
+     * @return deep copy of this object.
+     */
+    public BootstrapMethod copy() {
+        try {
+<span class="nc" id="L94">            return (BootstrapMethod) clone();</span>
+<span class="nc" id="L95">        } catch (final CloneNotSupportedException ignore) {</span>
+            // TODO should this throw?
+        }
+<span class="nc" id="L98">        return null;</span>
+    }
+
+    /**
+     * Dumps object to file stream in binary format.
+     *
+     * @param file Output file stream.
+     * @throws IOException if an I/O error occurs.
+     */
+    public final void dump(final DataOutputStream file) throws IOException {
+<span class="nc" id="L108">        file.writeShort(bootstrapMethodRef);</span>
+<span class="nc" id="L109">        file.writeShort(bootstrapArguments.length);</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        for (final int bootstrapArgument : bootstrapArguments) {</span>
+<span class="nc" id="L111">            file.writeShort(bootstrapArgument);</span>
+        }
+<span class="nc" id="L113">    }</span>
+
+    /**
+     * Gets the bootstrap arguments.
+     *
+     * @return int[] of bootstrap_method indices into constant_pool of CONSTANT_[type]_info.
+     */
+    public int[] getBootstrapArguments() {
+<span class="nc" id="L121">        return bootstrapArguments;</span>
+    }
+
+    /**
+     * Gets the bootstrap method reference.
+     *
+     * @return index into constant_pool of bootstrap_method.
+     */
+    public int getBootstrapMethodRef() {
+<span class="nc" id="L130">        return bootstrapMethodRef;</span>
+    }
+
+    /**
+     * Gets the count of number of bootstrap arguments.
+     *
+     * @return count of number of bootstrap arguments.
+     */
+    public int getNumBootstrapArguments() {
+<span class="nc" id="L139">        return bootstrapArguments.length;</span>
+    }
+
+    /**
+     * Sets the bootstrap arguments.
+     *
+     * @param bootstrapArguments int[] indices into constant_pool of CONSTANT_[type]_info.
+     */
+    public void setBootstrapArguments(final int[] bootstrapArguments) {
+<span class="nc" id="L148">        this.bootstrapArguments = ArrayUtils.nullToEmpty(bootstrapArguments);</span>
+<span class="nc" id="L149">    }</span>
+
+    /**
+     * Sets the bootstrap method reference.
+     *
+     * @param bootstrapMethodRef int index into constant_pool of CONSTANT_MethodHandle.
+     */
+    public void setBootstrapMethodRef(final int bootstrapMethodRef) {
+<span class="nc" id="L157">        this.bootstrapMethodRef = bootstrapMethodRef;</span>
+<span class="nc" id="L158">    }</span>
+
+    /**
+     * Gets a string representation.
+     *
+     * @return String representation.
+     */
+    @Override
+    public final String toString() {
+<span class="nc" id="L167">        return &quot;BootstrapMethod(&quot; + bootstrapMethodRef + &quot;, &quot; + bootstrapArguments.length + &quot;, &quot; + Arrays.toString(bootstrapArguments) + &quot;)&quot;;</span>
+    }
+
+    /**
+     * Gets a resolved string representation.
+     *
+     * @param constantPool the constant pool.
+     * @return Resolved string representation.
+     */
+    public final String toString(final ConstantPool constantPool) {
+<span class="nc" id="L177">        final StringBuilder buf = new StringBuilder();</span>
+<span class="nc" id="L178">        final String bootstrapMethodName = constantPool.constantToString(bootstrapMethodRef, Const.CONSTANT_MethodHandle);</span>
+<span class="nc" id="L179">        buf.append(Utility.compactClassName(bootstrapMethodName, false));</span>
+<span class="nc" id="L180">        final int bootstrapArgumentsLen = bootstrapArguments.length;</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">        if (bootstrapArgumentsLen &gt; 0) {</span>
+<span class="nc" id="L182">            buf.append(&quot;\nMethod Arguments:&quot;);</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">            for (int i = 0; i &lt; bootstrapArgumentsLen; i++) {</span>
+<span class="nc" id="L184">                buf.append(&quot;\n  &quot;).append(i).append(&quot;: &quot;);</span>
+<span class="nc" id="L185">                buf.append(constantPool.constantToString(constantPool.getConstant(bootstrapArguments[i])));</span>
+            }
+        }
+<span class="nc" id="L188">        return buf.toString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

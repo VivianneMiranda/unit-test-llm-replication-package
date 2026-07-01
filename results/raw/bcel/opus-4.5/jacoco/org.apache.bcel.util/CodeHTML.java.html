@@ -1,0 +1,563 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CodeHTML.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.util</a> &gt; <span class="el_source">CodeHTML.java</span></div><h1>CodeHTML.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.util;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.charset.Charset;
+import java.util.BitSet;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.classfile.Attribute;
+import org.apache.bcel.classfile.Code;
+import org.apache.bcel.classfile.CodeException;
+import org.apache.bcel.classfile.ConstantFieldref;
+import org.apache.bcel.classfile.ConstantInterfaceMethodref;
+import org.apache.bcel.classfile.ConstantInvokeDynamic;
+import org.apache.bcel.classfile.ConstantMethodref;
+import org.apache.bcel.classfile.ConstantNameAndType;
+import org.apache.bcel.classfile.ConstantPool;
+import org.apache.bcel.classfile.LocalVariableTable;
+import org.apache.bcel.classfile.Method;
+import org.apache.bcel.classfile.Utility;
+
+/**
+ * Convert code into HTML file.
+ */
+final class CodeHTML {
+
+    private static boolean wide;
+    private final String className; // name of current class
+    // private Method[] methods; // Methods to print
+    private final PrintWriter printWriter; // file to write to
+    private BitSet gotoSet;
+    private final ConstantPool constantPool;
+    private final ConstantHTML constantHtml;
+
+    CodeHTML(final String dir, final String className, final Method[] methods, final ConstantPool constantPool, final ConstantHTML constantHtml,
+<span class="fc" id="L54">        final Charset charset) throws IOException {</span>
+<span class="fc" id="L55">        this.className = className;</span>
+//        this.methods = methods;
+<span class="fc" id="L57">        this.constantPool = constantPool;</span>
+<span class="fc" id="L58">        this.constantHtml = constantHtml;</span>
+<span class="fc" id="L59">        try (PrintWriter newPrintWriter = new PrintWriter(dir + className + &quot;_code.html&quot;, charset.name())) {</span>
+<span class="fc" id="L60">            printWriter = newPrintWriter;</span>
+<span class="fc" id="L61">            printWriter.print(&quot;&lt;HTML&gt;&lt;head&gt;&lt;meta charset=\&quot;&quot;);</span>
+<span class="fc" id="L62">            printWriter.print(charset.name());</span>
+<span class="fc" id="L63">            printWriter.println(&quot;\&quot;&gt;&lt;/head&gt;&quot;);</span>
+<span class="fc" id="L64">            printWriter.println(&quot;&lt;BODY BGCOLOR=\&quot;#C0C0C0\&quot;&gt;&quot;);</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">            for (int i = 0; i &lt; methods.length; i++) {</span>
+<span class="fc" id="L66">                writeMethod(methods[i], i);</span>
+            }
+<span class="fc" id="L68">            printWriter.println(&quot;&lt;/BODY&gt;&lt;/HTML&gt;&quot;);</span>
+        }
+<span class="fc" id="L70">    }</span>
+
+    /**
+     * Disassemble a stream of byte codes and return the string representation.
+     *
+     * @param stream data input stream.
+     * @return String representation of byte code.
+     */
+    private String codeToHTML(final ByteSequence bytes, final int methodNumber) throws IOException {
+<span class="fc" id="L79">        final short opcode = (short) bytes.readUnsignedByte();</span>
+        String name;
+        final String signature;
+<span class="fc" id="L82">        int defaultOffset = 0;</span>
+        final int low;
+        final int high;
+        int index;
+        final int classIndex;
+        final int vindex;
+        final int constant;
+        final int[] jumpTable;
+<span class="fc" id="L90">        int noPadBytes = 0;</span>
+        final int offset;
+<span class="fc" id="L92">        final StringBuilder buf = new StringBuilder(256); // CHECKSTYLE IGNORE MagicNumber</span>
+<span class="fc" id="L93">        buf.append(&quot;&lt;TT&gt;&quot;).append(Const.getOpcodeName(opcode)).append(&quot;&lt;/TT&gt;&lt;/TD&gt;&lt;TD&gt;&quot;);</span>
+        /*
+         * Special case: Skip (0-3) padding bytes, that is, the following bytes are 4-byte-aligned
+         */
+<span class="pc bpc" id="L97" title="2 of 4 branches missed.">        if (opcode == Const.TABLESWITCH || opcode == Const.LOOKUPSWITCH) {</span>
+<span class="nc" id="L98">            final int remainder = bytes.getIndex() % 4;</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">            noPadBytes = remainder == 0 ? 0 : 4 - remainder;</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">            for (int i = 0; i &lt; noPadBytes; i++) {</span>
+<span class="nc" id="L101">                bytes.readByte();</span>
+            }
+            // Both cases have a field default_offset in common
+<span class="nc" id="L104">            defaultOffset = bytes.readInt();</span>
+        }
+<span class="pc bpc" id="L106" title="10 of 16 branches missed.">        switch (opcode) {</span>
+        case Const.TABLESWITCH:
+<span class="nc" id="L108">            low = bytes.readInt();</span>
+<span class="nc" id="L109">            high = bytes.readInt();</span>
+<span class="nc" id="L110">            offset = bytes.getIndex() - 12 - noPadBytes - 1;</span>
+<span class="nc" id="L111">            defaultOffset += offset;</span>
+<span class="nc" id="L112">            buf.append(&quot;&lt;TABLE BORDER=1&gt;&lt;TR&gt;&quot;);</span>
+            // Print switch indices in first row (and default)
+<span class="nc" id="L114">            jumpTable = new int[high - low + 1];</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">            for (int i = 0; i &lt; jumpTable.length; i++) {</span>
+<span class="nc" id="L116">                jumpTable[i] = offset + bytes.readInt();</span>
+<span class="nc" id="L117">                buf.append(&quot;&lt;TH&gt;&quot;).append(low + i).append(&quot;&lt;/TH&gt;&quot;);</span>
+            }
+<span class="nc" id="L119">            buf.append(&quot;&lt;TH&gt;default&lt;/TH&gt;&lt;/TR&gt;\n&lt;TR&gt;&quot;);</span>
+            // Print target and default indices in second row
+<span class="nc bnc" id="L121" title="All 2 branches missed.">            for (final int element : jumpTable) {</span>
+<span class="nc" id="L122">                buf.append(&quot;&lt;TD&gt;&lt;A HREF=\&quot;#code&quot;).append(methodNumber).append(&quot;@&quot;).append(element).append(&quot;\&quot;&gt;&quot;).append(element).append(&quot;&lt;/A&gt;&lt;/TD&gt;&quot;);</span>
+            }
+<span class="nc" id="L124">            buf.append(&quot;&lt;TD&gt;&lt;A HREF=\&quot;#code&quot;).append(methodNumber).append(&quot;@&quot;).append(defaultOffset).append(&quot;\&quot;&gt;&quot;).append(defaultOffset)</span>
+<span class="nc" id="L125">                .append(&quot;&lt;/A&gt;&lt;/TD&gt;&lt;/TR&gt;\n&lt;/TABLE&gt;\n&quot;);</span>
+<span class="nc" id="L126">            break;</span>
+        /*
+         * Lookup switch has variable length arguments.
+         */
+        case Const.LOOKUPSWITCH:
+<span class="nc" id="L131">            final int npairs = bytes.readInt();</span>
+<span class="nc" id="L132">            offset = bytes.getIndex() - 8 - noPadBytes - 1;</span>
+<span class="nc" id="L133">            jumpTable = new int[npairs];</span>
+<span class="nc" id="L134">            defaultOffset += offset;</span>
+<span class="nc" id="L135">            buf.append(&quot;&lt;TABLE BORDER=1&gt;&lt;TR&gt;&quot;);</span>
+            // Print switch indices in first row (and default)
+<span class="nc bnc" id="L137" title="All 2 branches missed.">            for (int i = 0; i &lt; npairs; i++) {</span>
+<span class="nc" id="L138">                final int match = bytes.readInt();</span>
+<span class="nc" id="L139">                jumpTable[i] = offset + bytes.readInt();</span>
+<span class="nc" id="L140">                buf.append(&quot;&lt;TH&gt;&quot;).append(match).append(&quot;&lt;/TH&gt;&quot;);</span>
+            }
+<span class="nc" id="L142">            buf.append(&quot;&lt;TH&gt;default&lt;/TH&gt;&lt;/TR&gt;\n&lt;TR&gt;&quot;);</span>
+            // Print target and default indices in second row
+<span class="nc bnc" id="L144" title="All 2 branches missed.">            for (int i = 0; i &lt; npairs; i++) {</span>
+<span class="nc" id="L145">                buf.append(&quot;&lt;TD&gt;&lt;A HREF=\&quot;#code&quot;).append(methodNumber).append(&quot;@&quot;).append(jumpTable[i]).append(&quot;\&quot;&gt;&quot;).append(jumpTable[i])</span>
+<span class="nc" id="L146">                    .append(&quot;&lt;/A&gt;&lt;/TD&gt;&quot;);</span>
+            }
+<span class="nc" id="L148">            buf.append(&quot;&lt;TD&gt;&lt;A HREF=\&quot;#code&quot;).append(methodNumber).append(&quot;@&quot;).append(defaultOffset).append(&quot;\&quot;&gt;&quot;).append(defaultOffset)</span>
+<span class="nc" id="L149">                .append(&quot;&lt;/A&gt;&lt;/TD&gt;&lt;/TR&gt;\n&lt;/TABLE&gt;\n&quot;);</span>
+<span class="nc" id="L150">            break;</span>
+        /*
+         * Two address bytes + offset from start of byte stream form the jump target.
+         */
+        case Const.GOTO:
+        case Const.IFEQ:
+        case Const.IFGE:
+        case Const.IFGT:
+        case Const.IFLE:
+        case Const.IFLT:
+        case Const.IFNE:
+        case Const.IFNONNULL:
+        case Const.IFNULL:
+        case Const.IF_ACMPEQ:
+        case Const.IF_ACMPNE:
+        case Const.IF_ICMPEQ:
+        case Const.IF_ICMPGE:
+        case Const.IF_ICMPGT:
+        case Const.IF_ICMPLE:
+        case Const.IF_ICMPLT:
+        case Const.IF_ICMPNE:
+        case Const.JSR:
+<span class="fc" id="L172">            index = bytes.getIndex() + bytes.readShort() - 1;</span>
+<span class="fc" id="L173">            buf.append(&quot;&lt;A HREF=\&quot;#code&quot;).append(methodNumber).append(&quot;@&quot;).append(index).append(&quot;\&quot;&gt;&quot;).append(index).append(&quot;&lt;/A&gt;&quot;);</span>
+<span class="fc" id="L174">            break;</span>
+        /*
+         * Same for 32-bit wide jumps
+         */
+        case Const.GOTO_W:
+        case Const.JSR_W:
+<span class="nc" id="L180">            final int windex = bytes.getIndex() + bytes.readInt() - 1;</span>
+<span class="nc" id="L181">            buf.append(&quot;&lt;A HREF=\&quot;#code&quot;).append(methodNumber).append(&quot;@&quot;).append(windex).append(&quot;\&quot;&gt;&quot;).append(windex).append(&quot;&lt;/A&gt;&quot;);</span>
+<span class="nc" id="L182">            break;</span>
+        /*
+         * Index byte references local variable (register)
+         */
+        case Const.ALOAD:
+        case Const.ASTORE:
+        case Const.DLOAD:
+        case Const.DSTORE:
+        case Const.FLOAD:
+        case Const.FSTORE:
+        case Const.ILOAD:
+        case Const.ISTORE:
+        case Const.LLOAD:
+        case Const.LSTORE:
+        case Const.RET:
+<span class="nc bnc" id="L197" title="All 2 branches missed.">            if (wide) {</span>
+<span class="nc" id="L198">                vindex = bytes.readShort();</span>
+<span class="nc" id="L199">                wide = false; // Clear flag</span>
+            } else {
+<span class="nc" id="L201">                vindex = bytes.readUnsignedByte();</span>
+            }
+<span class="nc" id="L203">            buf.append(&quot;%&quot;).append(vindex);</span>
+<span class="nc" id="L204">            break;</span>
+        /*
+         * Remember wide byte which is used to form a 16-bit address in the following instruction. Relies on that the method is
+         * called again with the following opcode.
+         */
+        case Const.WIDE:
+<span class="nc" id="L210">            wide = true;</span>
+<span class="nc" id="L211">            buf.append(&quot;(wide)&quot;);</span>
+<span class="nc" id="L212">            break;</span>
+        /*
+         * Array of basic type.
+         */
+        case Const.NEWARRAY:
+<span class="nc" id="L217">            buf.append(&quot;&lt;FONT COLOR=\&quot;#00FF00\&quot;&gt;&quot;).append(Const.getTypeName(bytes.readByte())).append(&quot;&lt;/FONT&gt;&quot;);</span>
+<span class="nc" id="L218">            break;</span>
+        /*
+         * Access object/class fields.
+         */
+        case Const.GETFIELD:
+        case Const.GETSTATIC:
+        case Const.PUTFIELD:
+        case Const.PUTSTATIC:
+<span class="nc" id="L226">            index = bytes.readShort();</span>
+<span class="nc" id="L227">            final ConstantFieldref c1 = constantPool.getConstant(index, Const.CONSTANT_Fieldref, ConstantFieldref.class);</span>
+<span class="nc" id="L228">            classIndex = c1.getClassIndex();</span>
+<span class="nc" id="L229">            name = constantPool.getConstantString(classIndex, Const.CONSTANT_Class);</span>
+<span class="nc" id="L230">            name = Utility.compactClassName(name, false);</span>
+<span class="nc" id="L231">            index = c1.getNameAndTypeIndex();</span>
+<span class="nc" id="L232">            final String fieldName = constantPool.constantToString(index, Const.CONSTANT_NameAndType);</span>
+<span class="nc bnc" id="L233" title="All 2 branches missed.">            if (name.equals(className)) { // Local field</span>
+<span class="nc" id="L234">                buf.append(&quot;&lt;A HREF=\&quot;&quot;).append(className).append(&quot;_methods.html#field&quot;).append(fieldName).append(&quot;\&quot; TARGET=Methods&gt;&quot;).append(fieldName)</span>
+<span class="nc" id="L235">                    .append(&quot;&lt;/A&gt;\n&quot;);</span>
+            } else {
+<span class="nc" id="L237">                buf.append(constantHtml.referenceConstant(classIndex)).append(&quot;.&quot;).append(fieldName);</span>
+            }
+<span class="nc" id="L239">            break;</span>
+        /*
+         * Operands are references to classes in constant pool
+         */
+        case Const.CHECKCAST:
+        case Const.INSTANCEOF:
+        case Const.NEW:
+<span class="fc" id="L246">            index = bytes.readShort();</span>
+<span class="fc" id="L247">            buf.append(constantHtml.referenceConstant(index));</span>
+<span class="fc" id="L248">            break;</span>
+        /*
+         * Operands are references to methods in constant pool
+         */
+        case Const.INVOKESPECIAL:
+        case Const.INVOKESTATIC:
+        case Const.INVOKEVIRTUAL:
+        case Const.INVOKEINTERFACE:
+        case Const.INVOKEDYNAMIC:
+<span class="fc" id="L257">            final int mIndex = bytes.readShort();</span>
+            final String str;
+<span class="pc bpc" id="L259" title="1 of 2 branches missed.">            if (opcode == Const.INVOKEINTERFACE) { // Special treatment needed</span>
+<span class="nc" id="L260">                bytes.readUnsignedByte(); // Redundant</span>
+<span class="nc" id="L261">                bytes.readUnsignedByte(); // Reserved</span>
+//                    int nargs = bytes.readUnsignedByte(); // Redundant
+//                    int reserved = bytes.readUnsignedByte(); // Reserved
+<span class="nc" id="L264">                final ConstantInterfaceMethodref c = constantPool.getConstant(mIndex, Const.CONSTANT_InterfaceMethodref, ConstantInterfaceMethodref.class);</span>
+<span class="nc" id="L265">                classIndex = c.getClassIndex();</span>
+<span class="nc" id="L266">                index = c.getNameAndTypeIndex();</span>
+<span class="nc" id="L267">                name = Class2HTML.referenceClass(classIndex);</span>
+<span class="pc bpc" id="L268" title="1 of 2 branches missed.">            } else if (opcode == Const.INVOKEDYNAMIC) { // Special treatment needed</span>
+<span class="nc" id="L269">                bytes.readUnsignedByte(); // Reserved</span>
+<span class="nc" id="L270">                bytes.readUnsignedByte(); // Reserved</span>
+<span class="nc" id="L271">                final ConstantInvokeDynamic c = constantPool.getConstant(mIndex, Const.CONSTANT_InvokeDynamic, ConstantInvokeDynamic.class);</span>
+<span class="nc" id="L272">                index = c.getNameAndTypeIndex();</span>
+<span class="nc" id="L273">                name = &quot;#&quot; + c.getBootstrapMethodAttrIndex();</span>
+<span class="nc" id="L274">            } else {</span>
+                // UNDONE: Java8 now allows INVOKESPECIAL and INVOKESTATIC to
+                // reference EITHER a Methodref OR an InterfaceMethodref.
+                // Not sure if that affects this code or not. (markro)
+<span class="fc" id="L278">                final ConstantMethodref c = constantPool.getConstant(mIndex, Const.CONSTANT_Methodref, ConstantMethodref.class);</span>
+<span class="fc" id="L279">                classIndex = c.getClassIndex();</span>
+<span class="fc" id="L280">                index = c.getNameAndTypeIndex();</span>
+<span class="fc" id="L281">                name = Class2HTML.referenceClass(classIndex);</span>
+            }
+<span class="fc" id="L283">            str = Class2HTML.toHTML(constantPool.constantToString(constantPool.getConstant(index, Const.CONSTANT_NameAndType)));</span>
+            // Get signature, that is, types
+<span class="fc" id="L285">            final ConstantNameAndType c2 = constantPool.getConstant(index, Const.CONSTANT_NameAndType, ConstantNameAndType.class);</span>
+<span class="fc" id="L286">            signature = constantPool.constantToString(c2.getSignatureIndex(), Const.CONSTANT_Utf8);</span>
+<span class="fc" id="L287">            final String[] args = Utility.methodSignatureArgumentTypes(signature, false);</span>
+<span class="fc" id="L288">            final String type = Utility.methodSignatureReturnType(signature, false);</span>
+<span class="fc" id="L289">            buf.append(name).append(&quot;.&lt;A HREF=\&quot;&quot;).append(className).append(&quot;_cp.html#cp&quot;).append(mIndex).append(&quot;\&quot; TARGET=ConstantPool&gt;&quot;).append(str)</span>
+<span class="fc" id="L290">                .append(&quot;&lt;/A&gt;&quot;).append(&quot;(&quot;);</span>
+            // List arguments
+<span class="fc bfc" id="L292" title="All 2 branches covered.">            for (int i = 0; i &lt; args.length; i++) {</span>
+<span class="fc" id="L293">                buf.append(Class2HTML.referenceType(args[i]));</span>
+<span class="pc bpc" id="L294" title="1 of 2 branches missed.">                if (i &lt; args.length - 1) {</span>
+<span class="nc" id="L295">                    buf.append(&quot;, &quot;);</span>
+                }
+            }
+            // Attach return type
+<span class="fc" id="L299">            buf.append(&quot;):&quot;).append(Class2HTML.referenceType(type));</span>
+<span class="fc" id="L300">            break;</span>
+        /*
+         * Operands are references to items in constant pool
+         */
+        case Const.LDC_W:
+        case Const.LDC2_W:
+<span class="fc" id="L306">            index = bytes.readShort();</span>
+<span class="fc" id="L307">            buf.append(&quot;&lt;A HREF=\&quot;&quot;).append(className).append(&quot;_cp.html#cp&quot;).append(index).append(&quot;\&quot; TARGET=\&quot;ConstantPool\&quot;&gt;&quot;)</span>
+<span class="fc" id="L308">                .append(Class2HTML.toHTML(constantPool.constantToString(index, constantPool.getConstant(index).getTag()))).append(&quot;&lt;/a&gt;&quot;);</span>
+<span class="fc" id="L309">            break;</span>
+        case Const.LDC:
+<span class="fc" id="L311">            index = bytes.readUnsignedByte();</span>
+<span class="fc" id="L312">            buf.append(&quot;&lt;A HREF=\&quot;&quot;).append(className).append(&quot;_cp.html#cp&quot;).append(index).append(&quot;\&quot; TARGET=\&quot;ConstantPool\&quot;&gt;&quot;)</span>
+<span class="fc" id="L313">                .append(Class2HTML.toHTML(constantPool.constantToString(index, constantPool.getConstant(index).getTag()))).append(&quot;&lt;/a&gt;&quot;);</span>
+<span class="fc" id="L314">            break;</span>
+        /*
+         * Array of references.
+         */
+        case Const.ANEWARRAY:
+<span class="nc" id="L319">            index = bytes.readShort();</span>
+<span class="nc" id="L320">            buf.append(constantHtml.referenceConstant(index));</span>
+<span class="nc" id="L321">            break;</span>
+        /*
+         * Multidimensional array of references.
+         */
+        case Const.MULTIANEWARRAY:
+<span class="nc" id="L326">            index = bytes.readShort();</span>
+<span class="nc" id="L327">            final int dimensions = bytes.readByte();</span>
+<span class="nc" id="L328">            buf.append(constantHtml.referenceConstant(index)).append(&quot;:&quot;).append(dimensions).append(&quot;-dimensional&quot;);</span>
+<span class="nc" id="L329">            break;</span>
+        /*
+         * Increment local variable.
+         */
+        case Const.IINC:
+<span class="nc bnc" id="L334" title="All 2 branches missed.">            if (wide) {</span>
+<span class="nc" id="L335">                vindex = bytes.readShort();</span>
+<span class="nc" id="L336">                constant = bytes.readShort();</span>
+<span class="nc" id="L337">                wide = false;</span>
+            } else {
+<span class="nc" id="L339">                vindex = bytes.readUnsignedByte();</span>
+<span class="nc" id="L340">                constant = bytes.readByte();</span>
+            }
+<span class="nc" id="L342">            buf.append(&quot;%&quot;).append(vindex).append(&quot; &quot;).append(constant);</span>
+<span class="nc" id="L343">            break;</span>
+        default:
+<span class="pc bpc" id="L345" title="1 of 2 branches missed.">            if (Const.getNoOfOperands(opcode) &gt; 0) {</span>
+<span class="nc bnc" id="L346" title="All 2 branches missed.">                for (int i = 0; i &lt; Const.getOperandTypeCount(opcode); i++) {</span>
+<span class="nc bnc" id="L347" title="All 4 branches missed.">                    switch (Const.getOperandType(opcode, i)) {</span>
+                    case Const.T_BYTE:
+<span class="nc" id="L349">                        buf.append(bytes.readUnsignedByte());</span>
+<span class="nc" id="L350">                        break;</span>
+                    case Const.T_SHORT: // Either branch or index
+<span class="nc" id="L352">                        buf.append(bytes.readShort());</span>
+<span class="nc" id="L353">                        break;</span>
+                    case Const.T_INT:
+<span class="nc" id="L355">                        buf.append(bytes.readInt());</span>
+<span class="nc" id="L356">                        break;</span>
+                    default: // Never reached
+<span class="nc" id="L358">                        throw new IllegalStateException(&quot;Unreachable default case reached! &quot; + Const.getOperandType(opcode, i));</span>
+                    }
+<span class="nc" id="L360">                    buf.append(&quot;&amp;nbsp;&quot;);</span>
+                }
+            }
+        }
+<span class="fc" id="L364">        buf.append(&quot;&lt;/TD&gt;&quot;);</span>
+<span class="fc" id="L365">        return buf.toString();</span>
+    }
+
+    /**
+     * Find all target addresses in code, so that they can be marked with &amp;lt;A NAME = ...&amp;gt;. Target addresses are kept in
+     * an BitSet object.
+     */
+    private void findGotos(final ByteSequence bytes, final Code code) throws IOException {
+        int index;
+<span class="fc" id="L374">        gotoSet = new BitSet(bytes.available());</span>
+        int opcode;
+        /*
+         * First get Code attribute from method and the exceptions handled (try-catch) in this method. We only need the line
+         * number here.
+         */
+<span class="pc bpc" id="L380" title="1 of 2 branches missed.">        if (code != null) {</span>
+<span class="fc" id="L381">            final CodeException[] ce = code.getExceptionTable();</span>
+<span class="pc bpc" id="L382" title="1 of 2 branches missed.">            for (final CodeException cex : ce) {</span>
+<span class="nc" id="L383">                gotoSet.set(cex.getStartPC());</span>
+<span class="nc" id="L384">                gotoSet.set(cex.getEndPC());</span>
+<span class="nc" id="L385">                gotoSet.set(cex.getHandlerPC());</span>
+            }
+            // Look for local variables and their range
+<span class="fc" id="L388">            final Attribute[] attributes = code.getAttributes();</span>
+<span class="pc bpc" id="L389" title="1 of 2 branches missed.">            for (final Attribute attribute : attributes) {</span>
+<span class="fc bfc" id="L390" title="All 2 branches covered.">                if (attribute.getTag() == Const.ATTR_LOCAL_VARIABLE_TABLE) {</span>
+<span class="fc" id="L391">                    ((LocalVariableTable) attribute).forEach(var -&gt; {</span>
+<span class="fc" id="L392">                        final int start = var.getStartPC();</span>
+<span class="fc" id="L393">                        gotoSet.set(start);</span>
+<span class="fc" id="L394">                        gotoSet.set(start + var.getLength());</span>
+<span class="fc" id="L395">                    });</span>
+<span class="fc" id="L396">                    break;</span>
+                }
+            }
+        }
+        // Get target addresses from GOTO, JSR, TABLESWITCH, etc.
+<span class="fc bfc" id="L401" title="All 2 branches covered.">        while (bytes.available() &gt; 0) {</span>
+<span class="fc" id="L402">            opcode = bytes.readUnsignedByte();</span>
+            // System.out.println(getOpcodeName(opcode));
+<span class="pc bpc" id="L404" title="2 of 4 branches missed.">            switch (opcode) {</span>
+            case Const.TABLESWITCH:
+            case Const.LOOKUPSWITCH:
+                // bytes.readByte(); // Skip already read byte
+<span class="nc" id="L408">                final int remainder = bytes.getIndex() % 4;</span>
+<span class="nc bnc" id="L409" title="All 2 branches missed.">                final int noPadBytes = remainder == 0 ? 0 : 4 - remainder;</span>
+                int defaultOffset;
+                final int offset;
+<span class="nc bnc" id="L412" title="All 2 branches missed.">                for (int j = 0; j &lt; noPadBytes; j++) {</span>
+<span class="nc" id="L413">                    bytes.readByte();</span>
+                }
+                // Both cases have a field default_offset in common
+<span class="nc" id="L416">                defaultOffset = bytes.readInt();</span>
+<span class="nc bnc" id="L417" title="All 2 branches missed.">                if (opcode == Const.TABLESWITCH) {</span>
+<span class="nc" id="L418">                    final int low = bytes.readInt();</span>
+<span class="nc" id="L419">                    final int high = bytes.readInt();</span>
+<span class="nc" id="L420">                    offset = bytes.getIndex() - 12 - noPadBytes - 1;</span>
+<span class="nc" id="L421">                    defaultOffset += offset;</span>
+<span class="nc" id="L422">                    gotoSet.set(defaultOffset);</span>
+<span class="nc bnc" id="L423" title="All 2 branches missed.">                    for (int j = 0; j &lt; high - low + 1; j++) {</span>
+<span class="nc" id="L424">                        index = offset + bytes.readInt();</span>
+<span class="nc" id="L425">                        gotoSet.set(index);</span>
+                    }
+<span class="nc" id="L427">                } else { // LOOKUPSWITCH</span>
+<span class="nc" id="L428">                    final int npairs = bytes.readInt();</span>
+<span class="nc" id="L429">                    offset = bytes.getIndex() - 8 - noPadBytes - 1;</span>
+<span class="nc" id="L430">                    defaultOffset += offset;</span>
+<span class="nc" id="L431">                    gotoSet.set(defaultOffset);</span>
+<span class="nc bnc" id="L432" title="All 2 branches missed.">                    for (int j = 0; j &lt; npairs; j++) {</span>
+//                            int match = bytes.readInt();
+<span class="nc" id="L434">                        bytes.readInt();</span>
+<span class="nc" id="L435">                        index = offset + bytes.readInt();</span>
+<span class="nc" id="L436">                        gotoSet.set(index);</span>
+                    }
+                }
+<span class="nc" id="L439">                break;</span>
+            case Const.GOTO:
+            case Const.IFEQ:
+            case Const.IFGE:
+            case Const.IFGT:
+            case Const.IFLE:
+            case Const.IFLT:
+            case Const.IFNE:
+            case Const.IFNONNULL:
+            case Const.IFNULL:
+            case Const.IF_ACMPEQ:
+            case Const.IF_ACMPNE:
+            case Const.IF_ICMPEQ:
+            case Const.IF_ICMPGE:
+            case Const.IF_ICMPGT:
+            case Const.IF_ICMPLE:
+            case Const.IF_ICMPLT:
+            case Const.IF_ICMPNE:
+            case Const.JSR:
+                // bytes.readByte(); // Skip already read byte
+<span class="fc" id="L459">                index = bytes.getIndex() + bytes.readShort() - 1;</span>
+<span class="fc" id="L460">                gotoSet.set(index);</span>
+<span class="fc" id="L461">                break;</span>
+            case Const.GOTO_W:
+            case Const.JSR_W:
+                // bytes.readByte(); // Skip already read byte
+<span class="nc" id="L465">                index = bytes.getIndex() + bytes.readInt() - 1;</span>
+<span class="nc" id="L466">                gotoSet.set(index);</span>
+<span class="nc" id="L467">                break;</span>
+            default:
+<span class="fc" id="L469">                bytes.unreadByte();</span>
+<span class="fc" id="L470">                codeToHTML(bytes, 0); // Ignore output</span>
+            }
+        }
+<span class="fc" id="L473">    }</span>
+
+    /**
+     * Writes a single method with the byte code associated with it.
+     */
+    private void writeMethod(final Method method, final int methodNumber) throws IOException {
+        // Get raw signature
+<span class="fc" id="L480">        final String signature = method.getSignature();</span>
+        // Get array of strings containing the argument types
+<span class="fc" id="L482">        final String[] args = Utility.methodSignatureArgumentTypes(signature, false);</span>
+        // Get return type string
+<span class="fc" id="L484">        final String type = Utility.methodSignatureReturnType(signature, false);</span>
+        // Get method name
+<span class="fc" id="L486">        final String name = method.getName();</span>
+<span class="fc" id="L487">        final String htmlName = Class2HTML.toHTML(name);</span>
+        // Get method's access flags
+<span class="fc" id="L489">        String access = Utility.accessToString(method.getAccessFlags());</span>
+<span class="fc" id="L490">        access = Utility.replace(access, &quot; &quot;, &quot;&amp;nbsp;&quot;);</span>
+        // Get the method's attributes, the Code Attribute in particular
+<span class="fc" id="L492">        final Attribute[] attributes = method.getAttributes();</span>
+<span class="fc" id="L493">        printWriter.print(&quot;&lt;P&gt;&lt;B&gt;&lt;FONT COLOR=\&quot;#FF0000\&quot;&gt;&quot; + access + &quot;&lt;/FONT&gt;&amp;nbsp;&lt;A NAME=method&quot; + methodNumber + &quot;&gt;&quot; + Class2HTML.referenceType(type)</span>
+            + &quot;&lt;/A&gt;&amp;nbsp&lt;A HREF=\&quot;&quot; + className + &quot;_methods.html#method&quot; + methodNumber + &quot;\&quot; TARGET=Methods&gt;&quot; + htmlName + &quot;&lt;/A&gt;(&quot;);
+<span class="fc bfc" id="L495" title="All 2 branches covered.">        for (int i = 0; i &lt; args.length; i++) {</span>
+<span class="fc" id="L496">            printWriter.print(Class2HTML.referenceType(args[i]));</span>
+<span class="fc bfc" id="L497" title="All 2 branches covered.">            if (i &lt; args.length - 1) {</span>
+<span class="fc" id="L498">                printWriter.print(&quot;,&amp;nbsp;&quot;);</span>
+            }
+        }
+<span class="fc" id="L501">        printWriter.println(&quot;)&lt;/B&gt;&lt;/P&gt;&quot;);</span>
+<span class="fc" id="L502">        Code c = null;</span>
+<span class="fc" id="L503">        byte[] code = null;</span>
+<span class="pc bpc" id="L504" title="1 of 2 branches missed.">        if (attributes.length &gt; 0) {</span>
+<span class="fc" id="L505">            printWriter.print(&quot;&lt;H4&gt;Attributes&lt;/H4&gt;&lt;UL&gt;\n&quot;);</span>
+<span class="fc bfc" id="L506" title="All 2 branches covered.">            for (int i = 0; i &lt; attributes.length; i++) {</span>
+<span class="fc" id="L507">                byte tag = attributes[i].getTag();</span>
+<span class="pc bpc" id="L508" title="1 of 2 branches missed.">                if (tag != Const.ATTR_UNKNOWN) {</span>
+<span class="fc" id="L509">                    printWriter.print(&quot;&lt;LI&gt;&lt;A HREF=\&quot;&quot; + className + &quot;_attributes.html#method&quot; + methodNumber + &quot;@&quot; + i + &quot;\&quot; TARGET=Attributes&gt;&quot;</span>
+<span class="fc" id="L510">                        + Const.getAttributeName(tag) + &quot;&lt;/A&gt;&lt;/LI&gt;\n&quot;);</span>
+                } else {
+<span class="nc" id="L512">                    printWriter.print(&quot;&lt;LI&gt;&quot; + attributes[i] + &quot;&lt;/LI&gt;&quot;);</span>
+                }
+<span class="fc bfc" id="L514" title="All 2 branches covered.">                if (tag == Const.ATTR_CODE) {</span>
+<span class="fc" id="L515">                    c = (Code) attributes[i];</span>
+<span class="fc" id="L516">                    final Attribute[] attributes2 = c.getAttributes();</span>
+<span class="fc" id="L517">                    code = c.getCode();</span>
+<span class="fc" id="L518">                    printWriter.print(&quot;&lt;UL&gt;&quot;);</span>
+<span class="fc bfc" id="L519" title="All 2 branches covered.">                    for (int j = 0; j &lt; attributes2.length; j++) {</span>
+<span class="fc" id="L520">                        tag = attributes2[j].getTag();</span>
+<span class="fc" id="L521">                        printWriter.print(&quot;&lt;LI&gt;&lt;A HREF=\&quot;&quot; + className + &quot;_attributes.html#method&quot; + methodNumber + &quot;@&quot; + i + &quot;@&quot; + j</span>
+<span class="fc" id="L522">                            + &quot;\&quot; TARGET=Attributes&gt;&quot; + Const.getAttributeName(tag) + &quot;&lt;/A&gt;&lt;/LI&gt;\n&quot;);</span>
+                    }
+<span class="fc" id="L524">                    printWriter.print(&quot;&lt;/UL&gt;&quot;);</span>
+                }
+            }
+<span class="fc" id="L527">            printWriter.println(&quot;&lt;/UL&gt;&quot;);</span>
+        }
+<span class="fc bfc" id="L529" title="All 2 branches covered.">        if (code != null) { // No code, an abstract method, for example</span>
+            // System.out.println(name + &quot;\n&quot; + Utility.codeToString(code, constantPool, 0, -1));
+            // Print the byte code
+<span class="fc" id="L532">            try (ByteSequence stream = new ByteSequence(code)) {</span>
+<span class="fc" id="L533">                stream.mark(stream.available());</span>
+<span class="fc" id="L534">                findGotos(stream, c);</span>
+<span class="fc" id="L535">                stream.reset();</span>
+<span class="fc" id="L536">                printWriter.println(&quot;&lt;TABLE BORDER=0&gt;&lt;TR&gt;&lt;TH ALIGN=LEFT&gt;Byte&lt;BR&gt;offset&lt;/TH&gt;&lt;TH ALIGN=LEFT&gt;Instruction&lt;/TH&gt;&lt;TH ALIGN=LEFT&gt;Argument&lt;/TH&gt;&quot;);</span>
+<span class="fc bfc" id="L537" title="All 2 branches covered.">                while (stream.available() &gt; 0) {</span>
+<span class="fc" id="L538">                    final int offset = stream.getIndex();</span>
+<span class="fc" id="L539">                    final String str = codeToHTML(stream, methodNumber);</span>
+<span class="fc" id="L540">                    String anchor = &quot;&quot;;</span>
+                    /*
+                     * Sets an anchor mark if this line is targetted by a goto, jsr, etc. Defining an anchor for every line is very
+                     * inefficient!
+                     */
+<span class="fc bfc" id="L545" title="All 2 branches covered.">                    if (gotoSet.get(offset)) {</span>
+<span class="fc" id="L546">                        anchor = &quot;&lt;A NAME=code&quot; + methodNumber + &quot;@&quot; + offset + &quot;&gt;&lt;/A&gt;&quot;;</span>
+                    }
+                    final String anchor2;
+<span class="fc bfc" id="L549" title="All 2 branches covered.">                    if (stream.getIndex() == code.length) {</span>
+<span class="fc" id="L550">                        anchor2 = &quot;&lt;A NAME=code&quot; + methodNumber + &quot;@&quot; + code.length + &quot;&gt;&quot; + offset + &quot;&lt;/A&gt;&quot;;</span>
+                    } else {
+<span class="fc" id="L552">                        anchor2 = &quot;&quot; + offset;</span>
+                    }
+<span class="fc" id="L554">                    printWriter.println(&quot;&lt;TR VALIGN=TOP&gt;&lt;TD&gt;&quot; + anchor2 + &quot;&lt;/TD&gt;&lt;TD&gt;&quot; + anchor + str + &quot;&lt;/TR&gt;&quot;);</span>
+<span class="fc" id="L555">                }</span>
+            }
+            // Mark last line, may be targetted from Attributes window
+<span class="fc" id="L558">            printWriter.println(&quot;&lt;TR&gt;&lt;TD&gt; &lt;/A&gt;&lt;/TD&gt;&lt;/TR&gt;&quot;);</span>
+<span class="fc" id="L559">            printWriter.println(&quot;&lt;/TABLE&gt;&quot;);</span>
+        }
+<span class="fc" id="L561">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

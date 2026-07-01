@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Args.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.util</a> &gt; <span class="el_source">Args.java</span></div><h1>Args.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.apache.bcel.util;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.classfile.ClassFormatException;
+
+/**
+ * Argument validation.
+ *
+ * @since 6.7.0
+ */
+public class Args {
+
+    /**
+     * Requires a specific value.
+     *
+     * @param value    The value to test.
+     * @param required The required value.
+     * @param message  The message prefix.
+     * @return The value to test.
+     */
+    public static int require(final int value, final int required, final String message) {
+<span class="fc bfc" id="L41" title="All 2 branches covered.">        if (value != required) {</span>
+<span class="fc" id="L42">            throw new ClassFormatException(String.format(&quot;%s [Value must be 0: %,d]&quot;, message, value));</span>
+        }
+<span class="fc" id="L44">        return value;</span>
+    }
+
+    /**
+     * Requires a 0 value.
+     *
+     * @param value   The value to test.
+     * @param message The message prefix.
+     * @return The value to test.
+     */
+    public static int require0(final int value, final String message) {
+<span class="fc" id="L55">        return require(value, 0, message);</span>
+    }
+
+    /**
+     * Requires a u1 value.
+     *
+     * @param value   The value to test.
+     * @param message The message prefix.
+     * @return The value to test.
+     */
+    public static int requireU1(final int value, final String message) {
+<span class="fc bfc" id="L66" title="All 4 branches covered.">        if (value &lt; 0 || value &gt; Const.MAX_BYTE) {</span>
+<span class="fc" id="L67">            throw new ClassFormatException(String.format(&quot;%s [Value out of range (0 - %,d) for type u1: %,d]&quot;, message, Const.MAX_BYTE, value));</span>
+        }
+<span class="fc" id="L69">        return value;</span>
+    }
+
+    /**
+     * Requires a u2 value of at least {@code min} and not above {@code max}.
+     *
+     * @param value   The value to test.
+     * @param min     The minimum required u2 value.
+     * @param max     The maximum required u2 value.
+     * @param message The message prefix.
+     * @return The value to test.
+     */
+    public static int requireU2(final int value, final int min, final int max, final String message) {
+<span class="pc bpc" id="L82" title="1 of 2 branches missed.">        if (max &gt; Const.MAX_SHORT) {</span>
+<span class="nc" id="L83">            throw new IllegalArgumentException(String.format(&quot;%s programming error: max %,d &gt; %,d&quot;, message, max, Const.MAX_SHORT));</span>
+        }
+<span class="fc bfc" id="L85" title="All 2 branches covered.">        if (min &lt; 0) {</span>
+<span class="fc" id="L86">            throw new IllegalArgumentException(String.format(&quot;%s programming error: min %,d &lt; 0&quot;, message, min));</span>
+        }
+<span class="fc bfc" id="L88" title="All 4 branches covered.">        if (value &lt; min || value &gt; max) {</span>
+<span class="fc" id="L89">            throw new ClassFormatException(String.format(&quot;%s [Value out of range (%,d - %,d) for type u2: %,d]&quot;, message, min, max, value));</span>
+        }
+<span class="fc" id="L91">        return value;</span>
+    }
+
+    /**
+     * Requires a u2 value of at least {@code min}.
+     *
+     * @param value   The value to test.
+     * @param min     The minimum required value.
+     * @param message The message prefix.
+     * @return The value to test.
+     */
+    public static int requireU2(final int value, final int min, final String message) {
+<span class="fc" id="L103">        return requireU2(value, min, Const.MAX_SHORT, message);</span>
+    }
+
+    /**
+     * Requires a u2 value.
+     *
+     * @param value   The value to test.
+     * @param message The message prefix.
+     * @return The value to test.
+     */
+    public static int requireU2(final int value, final String message) {
+<span class="fc" id="L114">        return requireU2(value, 0, message);</span>
+    }
+
+    /**
+     * Requires a u4 value of at least {@code min} and not above {@code max}.
+     *
+     * @param value   The value to test.
+     * @param min     The minimum required u4 value.
+     * @param max     The maximum required u4 value.
+     * @param message The message prefix.
+     * @return The value to test.
+     * @throws IllegalArgumentException if {@code min &lt; 0} or {@code max &gt; Integer.MAX_VALUE}.
+     * @throws ClassFormatException     if {@code value &lt; min} or {@code value &gt; max}.
+     * @since 6.12.0
+     */
+    public static int requireU4(final int value, final int min, final int max, final String message) {
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        if (min &lt; 0) {</span>
+<span class="fc" id="L131">            throw new IllegalArgumentException(String.format(&quot;%s programming error: min %,d &lt; 0&quot;, message, min));</span>
+        }
+<span class="fc bfc" id="L133" title="All 4 branches covered.">        if (value &lt; min || value &gt; max) {</span>
+<span class="fc" id="L134">            throw new ClassFormatException(</span>
+<span class="fc" id="L135">                    String.format(&quot;%s [Value out of range (%,d - %,d) for type u4: %,d]&quot;, message, min, Integer.MAX_VALUE, value &amp; 0xFFFFFFFFL));</span>
+        }
+<span class="fc" id="L137">        return value;</span>
+    }
+
+    /**
+     * Requires a u4 value of at least {@code min}.
+     *
+     * @param value   The value to test.
+     * @param min     The minimum required value.
+     * @param message The message prefix.
+     * @return The value to test.
+     */
+    public static int requireU4(final int value, final int min, final String message) {
+        // Should really be 2^32-1, instead 2^21-1.
+<span class="fc" id="L150">        return requireU4(value, min, Integer.MAX_VALUE, message);</span>
+    }
+
+    /**
+     * Requires a u4 value.
+     *
+     * @param value   The value to test.
+     * @param message The message prefix.
+     * @return The value to test.
+     */
+    public static int requireU4(final int value, final String message) {
+<span class="fc" id="L161">        return requireU4(value, 0, message);</span>
+    }
+
+    /**
+     * Private constructor to prevent instantiation of this utility class.
+     */
+<span class="nc" id="L167">    public Args() {</span>
+        // Utility class
+<span class="nc" id="L169">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

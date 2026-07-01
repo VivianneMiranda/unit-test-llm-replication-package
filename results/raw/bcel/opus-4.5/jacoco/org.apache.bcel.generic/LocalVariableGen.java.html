@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LocalVariableGen.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">LocalVariableGen.java</span></div><h1>LocalVariableGen.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.classfile.LocalVariable;
+
+/**
+ * Represents a local variable within a method. It contains its scope, name and type. The generated LocalVariable object
+ * can be obtained with getLocalVariable which needs the instruction list and the constant pool as parameters.
+ *
+ * @see LocalVariable
+ * @see MethodGen
+ */
+public class LocalVariableGen implements InstructionTargeter, NamedAndTyped, Cloneable {
+
+    private int index;
+    private String name;
+    private Type type;
+    private InstructionHandle start;
+    private InstructionHandle end;
+    private int origIndex; // never changes; used to match up with LocalVariableTypeTable entries
+    private boolean liveToEnd;
+
+    /**
+     * Generate a local variable that with index 'index'. Note that double and long variables need two indexs. Index indices
+     * have to be provided by the user.
+     *
+     * @param index index of local variable.
+     * @param name its name.
+     * @param type its type.
+     * @param start from where the instruction is valid (null means from the start).
+     * @param end until where the instruction is valid (null means to the end).
+     */
+<span class="fc" id="L51">    public LocalVariableGen(final int index, final String name, final Type type, final InstructionHandle start, final InstructionHandle end) {</span>
+<span class="pc bpc" id="L52" title="1 of 4 branches missed.">        if (index &lt; 0 || index &gt; Const.MAX_SHORT) {</span>
+<span class="fc" id="L53">            throw new ClassGenException(&quot;Invalid index: &quot; + index);</span>
+        }
+<span class="fc" id="L55">        this.name = name;</span>
+<span class="fc" id="L56">        this.type = type;</span>
+<span class="fc" id="L57">        this.index = index;</span>
+<span class="fc" id="L58">        setStart(start);</span>
+<span class="fc" id="L59">        setEnd(end);</span>
+<span class="fc" id="L60">        this.origIndex = index;</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        this.liveToEnd = end == null;</span>
+<span class="fc" id="L62">    }</span>
+
+    /**
+     * Generates a local variable that with index 'index'. Note that double and long variables need two indexs. Index
+     * indices have to be provided by the user.
+     *
+     * @param index index of local variable.
+     * @param name its name.
+     * @param type its type.
+     * @param start from where the instruction is valid (null means from the start).
+     * @param end until where the instruction is valid (null means to the end).
+     * @param origIndex index of local variable prior to any changes to index.
+     */
+    public LocalVariableGen(final int index, final String name, final Type type, final InstructionHandle start, final InstructionHandle end,
+        final int origIndex) {
+<span class="fc" id="L77">        this(index, name, type, start, end);</span>
+<span class="fc" id="L78">        this.origIndex = origIndex;</span>
+<span class="fc" id="L79">    }</span>
+
+    @Override
+    public Object clone() {
+        try {
+<span class="fc" id="L84">            return super.clone();</span>
+<span class="nc" id="L85">        } catch (final CloneNotSupportedException e) {</span>
+<span class="nc" id="L86">            throw new UnsupportedOperationException(&quot;Clone Not Supported&quot;, e); // never happens</span>
+        }
+    }
+
+    /**
+     * @return true, if ih is target of this variable.
+     */
+    @Override
+    public boolean containsTarget(final InstructionHandle ih) {
+<span class="fc bfc" id="L95" title="All 4 branches covered.">        return start == ih || end == ih;</span>
+    }
+
+    /**
+     * Clear the references from and to this variable when it's removed.
+     */
+    void dispose() {
+<span class="fc" id="L102">        setStart(null);</span>
+<span class="fc" id="L103">        setEnd(null);</span>
+<span class="fc" id="L104">    }</span>
+
+    /**
+     * We consider to local variables to be equal, if the use the same index and are valid in the same range.
+     */
+    @Override
+    public boolean equals(final Object o) {
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        if (!(o instanceof LocalVariableGen)) {</span>
+<span class="fc" id="L112">            return false;</span>
+        }
+<span class="fc" id="L114">        final LocalVariableGen l = (LocalVariableGen) o;</span>
+<span class="fc bfc" id="L115" title="All 6 branches covered.">        return l.index == index &amp;&amp; l.start == start &amp;&amp; l.end == end;</span>
+    }
+
+    /**
+     * Gets the end instruction handle.
+     *
+     * @return the end instruction handle.
+     */
+    public InstructionHandle getEnd() {
+<span class="fc" id="L124">        return end;</span>
+    }
+
+    /**
+     * Gets the index.
+     *
+     * @return the index.
+     */
+    public int getIndex() {
+<span class="fc" id="L133">        return index;</span>
+    }
+
+    /**
+     * Gets whether the variable lives to the end.
+     *
+     * @return true if the variable lives to the end.
+     */
+    public boolean getLiveToEnd() {
+<span class="fc" id="L142">        return liveToEnd;</span>
+    }
+
+    /**
+     * Gets LocalVariable object.
+     *
+     * This relies on that the instruction list has already been dumped to byte code or that the 'setPositions' methods
+     * has been called for the instruction list.
+     *
+     * Note that due to the conversion from byte code offset to InstructionHandle, it is impossible to tell the difference
+     * between a live range that ends BEFORE the last insturction of the method or a live range that ends AFTER the last
+     * instruction of the method. Hence the liveToEnd flag to differentiate between these two cases.
+     *
+     * @param cp constant pool.
+     * @return the local variable.
+     */
+    public LocalVariable getLocalVariable(final ConstantPoolGen cp) {
+<span class="fc" id="L159">        int startPc = 0;</span>
+<span class="fc" id="L160">        int length = 0;</span>
+<span class="pc bpc" id="L161" title="2 of 4 branches missed.">        if (start != null &amp;&amp; end != null) {</span>
+<span class="fc" id="L162">            startPc = start.getPosition();</span>
+<span class="fc" id="L163">            length = end.getPosition() - startPc;</span>
+<span class="pc bpc" id="L164" title="1 of 4 branches missed.">            if (end.getNext() == null &amp;&amp; liveToEnd) {</span>
+<span class="fc" id="L165">                length += end.getInstruction().getLength();</span>
+            }
+        }
+<span class="fc" id="L168">        final int nameIndex = cp.addUtf8(name);</span>
+<span class="fc" id="L169">        final int signatureIndex = cp.addUtf8(type.getSignature());</span>
+<span class="fc" id="L170">        return new LocalVariable(startPc, length, nameIndex, signatureIndex, index, cp.getConstantPool(), origIndex);</span>
+    }
+
+    @Override
+    public String getName() {
+<span class="fc" id="L175">        return name;</span>
+    }
+
+    /**
+     * Gets the original index.
+     *
+     * @return the original index.
+     */
+    public int getOrigIndex() {
+<span class="fc" id="L184">        return origIndex;</span>
+    }
+
+    /**
+     * Gets the start instruction handle.
+     *
+     * @return the start instruction handle.
+     */
+    public InstructionHandle getStart() {
+<span class="fc" id="L193">        return start;</span>
+    }
+
+    @Override
+    public Type getType() {
+<span class="fc" id="L198">        return type;</span>
+    }
+
+    @Override
+    public int hashCode() {
+        // If the user changes the name or type, problems with the targeter hashmap will occur.
+        // Note: Index cannot be part of hash as it may be changed by the user.
+<span class="fc" id="L205">        return name.hashCode() ^ type.hashCode();</span>
+    }
+
+    /**
+     * Sets the end instruction handle.
+     *
+     * @param end the end instruction handle.
+     */
+    public void setEnd(final InstructionHandle end) { // TODO could be package-protected?
+<span class="fc" id="L214">        BranchInstruction.notifyTarget(this.end, end, this);</span>
+<span class="fc" id="L215">        this.end = end;</span>
+<span class="fc" id="L216">    }</span>
+
+    /**
+     * Sets the index.
+     *
+     * @param index the index.
+     */
+    public void setIndex(final int index) {
+<span class="fc" id="L224">        this.index = index;</span>
+<span class="fc" id="L225">    }</span>
+
+    /**
+     * Sets whether the variable lives to the end.
+     *
+     * @param liveToEnd true if the variable lives to the end.
+     */
+    public void setLiveToEnd(final boolean liveToEnd) {
+<span class="fc" id="L233">        this.liveToEnd = liveToEnd;</span>
+<span class="fc" id="L234">    }</span>
+
+    @Override
+    public void setName(final String name) {
+<span class="fc" id="L238">        this.name = name;</span>
+<span class="fc" id="L239">    }</span>
+
+    /**
+     * Sets the start instruction handle.
+     *
+     * @param start the start instruction handle.
+     */
+    public void setStart(final InstructionHandle start) { // TODO could be package-protected?
+<span class="fc" id="L247">        BranchInstruction.notifyTarget(this.start, start, this);</span>
+<span class="fc" id="L248">        this.start = start;</span>
+<span class="fc" id="L249">    }</span>
+
+    @Override
+    public void setType(final Type type) {
+<span class="fc" id="L253">        this.type = type;</span>
+<span class="fc" id="L254">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L258">        return &quot;LocalVariableGen(&quot; + name + &quot;, &quot; + type + &quot;, &quot; + start + &quot;, &quot; + end + &quot;)&quot;;</span>
+    }
+
+    /**
+     * @param oldIh old target, either start or end.
+     * @param newIh new target.
+     */
+    @Override
+    public void updateTarget(final InstructionHandle oldIh, final InstructionHandle newIh) {
+<span class="fc" id="L267">        boolean targeted = false;</span>
+<span class="fc bfc" id="L268" title="All 2 branches covered.">        if (start == oldIh) {</span>
+<span class="fc" id="L269">            targeted = true;</span>
+<span class="fc" id="L270">            setStart(newIh);</span>
+        }
+<span class="fc bfc" id="L272" title="All 2 branches covered.">        if (end == oldIh) {</span>
+<span class="fc" id="L273">            targeted = true;</span>
+<span class="fc" id="L274">            setEnd(newIh);</span>
+        }
+<span class="fc bfc" id="L276" title="All 2 branches covered.">        if (!targeted) {</span>
+<span class="fc" id="L277">            throw new ClassGenException(&quot;Not targeting &quot; + oldIh + &quot;, but {&quot; + start + &quot;, &quot; + end + &quot;}&quot;);</span>
+        }
+<span class="fc" id="L279">    }</span>
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

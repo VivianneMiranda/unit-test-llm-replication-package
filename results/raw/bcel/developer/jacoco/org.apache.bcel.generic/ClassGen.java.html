@@ -1,0 +1,697 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClassGen.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">ClassGen.java</span></div><h1>ClassGen.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.classfile.AccessFlags;
+import org.apache.bcel.classfile.Annotations;
+import org.apache.bcel.classfile.Attribute;
+import org.apache.bcel.classfile.ConstantPool;
+import org.apache.bcel.classfile.Field;
+import org.apache.bcel.classfile.JavaClass;
+import org.apache.bcel.classfile.Method;
+import org.apache.bcel.classfile.RuntimeInvisibleAnnotations;
+import org.apache.bcel.classfile.RuntimeVisibleAnnotations;
+import org.apache.bcel.classfile.SourceFile;
+import org.apache.bcel.classfile.Utility;
+import org.apache.bcel.util.BCELComparator;
+import org.apache.commons.lang3.ArrayUtils;
+
+/**
+ * Template class for building up a java class. May be initialized with an existing Java class (file).
+ *
+ * @see JavaClass
+ */
+public class ClassGen extends AccessFlags implements Cloneable {
+
+<span class="fc" id="L49">    private static BCELComparator&lt;ClassGen&gt; bcelComparator = new BCELComparator&lt;ClassGen&gt;() {</span>
+
+        @Override
+        public boolean equals(final ClassGen a, final ClassGen b) {
+<span class="pc bpc" id="L53" title="3 of 8 branches missed.">            return a == b || a != null &amp;&amp; b != null &amp;&amp; Objects.equals(a.getClassName(), b.getClassName());</span>
+        }
+
+        @Override
+        public int hashCode(final ClassGen o) {
+<span class="nc bnc" id="L58" title="All 2 branches missed.">            return o != null ? Objects.hashCode(o.getClassName()) : 0;</span>
+        }
+    };
+
+    /**
+     * Gets the comparison strategy object.
+     *
+     * @return Comparison strategy object.
+     */
+    public static BCELComparator&lt;ClassGen&gt; getComparator() {
+<span class="fc" id="L68">        return bcelComparator;</span>
+    }
+
+    /**
+     * Sets the comparison strategy object.
+     *
+     * @param comparator Comparison strategy object.
+     */
+    public static void setComparator(final BCELComparator&lt;ClassGen&gt; comparator) {
+<span class="nc" id="L77">        bcelComparator = comparator;</span>
+<span class="nc" id="L78">    }</span>
+
+    /*
+     * Corresponds to the fields found in a JavaClass object.
+     */
+    private String className;
+    private String superClassName;
+    private final String fileName;
+<span class="fc" id="L86">    private int classNameIndex = -1;</span>
+<span class="fc" id="L87">    private int superclassNameIndex = -1;</span>
+<span class="fc" id="L88">    private int major = Const.MAJOR_1_1;</span>
+<span class="fc" id="L89">    private int minor = Const.MINOR_1_1;</span>
+    private ConstantPoolGen cp; // Template for building up constant pool
+    // ArrayLists instead of arrays to gather fields, methods, etc.
+<span class="fc" id="L92">    private final List&lt;Field&gt; fieldList = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L93">    private final List&lt;Method&gt; methodList = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L95">    private final List&lt;Attribute&gt; attributeList = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L97">    private final List&lt;String&gt; interfaceList = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L99">    private final List&lt;AnnotationEntryGen&gt; annotationList = new ArrayList&lt;&gt;();</span>
+
+    private List&lt;ClassObserver&gt; observers;
+
+    /**
+     * Constructs a new instance from an existing class.
+     *
+     * @param clazz JavaClass object (for example read from file).
+     */
+    public ClassGen(final JavaClass clazz) {
+<span class="fc" id="L109">        super(clazz.getAccessFlags());</span>
+<span class="fc" id="L110">        classNameIndex = clazz.getClassNameIndex();</span>
+<span class="fc" id="L111">        superclassNameIndex = clazz.getSuperclassNameIndex();</span>
+<span class="fc" id="L112">        className = clazz.getClassName();</span>
+<span class="fc" id="L113">        superClassName = clazz.getSuperclassName();</span>
+<span class="fc" id="L114">        fileName = clazz.getSourceFileName();</span>
+<span class="fc" id="L115">        cp = new ConstantPoolGen(clazz.getConstantPool());</span>
+<span class="fc" id="L116">        major = clazz.getMajor();</span>
+<span class="fc" id="L117">        minor = clazz.getMinor();</span>
+<span class="fc" id="L118">        final Attribute[] attributes = clazz.getAttributes();</span>
+        // J5TODO: Could make unpacking lazy, done on first reference
+<span class="fc" id="L120">        final AnnotationEntryGen[] annotations = unpackAnnotations(attributes);</span>
+<span class="fc" id="L121">        final String[] interfaceNames = clazz.getInterfaceNames();</span>
+<span class="pc bpc" id="L122" title="1 of 2 branches missed.">        if (interfaceNames != null) {</span>
+<span class="fc" id="L123">            Collections.addAll(interfaceList, interfaceNames);</span>
+        }
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">        if (attributes != null) {</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">            for (final Attribute attribute : attributes) {</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">                if (!(attribute instanceof Annotations)) {</span>
+<span class="fc" id="L128">                    addAttribute(attribute);</span>
+                }
+            }
+        }
+<span class="fc" id="L132">        Collections.addAll(annotationList, annotations);</span>
+<span class="fc" id="L133">        final Method[] methods = clazz.getMethods();</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">        if (methods != null) {</span>
+<span class="fc" id="L135">            Collections.addAll(methodList, methods);</span>
+        }
+<span class="fc" id="L137">        final Field[] fields = clazz.getFields();</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">        if (fields != null) {</span>
+<span class="fc" id="L139">            Collections.addAll(fieldList, fields);</span>
+        }
+<span class="fc" id="L141">    }</span>
+
+    /**
+     * Convenience constructor to set up some important values initially.
+     *
+     * @param className fully qualified class name.
+     * @param superClassName fully qualified superclass name.
+     * @param fileName source file name.
+     * @param accessFlags access qualifiers.
+     * @param interfaces implemented interfaces.
+     */
+    public ClassGen(final String className, final String superClassName, final String fileName, final int accessFlags, final String[] interfaces) {
+<span class="fc" id="L153">        this(className, superClassName, fileName, accessFlags, interfaces, new ConstantPoolGen());</span>
+<span class="fc" id="L154">    }</span>
+
+    /**
+     * Convenience constructor to set up some important values initially.
+     *
+     * @param className fully qualified class name.
+     * @param superClassName fully qualified superclass name.
+     * @param fileName source file name.
+     * @param accessFlags access qualifiers.
+     * @param interfaces implemented interfaces.
+     * @param cp constant pool to use.
+     */
+    public ClassGen(final String className, final String superClassName, final String fileName, final int accessFlags, final String[] interfaces,
+        final ConstantPoolGen cp) {
+<span class="fc" id="L168">        super(accessFlags);</span>
+<span class="fc" id="L169">        this.className = className;</span>
+<span class="fc" id="L170">        this.superClassName = superClassName;</span>
+<span class="fc" id="L171">        this.fileName = fileName;</span>
+<span class="fc" id="L172">        this.cp = cp;</span>
+        // Put everything needed by default into the constant pool and the vectors
+<span class="pc bpc" id="L174" title="1 of 2 branches missed.">        if (fileName != null) {</span>
+<span class="fc" id="L175">            addAttribute(new SourceFile(cp.addUtf8(&quot;SourceFile&quot;), 2, cp.addUtf8(fileName), cp.getConstantPool()));</span>
+        }
+<span class="fc" id="L177">        classNameIndex = cp.addClass(className);</span>
+<span class="fc" id="L178">        superclassNameIndex = cp.addClass(superClassName);</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">        if (interfaces != null) {</span>
+<span class="fc" id="L180">            Collections.addAll(interfaceList, interfaces);</span>
+        }
+<span class="fc" id="L182">    }</span>
+
+    /**
+     * Adds an annotation entry to this class.
+     *
+     * @param a the annotation entry to add.
+     */
+    public void addAnnotationEntry(final AnnotationEntryGen a) {
+<span class="fc" id="L190">        annotationList.add(a);</span>
+<span class="fc" id="L191">    }</span>
+
+    /**
+     * Add an attribute to this class.
+     *
+     * @param a attribute to add.
+     */
+    public void addAttribute(final Attribute a) {
+<span class="fc" id="L199">        attributeList.add(a);</span>
+<span class="fc" id="L200">    }</span>
+
+    /**
+     * Convenience method.
+     *
+     * Add an empty constructor to this class that does nothing but calling super().
+     *
+     * @param accessFlags rights for constructor.
+     */
+    public void addEmptyConstructor(final int accessFlags) {
+<span class="fc" id="L210">        final InstructionList il = new InstructionList();</span>
+<span class="fc" id="L211">        il.append(InstructionConst.THIS); // Push 'this'</span>
+<span class="fc" id="L212">        il.append(new INVOKESPECIAL(cp.addMethodref(superClassName, Const.CONSTRUCTOR_NAME, &quot;()V&quot;)));</span>
+<span class="fc" id="L213">        il.append(InstructionConst.RETURN);</span>
+<span class="fc" id="L214">        final MethodGen mg = new MethodGen(accessFlags, Type.VOID, Type.NO_ARGS, null, Const.CONSTRUCTOR_NAME, className, il, cp);</span>
+<span class="fc" id="L215">        mg.setMaxStack(1);</span>
+<span class="fc" id="L216">        addMethod(mg.getMethod());</span>
+<span class="fc" id="L217">    }</span>
+
+    /**
+     * Add a field to this class.
+     *
+     * @param f field to add.
+     */
+    public void addField(final Field f) {
+<span class="fc" id="L225">        fieldList.add(f);</span>
+<span class="fc" id="L226">    }</span>
+
+    /**
+     * Add an interface to this class, that is, this class has to implement it.
+     *
+     * @param name interface to implement (fully qualified class name).
+     */
+    public void addInterface(final String name) {
+<span class="nc" id="L234">        interfaceList.add(name);</span>
+<span class="nc" id="L235">    }</span>
+
+    /**
+     * Add a method to this class.
+     *
+     * @param m method to add.
+     */
+    public void addMethod(final Method m) {
+<span class="fc" id="L243">        methodList.add(m);</span>
+<span class="fc" id="L244">    }</span>
+
+    /**
+     * Add observer for this object.
+     *
+     * @param o the observer.
+     */
+    public void addObserver(final ClassObserver o) {
+<span class="nc bnc" id="L252" title="All 2 branches missed.">        if (observers == null) {</span>
+<span class="nc" id="L253">            observers = new ArrayList&lt;&gt;();</span>
+        }
+<span class="nc" id="L255">        observers.add(o);</span>
+<span class="nc" id="L256">    }</span>
+
+    @Override
+    public Object clone() {
+        try {
+<span class="nc" id="L261">            return super.clone();</span>
+<span class="nc" id="L262">        } catch (final CloneNotSupportedException e) {</span>
+<span class="nc" id="L263">            throw new UnsupportedOperationException(&quot;Clone Not Supported&quot;, e); // never happens</span>
+        }
+    }
+
+    /**
+     * Checks if this class contains the given field.
+     *
+     * @param f the field to check.
+     * @return true if this class contains the field.
+     */
+    public boolean containsField(final Field f) {
+<span class="nc" id="L274">        return fieldList.contains(f);</span>
+    }
+
+    /**
+     * Gets the field object with given name, or null.
+     *
+     * @param name the field name.
+     * @return field object with given name, or null.
+     */
+    public Field containsField(final String name) {
+<span class="nc bnc" id="L284" title="All 2 branches missed.">        for (final Field f : fieldList) {</span>
+<span class="nc bnc" id="L285" title="All 2 branches missed.">            if (f.getName().equals(name)) {</span>
+<span class="nc" id="L286">                return f;</span>
+            }
+<span class="nc" id="L288">        }</span>
+<span class="nc" id="L289">        return null;</span>
+    }
+
+    /**
+     * Gets the method object with given name and signature, or null.
+     *
+     * @param name the method name.
+     * @param signature the method signature.
+     * @return method object with given name and signature, or null.
+     */
+    public Method containsMethod(final String name, final String signature) {
+<span class="nc bnc" id="L300" title="All 2 branches missed.">        for (final Method m : methodList) {</span>
+<span class="nc bnc" id="L301" title="All 4 branches missed.">            if (m.getName().equals(name) &amp;&amp; m.getSignature().equals(signature)) {</span>
+<span class="nc" id="L302">                return m;</span>
+            }
+<span class="nc" id="L304">        }</span>
+<span class="nc" id="L305">        return null;</span>
+    }
+
+    /**
+     * Return value as defined by given BCELComparator strategy. By default two ClassGen objects are said to be equal when
+     * their class names are equal.
+     *
+     * @see Object#equals(Object)
+     */
+    @Override
+    public boolean equals(final Object obj) {
+<span class="nc bnc" id="L316" title="All 4 branches missed.">        return obj instanceof ClassGen &amp;&amp; bcelComparator.equals(this, (ClassGen) obj);</span>
+    }
+
+    /**
+     * Gets the annotation entries.
+     *
+     * @return the annotation entries.
+     */
+    // J5TODO: Should we make calling unpackAnnotations() lazy and put it in here?
+    public AnnotationEntryGen[] getAnnotationEntries() {
+<span class="fc" id="L326">        return annotationList.toArray(AnnotationEntryGen.EMPTY_ARRAY);</span>
+    }
+
+    /**
+     * Gets the attributes.
+     *
+     * @return the attributes.
+     */
+    public Attribute[] getAttributes() {
+<span class="fc" id="L335">        return attributeList.toArray(Attribute.EMPTY_ARRAY);</span>
+    }
+
+    /**
+     * Gets the class name.
+     *
+     * @return the class name.
+     */
+    public String getClassName() {
+<span class="fc" id="L344">        return className;</span>
+    }
+
+    /**
+     * Gets the class name index.
+     *
+     * @return the class name index.
+     */
+    public int getClassNameIndex() {
+<span class="nc" id="L353">        return classNameIndex;</span>
+    }
+
+    /**
+     * Gets the constant pool.
+     *
+     * @return the constant pool.
+     */
+    public ConstantPoolGen getConstantPool() {
+<span class="fc" id="L362">        return cp;</span>
+    }
+
+    /**
+     * Gets the fields.
+     *
+     * @return the fields.
+     */
+    public Field[] getFields() {
+<span class="fc" id="L371">        return fieldList.toArray(Field.EMPTY_ARRAY);</span>
+    }
+
+    /**
+     * Gets the file name.
+     *
+     * @return the file name.
+     */
+    public String getFileName() {
+<span class="nc" id="L380">        return fileName;</span>
+    }
+
+    /**
+     * Gets the interface names.
+     *
+     * @return the interface names.
+     */
+    public String[] getInterfaceNames() {
+<span class="nc" id="L389">        return interfaceList.toArray(ArrayUtils.EMPTY_STRING_ARRAY);</span>
+    }
+
+    /**
+     * Gets the interfaces.
+     *
+     * @return the interfaces.
+     */
+    public int[] getInterfaces() {
+<span class="fc" id="L398">        final int size = interfaceList.size();</span>
+<span class="fc" id="L399">        final int[] interfaces = new int[size];</span>
+<span class="fc" id="L400">        Arrays.setAll(interfaces, i -&gt; cp.addClass(interfaceList.get(i)));</span>
+<span class="fc" id="L401">        return interfaces;</span>
+    }
+
+    /**
+     * Gets the (finally) built up Java class object.
+     *
+     * @return the (finally) built up Java class object.
+     */
+    public JavaClass getJavaClass() {
+<span class="fc" id="L410">        final int[] interfaces = getInterfaces();</span>
+<span class="fc" id="L411">        final Field[] fields = getFields();</span>
+<span class="fc" id="L412">        final Method[] methods = getMethods();</span>
+<span class="fc" id="L413">        Attribute[] attributes = null;</span>
+<span class="fc bfc" id="L414" title="All 2 branches covered.">        if (annotationList.isEmpty()) {</span>
+<span class="fc" id="L415">            attributes = getAttributes();</span>
+        } else {
+            // TODO: Sometime later, trash any attributes called 'RuntimeVisibleAnnotations' or 'RuntimeInvisibleAnnotations'
+<span class="fc" id="L418">            final Attribute[] annAttributes = AnnotationEntryGen.getAnnotationAttributes(cp, getAnnotationEntries());</span>
+<span class="fc" id="L419">            attributes = new Attribute[attributeList.size() + annAttributes.length];</span>
+<span class="fc" id="L420">            attributeList.toArray(attributes);</span>
+<span class="fc" id="L421">            System.arraycopy(annAttributes, 0, attributes, attributeList.size(), annAttributes.length);</span>
+        }
+        // Must be last since the above calls may still add something to it
+<span class="fc" id="L424">        final ConstantPool cp = this.cp.getFinalConstantPool();</span>
+<span class="fc" id="L425">        return new JavaClass(classNameIndex, superclassNameIndex, fileName, major, minor, super.getAccessFlags(), cp, interfaces, fields, methods,</span>
+            attributes);
+    }
+
+    /**
+     * Gets major version number of class file.
+     *
+     * @return major version number of class file.
+     */
+    public int getMajor() {
+<span class="nc" id="L435">        return major;</span>
+    }
+
+    /**
+     * Gets the method at the given position.
+     *
+     * @param pos the position.
+     * @return the method at the given position.
+     */
+    public Method getMethodAt(final int pos) {
+<span class="fc" id="L445">        return methodList.get(pos);</span>
+    }
+
+    /**
+     * Gets the methods.
+     *
+     * @return the methods.
+     */
+    public Method[] getMethods() {
+<span class="fc" id="L454">        return methodList.toArray(Method.EMPTY_ARRAY);</span>
+    }
+
+    /**
+     * Gets minor version number of class file.
+     *
+     * @return minor version number of class file.
+     */
+    public int getMinor() {
+<span class="nc" id="L463">        return minor;</span>
+    }
+
+    /**
+     * Gets the superclass name.
+     *
+     * @return the superclass name.
+     */
+    public String getSuperclassName() {
+<span class="nc" id="L472">        return superClassName;</span>
+    }
+
+    /**
+     * Gets the superclass name index.
+     *
+     * @return the superclass name index.
+     */
+    public int getSuperclassNameIndex() {
+<span class="nc" id="L481">        return superclassNameIndex;</span>
+    }
+
+    /**
+     * Return value as defined by given BCELComparator strategy. By default return the hash code of the class name.
+     *
+     * @see Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+<span class="nc" id="L491">        return bcelComparator.hashCode(this);</span>
+    }
+
+    /**
+     * Remove an attribute from this class.
+     *
+     * @param a attribute to remove.
+     */
+    public void removeAttribute(final Attribute a) {
+<span class="nc" id="L500">        attributeList.remove(a);</span>
+<span class="nc" id="L501">    }</span>
+
+    /**
+     * Remove a field to this class.
+     *
+     * @param f field to remove.
+     */
+    public void removeField(final Field f) {
+<span class="fc" id="L509">        fieldList.remove(f);</span>
+<span class="fc" id="L510">    }</span>
+
+    /**
+     * Remove an interface from this class.
+     *
+     * @param name interface to remove (fully qualified name).
+     */
+    public void removeInterface(final String name) {
+<span class="nc" id="L518">        interfaceList.remove(name);</span>
+<span class="nc" id="L519">    }</span>
+
+    /**
+     * Remove a method from this class.
+     *
+     * @param m method to remove.
+     */
+    public void removeMethod(final Method m) {
+<span class="fc" id="L527">        methodList.remove(m);</span>
+<span class="fc" id="L528">    }</span>
+
+    /**
+     * Remove observer for this object.
+     *
+     * @param o the observer to remove.
+     */
+    public void removeObserver(final ClassObserver o) {
+<span class="nc bnc" id="L536" title="All 2 branches missed.">        if (observers != null) {</span>
+<span class="nc" id="L537">            observers.remove(o);</span>
+        }
+<span class="nc" id="L539">    }</span>
+
+    /**
+     * Replace given field with new one. If the old one does not exist add the new_ field to the class anyway.
+     *
+     * @param old the old field.
+     * @param newField the new field.
+     */
+    public void replaceField(final Field old, final Field newField) {
+<span class="nc bnc" id="L548" title="All 2 branches missed.">        if (newField == null) {</span>
+<span class="nc" id="L549">            throw new ClassGenException(&quot;Replacement method must not be null&quot;);</span>
+        }
+<span class="nc" id="L551">        final int i = fieldList.indexOf(old);</span>
+<span class="nc bnc" id="L552" title="All 2 branches missed.">        if (i &lt; 0) {</span>
+<span class="nc" id="L553">            fieldList.add(newField);</span>
+        } else {
+<span class="nc" id="L555">            fieldList.set(i, newField);</span>
+        }
+<span class="nc" id="L557">    }</span>
+
+    /**
+     * Replace given method with new one. If the old one does not exist add the newMethod method to the class anyway.
+     *
+     * @param old the old method.
+     * @param newMethod the new method.
+     */
+    public void replaceMethod(final Method old, final Method newMethod) {
+<span class="pc bpc" id="L566" title="1 of 2 branches missed.">        if (newMethod == null) {</span>
+<span class="nc" id="L567">            throw new ClassGenException(&quot;Replacement method must not be null&quot;);</span>
+        }
+<span class="fc" id="L569">        final int i = methodList.indexOf(old);</span>
+<span class="pc bpc" id="L570" title="1 of 2 branches missed.">        if (i &lt; 0) {</span>
+<span class="nc" id="L571">            methodList.add(newMethod);</span>
+        } else {
+<span class="fc" id="L573">            methodList.set(i, newMethod);</span>
+        }
+<span class="fc" id="L575">    }</span>
+
+    /**
+     * Sets the class name.
+     *
+     * @param name the class name.
+     */
+    public void setClassName(final String name) {
+<span class="nc" id="L583">        className = Utility.pathToPackage(name);</span>
+<span class="nc" id="L584">        classNameIndex = cp.addClass(name);</span>
+<span class="nc" id="L585">    }</span>
+
+    /**
+     * Sets the class name index.
+     *
+     * @param classNameIndex the class name index.
+     */
+    public void setClassNameIndex(final int classNameIndex) {
+<span class="nc" id="L593">        this.classNameIndex = classNameIndex;</span>
+<span class="nc" id="L594">        this.className = Utility.pathToPackage(cp.getConstantPool().getConstantString(classNameIndex, Const.CONSTANT_Class));</span>
+<span class="nc" id="L595">    }</span>
+
+    /**
+     * Sets the constant pool.
+     *
+     * @param constantPool the constant pool.
+     */
+    public void setConstantPool(final ConstantPoolGen constantPool) {
+<span class="nc" id="L603">        cp = constantPool;</span>
+<span class="nc" id="L604">    }</span>
+
+    /**
+     * Sets major version number of class file, default value is 45 (JDK 1.1).
+     *
+     * @param major major version number.
+     */
+    public void setMajor(final int major) { // TODO could be package-protected - only called by test code
+<span class="fc" id="L612">        this.major = major;</span>
+<span class="fc" id="L613">    }</span>
+
+    /**
+     * Sets the method at the given position.
+     *
+     * @param method the method.
+     * @param pos the position.
+     */
+    public void setMethodAt(final Method method, final int pos) {
+<span class="nc" id="L622">        methodList.set(pos, method);</span>
+<span class="nc" id="L623">    }</span>
+
+    /**
+     * Sets the methods.
+     *
+     * @param methods the methods.
+     */
+    public void setMethods(final Method[] methods) {
+<span class="nc" id="L631">        methodList.clear();</span>
+<span class="nc bnc" id="L632" title="All 2 branches missed.">        if (methods != null) {</span>
+<span class="nc" id="L633">            Collections.addAll(methodList, methods);</span>
+        }
+<span class="nc" id="L635">    }</span>
+
+    /**
+     * Sets minor version number of class file, default value is 3 (JDK 1.1).
+     *
+     * @param minor minor version number.
+     */
+    public void setMinor(final int minor) { // TODO could be package-protected - only called by test code
+<span class="fc" id="L643">        this.minor = minor;</span>
+<span class="fc" id="L644">    }</span>
+
+    /**
+     * Sets the superclass name.
+     *
+     * @param name the superclass name.
+     */
+    public void setSuperclassName(final String name) {
+<span class="nc" id="L652">        superClassName = Utility.pathToPackage(name);</span>
+<span class="nc" id="L653">        superclassNameIndex = cp.addClass(name);</span>
+<span class="nc" id="L654">    }</span>
+
+    /**
+     * Sets the superclass name index.
+     *
+     * @param superclassNameIndex the superclass name index.
+     */
+    public void setSuperclassNameIndex(final int superclassNameIndex) {
+<span class="nc" id="L662">        this.superclassNameIndex = superclassNameIndex;</span>
+<span class="nc" id="L663">        superClassName = Utility.pathToPackage(cp.getConstantPool().getConstantString(superclassNameIndex, Const.CONSTANT_Class));</span>
+<span class="nc" id="L664">    }</span>
+
+    /**
+     * Unpacks attributes representing annotations.
+     */
+    private AnnotationEntryGen[] unpackAnnotations(final Attribute[] attributes) {
+<span class="fc" id="L670">        final List&lt;AnnotationEntryGen&gt; annotationGenObjs = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L671" title="1 of 2 branches missed.">        if (attributes != null) {</span>
+<span class="fc bfc" id="L672" title="All 2 branches covered.">            for (final Attribute attr : attributes) {</span>
+<span class="fc bfc" id="L673" title="All 2 branches covered.">                if (attr instanceof RuntimeVisibleAnnotations) {</span>
+<span class="fc" id="L674">                    final RuntimeVisibleAnnotations rva = (RuntimeVisibleAnnotations) attr;</span>
+<span class="fc" id="L675">                    rva.forEach(a -&gt; annotationGenObjs.add(new AnnotationEntryGen(a, getConstantPool(), false)));</span>
+<span class="pc bpc" id="L676" title="1 of 2 branches missed.">                } else if (attr instanceof RuntimeInvisibleAnnotations) {</span>
+<span class="nc" id="L677">                    final RuntimeInvisibleAnnotations ria = (RuntimeInvisibleAnnotations) attr;</span>
+<span class="nc" id="L678">                    ria.forEach(a -&gt; annotationGenObjs.add(new AnnotationEntryGen(a, getConstantPool(), false)));</span>
+                }
+            }
+        }
+<span class="fc" id="L682">        return annotationGenObjs.toArray(AnnotationEntryGen.EMPTY_ARRAY);</span>
+    }
+
+    /**
+     * Call notify() method on all observers. This method is not called automatically whenever the state has changed, but
+     * has to be called by the user after they have finished editing the object.
+     */
+    public void update() {
+<span class="nc bnc" id="L690" title="All 2 branches missed.">        if (observers != null) {</span>
+<span class="nc bnc" id="L691" title="All 2 branches missed.">            for (final ClassObserver observer : observers) {</span>
+<span class="nc" id="L692">                observer.notify(this);</span>
+<span class="nc" id="L693">            }</span>
+        }
+<span class="nc" id="L695">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

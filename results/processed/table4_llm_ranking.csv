@@ -1,0 +1,7 @@
+project,llm,line_coverage_mean_pct,mutation_coverage_mean_pct,test_strength_mean_pct
+Commons CLI,Opus 4.5,94.69,72.25,57.79
+Commons CLI,GPT-5.1 Codex Max,57.71,33.04,61.17
+Commons CLI,Sonnet 4.5,86.73,59.02,51.67
+Commons BCEL,Opus 4.5,80.24,8.26,80.25
+Commons BCEL,GPT-5.1 Codex Max,19.49,1.57,81.99
+Commons BCEL,Sonnet 4.5,17.61,0.05,81.07

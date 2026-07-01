@@ -1,0 +1,599 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DescendingVisitor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">DescendingVisitor.java</span></div><h1>DescendingVisitor.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.classfile;
+
+import java.util.Objects;
+import java.util.Stack;
+import java.util.stream.Stream;
+
+import org.apache.commons.lang3.stream.Streams;
+
+/**
+ * Traverses a JavaClass with another Visitor object 'piggy-backed' that is applied to all components of a JavaClass
+ * object. I.e. this class supplies the traversal strategy, other classes can make use of it.
+ */
+public class DescendingVisitor implements Visitor {
+    private final JavaClass clazz;
+
+    private final Visitor visitor;
+
+<span class="nc" id="L36">    private final Stack&lt;Object&gt; stack = new Stack&lt;&gt;();</span>
+
+    /**
+     * Constructs a DescendingVisitor.
+     *
+     * @param clazz Class to traverse.
+     * @param visitor visitor object to apply to all components.
+     */
+<span class="nc" id="L44">    public DescendingVisitor(final JavaClass clazz, final Visitor visitor) {</span>
+<span class="nc" id="L45">        this.clazz = clazz;</span>
+<span class="nc" id="L46">        this.visitor = visitor;</span>
+<span class="nc" id="L47">    }</span>
+
+    private &lt;E extends Node&gt; void accept(final E[] node) {
+<span class="nc" id="L50">        Streams.of(node).forEach(e -&gt; e.accept(this));</span>
+<span class="nc" id="L51">    }</span>
+
+    /**
+     * Gets the current object.
+     *
+     * @return current object.
+     */
+    public Object current() {
+<span class="nc" id="L59">        return stack.peek();</span>
+    }
+
+    /**
+     * Gets the container of current entity, that is, predecessor during traversal.
+     *
+     * @return container of current entity, that is, predecessor during traversal.
+     */
+    public Object predecessor() {
+<span class="nc" id="L68">        return predecessor(0);</span>
+    }
+
+    /**
+     * Gets the container of current entity, that is, predecessor during traversal.
+     *
+     * @param level nesting level, that is, 0 returns the direct predecessor.
+     * @return container of current entity, that is, predecessor during traversal.
+     */
+    public Object predecessor(final int level) {
+<span class="nc" id="L78">        final int size = stack.size();</span>
+<span class="nc bnc" id="L79" title="All 4 branches missed.">        if (size &lt; 2 || level &lt; 0) {</span>
+<span class="nc" id="L80">            return null;</span>
+        }
+<span class="nc" id="L82">        return stack.elementAt(size - (level + 2)); // size - 1 == current</span>
+    }
+
+    /**
+     * Start traversal.
+     */
+    public void visit() {
+<span class="nc" id="L89">        clazz.accept(this);</span>
+<span class="nc" id="L90">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitAnnotation(final Annotations annotation) {
+<span class="nc" id="L97">        stack.push(annotation);</span>
+<span class="nc" id="L98">        annotation.accept(visitor);</span>
+<span class="nc" id="L99">        accept(annotation.getAnnotationEntries());</span>
+<span class="nc" id="L100">        stack.pop();</span>
+<span class="nc" id="L101">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitAnnotationDefault(final AnnotationDefault obj) {
+<span class="nc" id="L108">        stack.push(obj);</span>
+<span class="nc" id="L109">        obj.accept(visitor);</span>
+<span class="nc" id="L110">        stack.pop();</span>
+<span class="nc" id="L111">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitAnnotationEntry(final AnnotationEntry annotationEntry) {
+<span class="nc" id="L118">        stack.push(annotationEntry);</span>
+<span class="nc" id="L119">        annotationEntry.accept(visitor);</span>
+<span class="nc" id="L120">        stack.pop();</span>
+<span class="nc" id="L121">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitBootstrapMethods(final BootstrapMethods bm) {
+<span class="nc" id="L128">        stack.push(bm);</span>
+<span class="nc" id="L129">        bm.accept(visitor);</span>
+        // BootstrapMethod[] bms = bm.getBootstrapMethods();
+        // for (int i = 0; i &lt; bms.length; i++)
+        // {
+        // bms[i].accept(this);
+        // }
+<span class="nc" id="L135">        stack.pop();</span>
+<span class="nc" id="L136">    }</span>
+
+    @Override
+    public void visitCode(final Code code) {
+<span class="nc" id="L140">        stack.push(code);</span>
+<span class="nc" id="L141">        code.accept(visitor);</span>
+<span class="nc" id="L142">        accept(code.getExceptionTable());</span>
+<span class="nc" id="L143">        accept(code.getAttributes());</span>
+<span class="nc" id="L144">        stack.pop();</span>
+<span class="nc" id="L145">    }</span>
+
+    @Override
+    public void visitCodeException(final CodeException ce) {
+<span class="nc" id="L149">        stack.push(ce);</span>
+<span class="nc" id="L150">        ce.accept(visitor);</span>
+<span class="nc" id="L151">        stack.pop();</span>
+<span class="nc" id="L152">    }</span>
+
+    @Override
+    public void visitConstantClass(final ConstantClass constant) {
+<span class="nc" id="L156">        stack.push(constant);</span>
+<span class="nc" id="L157">        constant.accept(visitor);</span>
+<span class="nc" id="L158">        stack.pop();</span>
+<span class="nc" id="L159">    }</span>
+
+    @Override
+    public void visitConstantDouble(final ConstantDouble constant) {
+<span class="nc" id="L163">        stack.push(constant);</span>
+<span class="nc" id="L164">        constant.accept(visitor);</span>
+<span class="nc" id="L165">        stack.pop();</span>
+<span class="nc" id="L166">    }</span>
+
+    /** @since 6.3 */
+    @Override
+    public void visitConstantDynamic(final ConstantDynamic obj) {
+<span class="nc" id="L171">        stack.push(obj);</span>
+<span class="nc" id="L172">        obj.accept(visitor);</span>
+<span class="nc" id="L173">        stack.pop();</span>
+<span class="nc" id="L174">    }</span>
+
+    @Override
+    public void visitConstantFieldref(final ConstantFieldref constant) {
+<span class="nc" id="L178">        stack.push(constant);</span>
+<span class="nc" id="L179">        constant.accept(visitor);</span>
+<span class="nc" id="L180">        stack.pop();</span>
+<span class="nc" id="L181">    }</span>
+
+    @Override
+    public void visitConstantFloat(final ConstantFloat constant) {
+<span class="nc" id="L185">        stack.push(constant);</span>
+<span class="nc" id="L186">        constant.accept(visitor);</span>
+<span class="nc" id="L187">        stack.pop();</span>
+<span class="nc" id="L188">    }</span>
+
+    @Override
+    public void visitConstantInteger(final ConstantInteger constant) {
+<span class="nc" id="L192">        stack.push(constant);</span>
+<span class="nc" id="L193">        constant.accept(visitor);</span>
+<span class="nc" id="L194">        stack.pop();</span>
+<span class="nc" id="L195">    }</span>
+
+    @Override
+    public void visitConstantInterfaceMethodref(final ConstantInterfaceMethodref constant) {
+<span class="nc" id="L199">        stack.push(constant);</span>
+<span class="nc" id="L200">        constant.accept(visitor);</span>
+<span class="nc" id="L201">        stack.pop();</span>
+<span class="nc" id="L202">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitConstantInvokeDynamic(final ConstantInvokeDynamic constant) {
+<span class="nc" id="L209">        stack.push(constant);</span>
+<span class="nc" id="L210">        constant.accept(visitor);</span>
+<span class="nc" id="L211">        stack.pop();</span>
+<span class="nc" id="L212">    }</span>
+
+    @Override
+    public void visitConstantLong(final ConstantLong constant) {
+<span class="nc" id="L216">        stack.push(constant);</span>
+<span class="nc" id="L217">        constant.accept(visitor);</span>
+<span class="nc" id="L218">        stack.pop();</span>
+<span class="nc" id="L219">    }</span>
+
+    /** @since 6.0 */
+    @Override
+    public void visitConstantMethodHandle(final ConstantMethodHandle obj) {
+<span class="nc" id="L224">        stack.push(obj);</span>
+<span class="nc" id="L225">        obj.accept(visitor);</span>
+<span class="nc" id="L226">        stack.pop();</span>
+<span class="nc" id="L227">    }</span>
+
+    @Override
+    public void visitConstantMethodref(final ConstantMethodref constant) {
+<span class="nc" id="L231">        stack.push(constant);</span>
+<span class="nc" id="L232">        constant.accept(visitor);</span>
+<span class="nc" id="L233">        stack.pop();</span>
+<span class="nc" id="L234">    }</span>
+
+    /** @since 6.0 */
+    @Override
+    public void visitConstantMethodType(final ConstantMethodType obj) {
+<span class="nc" id="L239">        stack.push(obj);</span>
+<span class="nc" id="L240">        obj.accept(visitor);</span>
+<span class="nc" id="L241">        stack.pop();</span>
+<span class="nc" id="L242">    }</span>
+
+    /** @since 6.1 */
+    @Override
+    public void visitConstantModule(final ConstantModule obj) {
+<span class="nc" id="L247">        stack.push(obj);</span>
+<span class="nc" id="L248">        obj.accept(visitor);</span>
+<span class="nc" id="L249">        stack.pop();</span>
+<span class="nc" id="L250">    }</span>
+
+    @Override
+    public void visitConstantNameAndType(final ConstantNameAndType constant) {
+<span class="nc" id="L254">        stack.push(constant);</span>
+<span class="nc" id="L255">        constant.accept(visitor);</span>
+<span class="nc" id="L256">        stack.pop();</span>
+<span class="nc" id="L257">    }</span>
+
+    /** @since 6.1 */
+    @Override
+    public void visitConstantPackage(final ConstantPackage obj) {
+<span class="nc" id="L262">        stack.push(obj);</span>
+<span class="nc" id="L263">        obj.accept(visitor);</span>
+<span class="nc" id="L264">        stack.pop();</span>
+<span class="nc" id="L265">    }</span>
+
+    @Override
+    public void visitConstantPool(final ConstantPool cp) {
+<span class="nc" id="L269">        stack.push(cp);</span>
+<span class="nc" id="L270">        cp.accept(visitor);</span>
+<span class="nc" id="L271">        Stream.of(cp.getConstantPool()).filter(Objects::nonNull).forEach(e -&gt; e.accept(this));</span>
+<span class="nc" id="L272">        stack.pop();</span>
+<span class="nc" id="L273">    }</span>
+
+    @Override
+    public void visitConstantString(final ConstantString constant) {
+<span class="nc" id="L277">        stack.push(constant);</span>
+<span class="nc" id="L278">        constant.accept(visitor);</span>
+<span class="nc" id="L279">        stack.pop();</span>
+<span class="nc" id="L280">    }</span>
+
+    @Override
+    public void visitConstantUtf8(final ConstantUtf8 constant) {
+<span class="nc" id="L284">        stack.push(constant);</span>
+<span class="nc" id="L285">        constant.accept(visitor);</span>
+<span class="nc" id="L286">        stack.pop();</span>
+<span class="nc" id="L287">    }</span>
+
+    @Override
+    public void visitConstantValue(final ConstantValue cv) {
+<span class="nc" id="L291">        stack.push(cv);</span>
+<span class="nc" id="L292">        cv.accept(visitor);</span>
+<span class="nc" id="L293">        stack.pop();</span>
+<span class="nc" id="L294">    }</span>
+
+    @Override
+    public void visitDeprecated(final Deprecated attribute) {
+<span class="nc" id="L298">        stack.push(attribute);</span>
+<span class="nc" id="L299">        attribute.accept(visitor);</span>
+<span class="nc" id="L300">        stack.pop();</span>
+<span class="nc" id="L301">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitEnclosingMethod(final EnclosingMethod obj) {
+<span class="nc" id="L308">        stack.push(obj);</span>
+<span class="nc" id="L309">        obj.accept(visitor);</span>
+<span class="nc" id="L310">        stack.pop();</span>
+<span class="nc" id="L311">    }</span>
+
+    @Override
+    public void visitExceptionTable(final ExceptionTable table) {
+<span class="nc" id="L315">        stack.push(table);</span>
+<span class="nc" id="L316">        table.accept(visitor);</span>
+<span class="nc" id="L317">        stack.pop();</span>
+<span class="nc" id="L318">    }</span>
+
+    @Override
+    public void visitField(final Field field) {
+<span class="nc" id="L322">        stack.push(field);</span>
+<span class="nc" id="L323">        field.accept(visitor);</span>
+<span class="nc" id="L324">        accept(field.getAttributes());</span>
+<span class="nc" id="L325">        stack.pop();</span>
+<span class="nc" id="L326">    }</span>
+
+    @Override
+    public void visitInnerClass(final InnerClass inner) {
+<span class="nc" id="L330">        stack.push(inner);</span>
+<span class="nc" id="L331">        inner.accept(visitor);</span>
+<span class="nc" id="L332">        stack.pop();</span>
+<span class="nc" id="L333">    }</span>
+
+    @Override
+    public void visitInnerClasses(final InnerClasses ic) {
+<span class="nc" id="L337">        stack.push(ic);</span>
+<span class="nc" id="L338">        ic.accept(visitor);</span>
+<span class="nc" id="L339">        accept(ic.getInnerClasses());</span>
+<span class="nc" id="L340">        stack.pop();</span>
+<span class="nc" id="L341">    }</span>
+
+    @Override
+    public void visitJavaClass(final JavaClass clazz) {
+<span class="nc" id="L345">        stack.push(clazz);</span>
+<span class="nc" id="L346">        clazz.accept(visitor);</span>
+<span class="nc" id="L347">        accept(clazz.getFields());</span>
+<span class="nc" id="L348">        accept(clazz.getMethods());</span>
+<span class="nc" id="L349">        accept(clazz.getAttributes());</span>
+<span class="nc" id="L350">        clazz.getConstantPool().accept(this);</span>
+<span class="nc" id="L351">        stack.pop();</span>
+<span class="nc" id="L352">    }</span>
+
+    @Override
+    public void visitLineNumber(final LineNumber number) {
+<span class="nc" id="L356">        stack.push(number);</span>
+<span class="nc" id="L357">        number.accept(visitor);</span>
+<span class="nc" id="L358">        stack.pop();</span>
+<span class="nc" id="L359">    }</span>
+
+    @Override
+    public void visitLineNumberTable(final LineNumberTable table) {
+<span class="nc" id="L363">        stack.push(table);</span>
+<span class="nc" id="L364">        table.accept(visitor);</span>
+<span class="nc" id="L365">        accept(table.getLineNumberTable());</span>
+<span class="nc" id="L366">        stack.pop();</span>
+<span class="nc" id="L367">    }</span>
+
+    @Override
+    public void visitLocalVariable(final LocalVariable var) {
+<span class="nc" id="L371">        stack.push(var);</span>
+<span class="nc" id="L372">        var.accept(visitor);</span>
+<span class="nc" id="L373">        stack.pop();</span>
+<span class="nc" id="L374">    }</span>
+
+    @Override
+    public void visitLocalVariableTable(final LocalVariableTable table) {
+<span class="nc" id="L378">        stack.push(table);</span>
+<span class="nc" id="L379">        table.accept(visitor);</span>
+<span class="nc" id="L380">        accept(table.getLocalVariableTable());</span>
+<span class="nc" id="L381">        stack.pop();</span>
+<span class="nc" id="L382">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitLocalVariableTypeTable(final LocalVariableTypeTable obj) {
+<span class="nc" id="L389">        stack.push(obj);</span>
+<span class="nc" id="L390">        obj.accept(visitor);</span>
+<span class="nc" id="L391">        stack.pop();</span>
+<span class="nc" id="L392">    }</span>
+
+    @Override
+    public void visitMethod(final Method method) {
+<span class="nc" id="L396">        stack.push(method);</span>
+<span class="nc" id="L397">        method.accept(visitor);</span>
+<span class="nc" id="L398">        accept(method.getAttributes());</span>
+<span class="nc" id="L399">        stack.pop();</span>
+<span class="nc" id="L400">    }</span>
+
+    /**
+     * @since 6.4.0
+     */
+    @Override
+    public void visitMethodParameter(final MethodParameter obj) {
+<span class="nc" id="L407">        stack.push(obj);</span>
+<span class="nc" id="L408">        obj.accept(visitor);</span>
+<span class="nc" id="L409">        stack.pop();</span>
+<span class="nc" id="L410">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitMethodParameters(final MethodParameters obj) {
+<span class="nc" id="L417">        stack.push(obj);</span>
+<span class="nc" id="L418">        obj.accept(visitor);</span>
+<span class="nc" id="L419">        Stream.of(obj.getParameters()).forEach(e -&gt; e.accept(this));</span>
+<span class="nc" id="L420">        stack.pop();</span>
+<span class="nc" id="L421">    }</span>
+
+    /** @since 6.4.0 */
+    @Override
+    public void visitModule(final Module obj) {
+<span class="nc" id="L426">        stack.push(obj);</span>
+<span class="nc" id="L427">        obj.accept(visitor);</span>
+<span class="nc" id="L428">        accept(obj.getRequiresTable());</span>
+<span class="nc" id="L429">        accept(obj.getExportsTable());</span>
+<span class="nc" id="L430">        accept(obj.getOpensTable());</span>
+<span class="nc" id="L431">        accept(obj.getProvidesTable());</span>
+<span class="nc" id="L432">        stack.pop();</span>
+<span class="nc" id="L433">    }</span>
+
+    /** @since 6.4.0 */
+    @Override
+    public void visitModuleExports(final ModuleExports obj) {
+<span class="nc" id="L438">        stack.push(obj);</span>
+<span class="nc" id="L439">        obj.accept(visitor);</span>
+<span class="nc" id="L440">        stack.pop();</span>
+<span class="nc" id="L441">    }</span>
+
+    /** @since 6.4.0 */
+    @Override
+    public void visitModuleMainClass(final ModuleMainClass obj) {
+<span class="nc" id="L446">        stack.push(obj);</span>
+<span class="nc" id="L447">        obj.accept(visitor);</span>
+<span class="nc" id="L448">        stack.pop();</span>
+<span class="nc" id="L449">    }</span>
+
+    /** @since 6.4.0 */
+    @Override
+    public void visitModuleOpens(final ModuleOpens obj) {
+<span class="nc" id="L454">        stack.push(obj);</span>
+<span class="nc" id="L455">        obj.accept(visitor);</span>
+<span class="nc" id="L456">        stack.pop();</span>
+<span class="nc" id="L457">    }</span>
+
+    /** @since 6.4.0 */
+    @Override
+    public void visitModulePackages(final ModulePackages obj) {
+<span class="nc" id="L462">        stack.push(obj);</span>
+<span class="nc" id="L463">        obj.accept(visitor);</span>
+<span class="nc" id="L464">        stack.pop();</span>
+<span class="nc" id="L465">    }</span>
+
+    /** @since 6.4.0 */
+    @Override
+    public void visitModuleProvides(final ModuleProvides obj) {
+<span class="nc" id="L470">        stack.push(obj);</span>
+<span class="nc" id="L471">        obj.accept(visitor);</span>
+<span class="nc" id="L472">        stack.pop();</span>
+<span class="nc" id="L473">    }</span>
+
+    /** @since 6.4.0 */
+    @Override
+    public void visitModuleRequires(final ModuleRequires obj) {
+<span class="nc" id="L478">        stack.push(obj);</span>
+<span class="nc" id="L479">        obj.accept(visitor);</span>
+<span class="nc" id="L480">        stack.pop();</span>
+<span class="nc" id="L481">    }</span>
+
+    /** @since 6.4.0 */
+    @Override
+    public void visitNestHost(final NestHost obj) {
+<span class="nc" id="L486">        stack.push(obj);</span>
+<span class="nc" id="L487">        obj.accept(visitor);</span>
+<span class="nc" id="L488">        stack.pop();</span>
+<span class="nc" id="L489">    }</span>
+
+    /** @since 6.4.0 */
+    @Override
+    public void visitNestMembers(final NestMembers obj) {
+<span class="nc" id="L494">        stack.push(obj);</span>
+<span class="nc" id="L495">        obj.accept(visitor);</span>
+<span class="nc" id="L496">        stack.pop();</span>
+<span class="nc" id="L497">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitParameterAnnotation(final ParameterAnnotations obj) {
+<span class="nc" id="L504">        stack.push(obj);</span>
+<span class="nc" id="L505">        obj.accept(visitor);</span>
+<span class="nc" id="L506">        stack.pop();</span>
+<span class="nc" id="L507">    }</span>
+
+    /** @since 6.0 */
+    @Override
+    public void visitParameterAnnotationEntry(final ParameterAnnotationEntry obj) {
+<span class="nc" id="L512">        stack.push(obj);</span>
+<span class="nc" id="L513">        obj.accept(visitor);</span>
+<span class="nc" id="L514">        stack.pop();</span>
+<span class="nc" id="L515">    }</span>
+
+    /** @since 6.13.0 */
+    @Override
+    public void visitPermittedSubclasses(final PermittedSubclasses obj) {
+<span class="nc" id="L520">        stack.push(obj);</span>
+<span class="nc" id="L521">        obj.accept(visitor);</span>
+<span class="nc" id="L522">        stack.pop();</span>
+<span class="nc" id="L523">    }</span>
+
+    @Override
+    public void visitRecord(final Record record) {
+<span class="nc" id="L527">        stack.push(record);</span>
+<span class="nc" id="L528">        record.accept(visitor);</span>
+<span class="nc" id="L529">        accept(record.getComponents());</span>
+<span class="nc" id="L530">        stack.pop();</span>
+<span class="nc" id="L531">    }</span>
+
+    @Override
+    public void visitRecordComponent(final RecordComponentInfo recordComponentInfo) {
+<span class="nc" id="L535">        stack.push(recordComponentInfo);</span>
+<span class="nc" id="L536">        recordComponentInfo.accept(visitor);</span>
+<span class="nc" id="L537">        stack.pop();</span>
+<span class="nc" id="L538">    }</span>
+
+    @Override
+    public void visitSignature(final Signature attribute) {
+<span class="nc" id="L542">        stack.push(attribute);</span>
+<span class="nc" id="L543">        attribute.accept(visitor);</span>
+<span class="nc" id="L544">        stack.pop();</span>
+<span class="nc" id="L545">    }</span>
+
+    @Override
+    public void visitSourceFile(final SourceFile attribute) {
+<span class="nc" id="L549">        stack.push(attribute);</span>
+<span class="nc" id="L550">        attribute.accept(visitor);</span>
+<span class="nc" id="L551">        stack.pop();</span>
+<span class="nc" id="L552">    }</span>
+
+    @Override
+    public void visitStackMap(final StackMap table) {
+<span class="nc" id="L556">        stack.push(table);</span>
+<span class="nc" id="L557">        table.accept(visitor);</span>
+<span class="nc" id="L558">        accept(table.getStackMap());</span>
+<span class="nc" id="L559">        stack.pop();</span>
+<span class="nc" id="L560">    }</span>
+
+    @Override
+    public void visitStackMapEntry(final StackMapEntry var) {
+<span class="nc" id="L564">        stack.push(var);</span>
+<span class="nc" id="L565">        var.accept(visitor);</span>
+<span class="nc" id="L566">        accept(var.getTypesOfLocals());</span>
+<span class="nc" id="L567">        accept(var.getTypesOfStackItems());</span>
+<span class="nc" id="L568">        stack.pop();</span>
+<span class="nc" id="L569">    }</span>
+
+    /**
+     * Visits a {@link StackMapType} object.
+     *
+     * @param var object to visit.
+     * @since 6.8.0
+     */
+    @Override
+    public void visitStackMapType(final StackMapType var) {
+<span class="nc" id="L579">        stack.push(var);</span>
+<span class="nc" id="L580">        var.accept(visitor);</span>
+<span class="nc" id="L581">        stack.pop();</span>
+<span class="nc" id="L582">    }</span>
+
+    @Override
+    public void visitSynthetic(final Synthetic attribute) {
+<span class="nc" id="L586">        stack.push(attribute);</span>
+<span class="nc" id="L587">        attribute.accept(visitor);</span>
+<span class="nc" id="L588">        stack.pop();</span>
+<span class="nc" id="L589">    }</span>
+
+    @Override
+    public void visitUnknown(final Unknown attribute) {
+<span class="nc" id="L593">        stack.push(attribute);</span>
+<span class="nc" id="L594">        attribute.accept(visitor);</span>
+<span class="nc" id="L595">        stack.pop();</span>
+<span class="nc" id="L596">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

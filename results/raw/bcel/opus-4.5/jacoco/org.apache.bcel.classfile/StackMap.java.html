@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StackMap.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">StackMap.java</span></div><h1>StackMap.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.classfile;
+
+import java.io.DataInput;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Arrays;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.util.Args;
+
+/**
+ * This class represents a stack map attribute used for preverification of Java classes for the
+ * &lt;a href=&quot;https://java.sun.com/j2me/&quot;&gt; Java 2 Micro Edition&lt;/a&gt; (J2ME). This attribute is used by the
+ * &lt;a href=&quot;https://java.sun.com/products/cldc/&quot;&gt;KVM&lt;/a&gt; and contained within the Code attribute of a method. See CLDC
+ * specification �5.3.1.2
+ *
+ * &lt;pre&gt;
+ * StackMapTable_attribute {
+ *   u2              attribute_name_index;
+ *   u4              attribute_length;
+ *   u2              number_of_entries;
+ *   stack_map_frame entries[number_of_entries];
+ * }
+ * &lt;/pre&gt;
+ *
+ * @see Code
+ * @see StackMapEntry
+ * @see StackMapType
+ */
+public final class StackMap extends Attribute {
+
+    private StackMapEntry[] table; // Table of stack map entries
+
+    /**
+     * Constructs object from input stream.
+     *
+     * @param nameIndex Index of name.
+     * @param length Content length in bytes.
+     * @param dataInput Input stream.
+     * @param constantPool Array of constants.
+     * @throws IOException if an I/O error occurs.
+     */
+    StackMap(final int nameIndex, final int length, final DataInput dataInput, final ConstantPool constantPool) throws IOException {
+<span class="fc" id="L62">        this(nameIndex, length, (StackMapEntry[]) null, constantPool);</span>
+<span class="fc" id="L63">        final int mapLength = dataInput.readUnsignedShort();</span>
+<span class="fc" id="L64">        table = new StackMapEntry[mapLength];</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        for (int i = 0; i &lt; mapLength; i++) {</span>
+<span class="fc" id="L66">            table[i] = new StackMapEntry(dataInput, constantPool);</span>
+        }
+<span class="fc" id="L68">    }</span>
+
+    /**
+     * Constructs a StackMap.
+     *
+     * @param nameIndex Index of name.
+     * @param length Content length in bytes.
+     * @param table Table of stack map entries.
+     * @param constantPool Array of constants.
+     */
+    public StackMap(final int nameIndex, final int length, final StackMapEntry[] table, final ConstantPool constantPool) {
+<span class="fc" id="L79">        super(Const.ATTR_STACK_MAP, nameIndex, length, constantPool);</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">        this.table = table != null ? table : StackMapEntry.EMPTY_ARRAY;</span>
+<span class="fc" id="L81">        Args.requireU2(this.table.length, &quot;table.length&quot;);</span>
+<span class="fc" id="L82">    }</span>
+
+    /**
+     * Called by objects that are traversing the nodes of the tree implicitly defined by the contents of a Java class.
+     * I.e., the hierarchy of methods, fields, attributes, etc. spawns a tree of objects.
+     *
+     * @param v Visitor object.
+     */
+    @Override
+    public void accept(final Visitor v) {
+<span class="fc" id="L92">        v.visitStackMap(this);</span>
+<span class="fc" id="L93">    }</span>
+
+    /**
+     * @return deep copy of this attribute.
+     */
+    @Override
+    public Attribute copy(final ConstantPool constantPool) {
+<span class="fc" id="L100">        final StackMap c = (StackMap) clone();</span>
+<span class="fc" id="L101">        c.table = new StackMapEntry[table.length];</span>
+<span class="fc" id="L102">        Arrays.setAll(c.table, i -&gt; table[i].copy());</span>
+<span class="fc" id="L103">        c.setConstantPool(constantPool);</span>
+<span class="fc" id="L104">        return c;</span>
+    }
+
+    /**
+     * Dumps stack map table attribute to file stream in binary format.
+     *
+     * @param file Output file stream.
+     * @throws IOException if an I/O error occurs.
+     */
+    @Override
+    public void dump(final DataOutputStream file) throws IOException {
+<span class="fc" id="L115">        super.dump(file);</span>
+<span class="fc" id="L116">        file.writeShort(table.length);</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">        for (final StackMapEntry entry : table) {</span>
+<span class="fc" id="L118">            entry.dump(file);</span>
+        }
+<span class="fc" id="L120">    }</span>
+
+    /**
+     * Gets the map length.
+     *
+     * @return the map length.
+     */
+    public int getMapLength() {
+<span class="fc" id="L128">        return table.length;</span>
+    }
+
+    /**
+     * Gets the stack map.
+     *
+     * @return Array of stack map entries.
+     */
+    public StackMapEntry[] getStackMap() {
+<span class="fc" id="L137">        return table;</span>
+    }
+
+    /**
+     * Sets the stack map.
+     *
+     * @param table Array of stack map entries.
+     */
+    public void setStackMap(final StackMapEntry[] table) {
+<span class="fc bfc" id="L146" title="All 2 branches covered.">        this.table = table != null ? table : StackMapEntry.EMPTY_ARRAY;</span>
+<span class="fc" id="L147">        int len = 2; // Length of 'number_of_entries' field prior to the array of stack maps</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">        for (final StackMapEntry element : this.table) {</span>
+<span class="fc" id="L149">            len += element.getMapEntrySize();</span>
+        }
+<span class="fc" id="L151">        setLength(len);</span>
+<span class="fc" id="L152">    }</span>
+
+    /**
+     * @return String representation.
+     */
+    @Override
+    public String toString() {
+<span class="fc" id="L159">        final StringBuilder buf = new StringBuilder(&quot;StackMap(&quot;);</span>
+<span class="fc" id="L160">        int runningOffset = -1; // no +1 on first entry</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">        for (int i = 0; i &lt; table.length; i++) {</span>
+<span class="fc" id="L162">            runningOffset = table[i].getByteCodeOffset() + runningOffset + 1;</span>
+<span class="fc" id="L163">            buf.append(String.format(&quot;%n@%03d %s&quot;, runningOffset, table[i]));</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">            if (i &lt; table.length - 1) {</span>
+<span class="fc" id="L165">                buf.append(&quot;, &quot;);</span>
+            }
+        }
+<span class="fc" id="L168">        buf.append(')');</span>
+<span class="fc" id="L169">        return buf.toString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

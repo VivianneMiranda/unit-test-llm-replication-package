@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Attribute.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">Attribute.java</span></div><h1>Attribute.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.classfile;
+
+import java.io.DataInput;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.util.Args;
+
+/**
+ * Abstract super class for &lt;em&gt;Attribute&lt;/em&gt; objects. Currently the &lt;em&gt;ConstantValue&lt;/em&gt;, &lt;em&gt;SourceFile&lt;/em&gt;, &lt;em&gt;Code&lt;/em&gt;, &lt;em&gt;Exceptiontable&lt;/em&gt;,
+ * &lt;em&gt;LineNumberTable&lt;/em&gt;, &lt;em&gt;LocalVariableTable&lt;/em&gt;, &lt;em&gt;InnerClasses&lt;/em&gt; and &lt;em&gt;Synthetic&lt;/em&gt; attributes are supported. The &lt;em&gt;Unknown&lt;/em&gt; attribute
+ * stands for non-standard-attributes.
+ *
+ * &lt;pre&gt;
+ * attribute_info {
+ *   u2 attribute_name_index;
+ *   u4 attribute_length;
+ *   u1 info[attribute_length];
+ * }
+ * &lt;/pre&gt;
+ *
+ * @see ConstantValue
+ * @see SourceFile
+ * @see Code
+ * @see Unknown
+ * @see ExceptionTable
+ * @see LineNumberTable
+ * @see LocalVariableTable
+ * @see InnerClasses
+ * @see Synthetic
+ * @see Deprecated
+ * @see Signature
+ */
+public abstract class Attribute implements Cloneable, Node {
+
+<span class="fc" id="L58">    private static final boolean debug = Boolean.getBoolean(Attribute.class.getCanonicalName() + &quot;.debug&quot;); // Debugging on/off</span>
+
+<span class="fc" id="L60">    private static final Map&lt;String, Object&gt; READERS = new HashMap&lt;&gt;();</span>
+
+    /**
+     * Empty array.
+     *
+     * @since 6.6.0
+     */
+<span class="fc" id="L67">    public static final Attribute[] EMPTY_ARRAY = {};</span>
+
+    /**
+     * Add an Attribute reader capable of parsing (user-defined) attributes named &quot;name&quot;. You should not add readers for the
+     * standard attributes such as &quot;LineNumberTable&quot;, because those are handled internally.
+     *
+     * @param name the name of the attribute as stored in the class file.
+     * @param attributeReader the reader object.
+     * @deprecated (6.0) Use {@link #addAttributeReader(String, UnknownAttributeReader)} instead.
+     */
+    @java.lang.Deprecated
+    public static void addAttributeReader(final String name, final AttributeReader attributeReader) {
+<span class="nc" id="L79">        READERS.put(name, attributeReader);</span>
+<span class="nc" id="L80">    }</span>
+
+    /**
+     * Add an Attribute reader capable of parsing (user-defined) attributes named &quot;name&quot;. You should not add readers for the
+     * standard attributes such as &quot;LineNumberTable&quot;, because those are handled internally.
+     *
+     * @param name the name of the attribute as stored in the class file.
+     * @param unknownAttributeReader the reader object.
+     */
+    public static void addAttributeReader(final String name, final UnknownAttributeReader unknownAttributeReader) {
+<span class="nc" id="L90">        READERS.put(name, unknownAttributeReader);</span>
+<span class="nc" id="L91">    }</span>
+
+    /**
+     * Prints a message to stderr if debug mode is enabled.
+     *
+     * @param msg the message to print.
+     */
+    protected static void println(final String msg) {
+<span class="nc bnc" id="L99" title="All 2 branches missed.">        if (debug) {</span>
+<span class="nc" id="L100">            System.err.println(msg);</span>
+        }
+<span class="nc" id="L102">    }</span>
+
+    /**
+     * Class method reads one attribute from the input data stream. This method must not be accessible from the outside. It
+     * is called by the Field and Method constructor methods.
+     *
+     * @see Field
+     * @see Method
+     * @param dataInput Input stream.
+     * @param constantPool Array of constants.
+     * @return Attribute.
+     * @throws IOException if an I/O error occurs.
+     * @since 6.0
+     */
+    public static Attribute readAttribute(final DataInput dataInput, final ConstantPool constantPool) throws IOException {
+<span class="fc" id="L117">        byte tag = Const.ATTR_UNKNOWN; // Unknown attribute</span>
+        // Get class name from constant pool via 'name_index' indirection
+<span class="fc" id="L119">        final int nameIndex = dataInput.readUnsignedShort();</span>
+<span class="fc" id="L120">        final String name = constantPool.getConstantUtf8(nameIndex).getBytes();</span>
+
+        // Length of data in bytes
+<span class="fc" id="L123">        final int length = dataInput.readInt();</span>
+
+        // Compare strings to find known attribute
+<span class="fc bfc" id="L126" title="All 2 branches covered.">        for (byte i = 0; i &lt; Const.KNOWN_ATTRIBUTES; i++) {</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">            if (name.equals(Const.getAttributeName(i))) {</span>
+<span class="fc" id="L128">                tag = i; // found!</span>
+<span class="fc" id="L129">                break;</span>
+            }
+        }
+
+        // Call proper constructor, depending on 'tag'
+<span class="pc bpc" id="L134" title="4 of 31 branches missed.">        switch (tag) {</span>
+        case Const.ATTR_UNKNOWN:
+<span class="fc" id="L136">            final Object r = READERS.get(name);</span>
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">            if (r instanceof UnknownAttributeReader) {</span>
+<span class="nc" id="L138">                return ((UnknownAttributeReader) r).createAttribute(nameIndex, length, dataInput, constantPool);</span>
+            }
+<span class="fc" id="L140">            return new Unknown(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_CONSTANT_VALUE:
+<span class="fc" id="L142">            return new ConstantValue(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_SOURCE_FILE:
+<span class="fc" id="L144">            return new SourceFile(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_CODE:
+<span class="fc" id="L146">            return new Code(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_EXCEPTIONS:
+<span class="fc" id="L148">            return new ExceptionTable(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_LINE_NUMBER_TABLE:
+<span class="fc" id="L150">            return new LineNumberTable(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_LOCAL_VARIABLE_TABLE:
+<span class="fc" id="L152">            return new LocalVariableTable(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_INNER_CLASSES:
+<span class="fc" id="L154">            return new InnerClasses(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_SYNTHETIC:
+<span class="fc" id="L156">            return new Synthetic(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_DEPRECATED:
+<span class="fc" id="L158">            return new Deprecated(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_PMG:
+<span class="nc" id="L160">            return new PMGClass(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_SIGNATURE:
+<span class="fc" id="L162">            return new Signature(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_STACK_MAP:
+            // old style stack map: unneeded for JDK5 and below;
+            // illegal(?) for JDK6 and above. So just delete with a warning.
+<span class="nc" id="L166">            println(&quot;Warning: Obsolete StackMap attribute ignored.&quot;);</span>
+<span class="nc" id="L167">            return new Unknown(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_RUNTIME_VISIBLE_ANNOTATIONS:
+<span class="fc" id="L169">            return new RuntimeVisibleAnnotations(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_RUNTIME_INVISIBLE_ANNOTATIONS:
+<span class="fc" id="L171">            return new RuntimeInvisibleAnnotations(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS:
+<span class="fc" id="L173">            return new RuntimeVisibleParameterAnnotations(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_RUNTIME_INVISIBLE_PARAMETER_ANNOTATIONS:
+<span class="fc" id="L175">            return new RuntimeInvisibleParameterAnnotations(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_ANNOTATION_DEFAULT:
+<span class="fc" id="L177">            return new AnnotationDefault(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_LOCAL_VARIABLE_TYPE_TABLE:
+<span class="fc" id="L179">            return new LocalVariableTypeTable(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_ENCLOSING_METHOD:
+<span class="fc" id="L181">            return new EnclosingMethod(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_STACK_MAP_TABLE:
+            // read new style stack map: StackMapTable. The rest of the code
+            // calls this a StackMap for historical reasons.
+<span class="fc" id="L185">            return new StackMap(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_BOOTSTRAP_METHODS:
+<span class="fc" id="L187">            return new BootstrapMethods(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_METHOD_PARAMETERS:
+<span class="fc" id="L189">            return new MethodParameters(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_MODULE:
+<span class="fc" id="L191">            return new Module(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_MODULE_PACKAGES:
+<span class="fc" id="L193">            return new ModulePackages(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_MODULE_MAIN_CLASS:
+<span class="nc" id="L195">            return new ModuleMainClass(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_NEST_HOST:
+<span class="fc" id="L197">            return new NestHost(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_NEST_MEMBERS:
+<span class="fc" id="L199">            return new NestMembers(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_RECORD:
+<span class="fc" id="L201">            return new Record(nameIndex, length, dataInput, constantPool);</span>
+        case Const.ATTR_PERMITTED_SUBCLASSES:
+<span class="fc" id="L203">            return new PermittedSubclasses(nameIndex, length, dataInput, constantPool);</span>
+        default:
+            // Never reached
+<span class="nc" id="L206">            throw new IllegalStateException(&quot;Unrecognized attribute type tag parsed: &quot; + tag);</span>
+        }
+    }
+
+    /**
+     * Class method reads one attribute from the input data stream. This method must not be accessible from the outside. It
+     * is called by the Field and Method constructor methods.
+     *
+     * @see Field
+     * @see Method
+     * @param dataInputStream Input stream.
+     * @param constantPool Array of constants.
+     * @return Attribute.
+     * @throws IOException if an I/O error occurs.
+     */
+    public static Attribute readAttribute(final DataInputStream dataInputStream, final ConstantPool constantPool) throws IOException {
+<span class="fc" id="L222">        return readAttribute((DataInput) dataInputStream, constantPool);</span>
+    }
+
+    /**
+     * Remove attribute reader
+     *
+     * @param name the name of the attribute as stored in the class file.
+     */
+    public static void removeAttributeReader(final String name) {
+<span class="nc" id="L231">        READERS.remove(name);</span>
+<span class="nc" id="L232">    }</span>
+
+    /**
+     * @deprecated (since 6.0) will be made private; do not access directly, use getter/setter.
+     */
+    @java.lang.Deprecated
+    protected int name_index; // Points to attribute name in constant pool TODO make private (has getter &amp; setter)
+
+    /**
+     * @deprecated (since 6.0) (since 6.0) will be made private; do not access directly, use getter/setter.
+     */
+    @java.lang.Deprecated
+    protected int length; // Content length of attribute field TODO make private (has getter &amp; setter).
+
+    /**
+     * @deprecated (since 6.0) will be made private; do not access directly, use getter/setter.
+     */
+    @java.lang.Deprecated
+    protected byte tag; // Tag to distinguish subclasses TODO make private &amp; final; supposed to be immutable.
+
+    /**
+     * @deprecated (since 6.0) will be made private; do not access directly, use getter/setter.
+     */
+    @java.lang.Deprecated
+    protected ConstantPool constant_pool; // TODO make private (has getter &amp; setter).
+
+    /**
+     * Constructs an instance.
+     *
+     * &lt;pre&gt;
+     * attribute_info {
+     *   u2 attribute_name_index;
+     *   u4 attribute_length;
+     *   u1 info[attribute_length];
+     * }
+     * &lt;/pre&gt;
+     *
+     * @param tag tag.
+     * @param nameIndex u2 name index.
+     * @param length u4 length.
+     * @param constantPool constant pool.
+     */
+<span class="fc" id="L274">    protected Attribute(final byte tag, final int nameIndex, final int length, final ConstantPool constantPool) {</span>
+<span class="fc" id="L275">        this.tag = tag;</span>
+<span class="fc" id="L276">        this.name_index = Args.requireU2(nameIndex, 0, constantPool.getLength(), getClass().getSimpleName() + &quot; name index&quot;);</span>
+<span class="fc" id="L277">        this.length = Args.requireU4(length, getClass().getSimpleName() + &quot; attribute length&quot;);</span>
+<span class="fc" id="L278">        this.constant_pool = constantPool;</span>
+<span class="fc" id="L279">    }</span>
+
+    /**
+     * Called by objects that are traversing the nodes of the tree implicitly defined by the contents of a Java class.
+     * I.e., the hierarchy of methods, fields, attributes, etc. spawns a tree of objects.
+     *
+     * @param v Visitor object.
+     */
+    @Override
+    public abstract void accept(Visitor v);
+
+    /**
+     * Use copy() if you want to have a deep copy(), that is, with all references copied correctly.
+     *
+     * @return shallow copy of this attribute.
+     */
+    @Override
+    public Object clone() {
+<span class="fc" id="L297">        Attribute attr = null;</span>
+        try {
+<span class="fc" id="L299">            attr = (Attribute) super.clone();</span>
+<span class="nc" id="L300">        } catch (final CloneNotSupportedException e) {</span>
+<span class="nc" id="L301">            throw new UnsupportedOperationException(&quot;Clone Not Supported&quot;, e); // never happens</span>
+<span class="fc" id="L302">        }</span>
+<span class="fc" id="L303">        return attr;</span>
+    }
+
+    /**
+     * Creates a deep copy of this attribute.
+     *
+     * @param constantPool constant pool to save.
+     * @return deep copy of this attribute.
+     */
+    public abstract Attribute copy(ConstantPool constantPool);
+
+    /**
+     * Dumps attribute to file stream in binary format.
+     *
+     * @param file Output file stream.
+     * @throws IOException if an I/O error occurs.
+     */
+    public void dump(final DataOutputStream file) throws IOException {
+<span class="fc" id="L321">        file.writeShort(name_index);</span>
+<span class="fc" id="L322">        file.writeInt(length);</span>
+<span class="fc" id="L323">    }</span>
+
+    /**
+     * Gets the constant pool used by this object.
+     *
+     * @return Constant pool used by this object.
+     * @see ConstantPool
+     */
+    public final ConstantPool getConstantPool() {
+<span class="fc" id="L332">        return constant_pool;</span>
+    }
+
+    /**
+     * Gets the length of attribute field in bytes.
+     *
+     * @return Length of attribute field in bytes.
+     */
+    public final int getLength() {
+<span class="fc" id="L341">        return length;</span>
+    }
+
+    /**
+     * Gets the name of attribute.
+     *
+     * @return Name of attribute.
+     * @since 6.0
+     */
+    public String getName() {
+<span class="fc" id="L351">        return constant_pool.getConstantUtf8(name_index).getBytes();</span>
+    }
+
+    /**
+     * Gets the name index in constant pool of attribute name.
+     *
+     * @return Name index in constant pool of attribute name.
+     */
+    public final int getNameIndex() {
+<span class="fc" id="L360">        return name_index;</span>
+    }
+
+    /**
+     * Gets the tag of attribute, that is, its type.
+     *
+     * @return Tag of attribute, that is, its type. Value may not be altered, thus there is no setTag() method.
+     */
+    public final byte getTag() {
+<span class="fc" id="L369">        return tag;</span>
+    }
+
+    /**
+     * Sets the constant pool to be used for this object.
+     *
+     * @param constantPool Constant pool to be used for this object.
+     * @see ConstantPool
+     */
+    public final void setConstantPool(final ConstantPool constantPool) {
+<span class="fc" id="L379">        this.constant_pool = constantPool;</span>
+<span class="fc" id="L380">    }</span>
+
+    /**
+     * Sets the length in bytes.
+     *
+     * @param length length in bytes.
+     */
+    public final void setLength(final int length) {
+<span class="fc" id="L388">        this.length = length;</span>
+<span class="fc" id="L389">    }</span>
+
+    /**
+     * Sets the name index of attribute.
+     *
+     * @param nameIndex of attribute.
+     */
+    public final void setNameIndex(final int nameIndex) {
+<span class="nc" id="L397">        this.name_index = nameIndex;</span>
+<span class="nc" id="L398">    }</span>
+
+    /**
+     * @return attribute name.
+     */
+    @Override
+    public String toString() {
+<span class="fc" id="L405">        return Const.getAttributeName(tag);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

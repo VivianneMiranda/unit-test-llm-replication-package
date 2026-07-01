@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Signature.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">Signature.java</span></div><h1>Signature.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.classfile;
+
+import java.io.ByteArrayInputStream;
+import java.io.DataInput;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.util.Args;
+
+/**
+ * This class is derived from &lt;em&gt;Attribute&lt;/em&gt; and represents a reference to a GJ attribute.
+ *
+ * @see Attribute
+ */
+public final class Signature extends Attribute {
+
+    /**
+     * Extends ByteArrayInputStream to make 'unreading' chars possible.
+     */
+    private static final class MyByteArrayInputStream extends ByteArrayInputStream {
+
+        MyByteArrayInputStream(final String data) {
+<span class="nc" id="L44">            super(data.getBytes(StandardCharsets.UTF_8));</span>
+<span class="nc" id="L45">        }</span>
+
+        String getData() {
+<span class="nc" id="L48">            return new String(buf, StandardCharsets.UTF_8);</span>
+        }
+
+        void unread() {
+<span class="nc bnc" id="L52" title="All 2 branches missed.">            if (pos &gt; 0) {</span>
+<span class="nc" id="L53">                pos--;</span>
+            }
+<span class="nc" id="L55">        }</span>
+    }
+
+    private static boolean identStart(final int ch) {
+<span class="nc bnc" id="L59" title="All 4 branches missed.">        return ch == 'T' || ch == 'L';</span>
+    }
+
+    /**
+     * Tests if a string is an actual parameter list.
+     *
+     * @param s the string to test.
+     * @return true if the string is an actual parameter list.
+     * @since 6.0 is no longer final
+     */
+    public static boolean isActualParameterList(final String s) {
+<span class="pc bpc" id="L70" title="3 of 4 branches missed.">        return s.startsWith(&quot;L&quot;) &amp;&amp; s.endsWith(&quot;&gt;;&quot;);</span>
+    }
+
+    /**
+     * Tests if a string is a formal parameter list.
+     *
+     * @param s the string to test.
+     * @return true if the string is a formal parameter list.
+     * @since 6.0 is no longer final
+     */
+    public static boolean isFormalParameterList(final String s) {
+<span class="pc bpc" id="L81" title="3 of 4 branches missed.">        return s.startsWith(&quot;&lt;&quot;) &amp;&amp; s.indexOf(':') &gt; 0;</span>
+    }
+
+    private static void matchGJIdent(final MyByteArrayInputStream in, final StringBuilder buf) {
+        int ch;
+<span class="nc" id="L86">        matchIdent(in, buf);</span>
+<span class="nc" id="L87">        ch = in.read();</span>
+<span class="nc bnc" id="L88" title="All 4 branches missed.">        if (ch == '&lt;' || ch == '(') { // Parameterized or method</span>
+            // System.out.println(&quot;Enter &lt;&quot;);
+<span class="nc" id="L90">            buf.append((char) ch);</span>
+<span class="nc" id="L91">            matchGJIdent(in, buf);</span>
+<span class="nc bnc" id="L92" title="All 4 branches missed.">            while ((ch = in.read()) != '&gt;' &amp;&amp; ch != ')') { // List of parameters</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">                if (ch == -1) {</span>
+<span class="nc" id="L94">                    throw new IllegalArgumentException(&quot;Illegal signature: &quot; + in.getData() + &quot; reaching EOF&quot;);</span>
+                }
+                // System.out.println(&quot;Still no &gt;&quot;);
+<span class="nc" id="L97">                buf.append(&quot;, &quot;);</span>
+<span class="nc" id="L98">                in.unread();</span>
+<span class="nc" id="L99">                matchGJIdent(in, buf); // Recursive call</span>
+            }
+            // System.out.println(&quot;Exit &gt;&quot;);
+<span class="nc" id="L102">            buf.append((char) ch);</span>
+        } else {
+<span class="nc" id="L104">            in.unread();</span>
+        }
+<span class="nc" id="L106">        ch = in.read();</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        if (identStart(ch)) {</span>
+<span class="nc" id="L108">            in.unread();</span>
+<span class="nc" id="L109">            matchGJIdent(in, buf);</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        } else if (ch == ')') {</span>
+<span class="nc" id="L111">            in.unread();</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">        } else if (ch != ';') {</span>
+<span class="nc" id="L113">            throw new IllegalArgumentException(&quot;Illegal signature: &quot; + in.getData() + &quot; read &quot; + (char) ch);</span>
+        }
+<span class="nc" id="L115">    }</span>
+
+    private static void matchIdent(final MyByteArrayInputStream in, final StringBuilder buf) {
+        int ch;
+<span class="nc bnc" id="L119" title="All 2 branches missed.">        if ((ch = in.read()) == -1) {</span>
+<span class="nc" id="L120">            throw new IllegalArgumentException(&quot;Illegal signature: &quot; + in.getData() + &quot; no ident, reaching EOF&quot;);</span>
+        }
+        // System.out.println(&quot;return from ident:&quot; + (char) ch);
+<span class="nc bnc" id="L123" title="All 2 branches missed.">        if (!identStart(ch)) {</span>
+<span class="nc" id="L124">            final StringBuilder buf2 = new StringBuilder();</span>
+<span class="nc" id="L125">            int count = 1;</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">            while (Character.isJavaIdentifierPart((char) ch)) {</span>
+<span class="nc" id="L127">                buf2.append((char) ch);</span>
+<span class="nc" id="L128">                count++;</span>
+<span class="nc" id="L129">                ch = in.read();</span>
+            }
+<span class="nc bnc" id="L131" title="All 2 branches missed.">            if (ch == ':') { // Ok, formal parameter</span>
+<span class="nc" id="L132">                final int skipExpected = &quot;Ljava/lang/Object&quot;.length();</span>
+<span class="nc" id="L133">                final long skipActual = in.skip(skipExpected);</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">                if (skipActual != skipExpected) {</span>
+<span class="nc" id="L135">                    throw new IllegalStateException(String.format(&quot;Unexpected skip: expected=%,d, actual=%,d&quot;, skipExpected, skipActual));</span>
+                }
+<span class="nc" id="L137">                buf.append(buf2);</span>
+<span class="nc" id="L138">                ch = in.read();</span>
+<span class="nc" id="L139">                in.unread();</span>
+                // System.out.println(&quot;so far:&quot; + buf2 + &quot;:next:&quot; +(char) ch);
+<span class="nc" id="L141">            } else {</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">                for (int i = 0; i &lt; count; i++) {</span>
+<span class="nc" id="L143">                    in.unread();</span>
+                }
+            }
+<span class="nc" id="L146">            return;</span>
+        }
+<span class="nc" id="L148">        final StringBuilder buf2 = new StringBuilder();</span>
+<span class="nc" id="L149">        ch = in.read();</span>
+        do {
+<span class="nc" id="L151">            buf2.append((char) ch);</span>
+<span class="nc" id="L152">            ch = in.read();</span>
+            // System.out.println(&quot;within ident:&quot;+ (char) ch);
+<span class="nc bnc" id="L154" title="All 6 branches missed.">        } while (ch != -1 &amp;&amp; (Character.isJavaIdentifierPart((char) ch) || ch == '/'));</span>
+<span class="nc" id="L155">        buf.append(Utility.pathToPackage(buf2.toString()));</span>
+        // System.out.println(&quot;regular return ident:&quot;+ (char) ch + &quot;:&quot; + buf2);
+<span class="nc bnc" id="L157" title="All 2 branches missed.">        if (ch != -1) {</span>
+<span class="nc" id="L158">            in.unread();</span>
+        }
+<span class="nc" id="L160">    }</span>
+
+    /**
+     * Translates a signature string.
+     *
+     * @param s the signature string.
+     * @return the translated signature.
+     */
+    public static String translate(final String s) {
+        // System.out.println(&quot;Sig:&quot; + s);
+<span class="nc" id="L170">        final StringBuilder buf = new StringBuilder();</span>
+<span class="nc" id="L171">        matchGJIdent(new MyByteArrayInputStream(s), buf);</span>
+<span class="nc" id="L172">        return buf.toString();</span>
+    }
+
+    private int signatureIndex;
+
+    /**
+     * Constructs object from file stream.
+     *
+     * @param nameIndex Index in constant pool to CONSTANT_Utf8.
+     * @param length Content length in bytes.
+     * @param input Input stream.
+     * @param constantPool Array of constants.
+     * @throws IOException if an I/O error occurs.
+     */
+    Signature(final int nameIndex, final int length, final DataInput input, final ConstantPool constantPool) throws IOException {
+<span class="nc" id="L187">        this(nameIndex, length, input.readUnsignedShort(), constantPool);</span>
+<span class="nc" id="L188">    }</span>
+
+    /**
+     * Constructs a Signature.
+     *
+     * @param nameIndex Index in constant pool to CONSTANT_Utf8.
+     * @param length Content length in bytes.
+     * @param signatureIndex Index in constant pool to CONSTANT_Utf8.
+     * @param constantPool Array of constants.
+     */
+    public Signature(final int nameIndex, final int length, final int signatureIndex, final ConstantPool constantPool) {
+<span class="nc" id="L199">        super(Const.ATTR_SIGNATURE, nameIndex, Args.require(length, 2, &quot;Signature length attribute&quot;), constantPool);</span>
+<span class="nc" id="L200">        this.signatureIndex = signatureIndex;</span>
+        // validate:
+<span class="nc" id="L202">        Objects.requireNonNull(constantPool.getConstantUtf8(signatureIndex), &quot;constantPool.getConstantUtf8(signatureIndex)&quot;);</span>
+<span class="nc" id="L203">    }</span>
+
+    /**
+     * Initialize from another object. Note that both objects use the same references (shallow copy). Use clone() for a
+     * physical copy.
+     *
+     * @param c Source to copy.
+     */
+    public Signature(final Signature c) {
+<span class="nc" id="L212">        this(c.getNameIndex(), c.getLength(), c.getSignatureIndex(), c.getConstantPool());</span>
+<span class="nc" id="L213">    }</span>
+
+    /**
+     * Called by objects that are traversing the nodes of the tree implicitly defined by the contents of a Java class.
+     * I.e., the hierarchy of methods, fields, attributes, etc. spawns a tree of objects.
+     *
+     * @param v Visitor object.
+     */
+    @Override
+    public void accept(final Visitor v) {
+        // System.err.println(&quot;Visiting non-standard Signature object&quot;);
+<span class="nc" id="L224">        v.visitSignature(this);</span>
+<span class="nc" id="L225">    }</span>
+
+    /**
+     * @return deep copy of this attribute.
+     */
+    @Override
+    public Attribute copy(final ConstantPool constantPool) {
+<span class="nc" id="L232">        return (Attribute) clone();</span>
+    }
+
+    /**
+     * Dumps source file attribute to file stream in binary format.
+     *
+     * @param file Output file stream.
+     * @throws IOException if an I/O error occurs.
+     */
+    @Override
+    public void dump(final DataOutputStream file) throws IOException {
+<span class="nc" id="L243">        super.dump(file);</span>
+<span class="nc" id="L244">        file.writeShort(signatureIndex);</span>
+<span class="nc" id="L245">    }</span>
+
+    /**
+     * Gets the GJ signature.
+     *
+     * @return GJ signature.
+     */
+    public String getSignature() {
+<span class="nc" id="L253">        return super.getConstantPool().getConstantUtf8(signatureIndex).getBytes();</span>
+    }
+
+    /**
+     * Gets the signature index.
+     *
+     * @return Index in constant pool of source file name.
+     */
+    public int getSignatureIndex() {
+<span class="nc" id="L262">        return signatureIndex;</span>
+    }
+
+    /**
+     * Sets the signature index.
+     *
+     * @param signatureIndex the index info the constant pool of this signature.
+     */
+    public void setSignatureIndex(final int signatureIndex) {
+<span class="nc" id="L271">        this.signatureIndex = signatureIndex;</span>
+<span class="nc" id="L272">    }</span>
+
+    /**
+     * @return String representation.
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L279">        return &quot;Signature: &quot; + getSignature();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

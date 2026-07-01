@@ -1,0 +1,804 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConstantPoolGen.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">ConstantPoolGen.java</span></div><h1>ConstantPoolGen.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.classfile.Constant;
+import org.apache.bcel.classfile.ConstantCP;
+import org.apache.bcel.classfile.ConstantClass;
+import org.apache.bcel.classfile.ConstantDouble;
+import org.apache.bcel.classfile.ConstantDynamic;
+import org.apache.bcel.classfile.ConstantFieldref;
+import org.apache.bcel.classfile.ConstantFloat;
+import org.apache.bcel.classfile.ConstantInteger;
+import org.apache.bcel.classfile.ConstantInterfaceMethodref;
+import org.apache.bcel.classfile.ConstantInvokeDynamic;
+import org.apache.bcel.classfile.ConstantLong;
+import org.apache.bcel.classfile.ConstantMethodref;
+import org.apache.bcel.classfile.ConstantNameAndType;
+import org.apache.bcel.classfile.ConstantPool;
+import org.apache.bcel.classfile.ConstantString;
+import org.apache.bcel.classfile.ConstantUtf8;
+import org.apache.bcel.classfile.Utility;
+
+/**
+ * This class is used to build up a constant pool. The user adds constants via 'addXXX' methods, 'addString', 'addClass', and so on. These methods return an
+ * index into the constant pool. Finally, 'getFinalConstantPool()' returns the constant pool built up. Intermediate versions of the constant pool can be
+ * obtained with 'getConstantPool()'. A constant pool has capacity for Constants.MAX_SHORT entries. Note that the first (0) is used by the JVM and that Double
+ * and Long constants need two slots.
+ *
+ * @see Constant
+ */
+public class ConstantPoolGen {
+
+    private static final int DEFAULT_BUFFER_SIZE = 256;
+
+    private static final String METHODREF_DELIM = &quot;:&quot;;
+
+    private static final String IMETHODREF_DELIM = &quot;#&quot;;
+
+    private static final String FIELDREF_DELIM = &quot;&amp;&quot;;
+
+    private static final String NAT_DELIM = &quot;%&quot;; // Name and Type
+
+    /**
+     * @deprecated (since 6.0) will be made private; do not access directly, use getter/setter
+     */
+    @Deprecated
+    protected int size;
+
+    /**
+     * @deprecated (since 6.0) will be made private; do not access directly, use getter/setter
+     */
+    @Deprecated
+    protected Constant[] constants;
+
+    /**
+     * @deprecated (since 6.0) will be made private; do not access directly, use getSize()
+     */
+<span class="fc" id="L79">    @Deprecated</span>
+    protected int index = 1; // First entry (0) used by JVM
+
+<span class="fc" id="L82">    private final Map&lt;String, Integer&gt; stringTable = new HashMap&lt;&gt;();</span>
+
+<span class="fc" id="L84">    private final Map&lt;String, Integer&gt; classTable = new HashMap&lt;&gt;();</span>
+
+<span class="fc" id="L86">    private final Map&lt;String, Integer&gt; utf8Table = new HashMap&lt;&gt;();</span>
+
+<span class="fc" id="L88">    private final Map&lt;String, Integer&gt; natTable = new HashMap&lt;&gt;();</span>
+
+<span class="fc" id="L90">    private final Map&lt;String, Integer&gt; cpTable = new HashMap&lt;&gt;();</span>
+
+    /**
+     * Constructs a new empty constant pool.
+     */
+<span class="fc" id="L95">    public ConstantPoolGen() {</span>
+<span class="fc" id="L96">        size = DEFAULT_BUFFER_SIZE;</span>
+<span class="fc" id="L97">        constants = new Constant[size];</span>
+<span class="fc" id="L98">    }</span>
+
+    /**
+     * Constructs a new instance with the given array of constants.
+     *
+     * @param cs array of given constants, new ones will be appended.
+     */
+<span class="fc" id="L105">    public ConstantPoolGen(final Constant[] cs) {</span>
+<span class="fc" id="L106">        final StringBuilder sb = new StringBuilder(DEFAULT_BUFFER_SIZE);</span>
+
+<span class="fc" id="L108">        size = Math.min(Math.max(DEFAULT_BUFFER_SIZE, cs.length + 64), Const.MAX_CP_ENTRIES + 1);</span>
+<span class="fc" id="L109">        constants = Arrays.copyOf(cs, size);</span>
+
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">        if (cs.length &gt; 0) {</span>
+<span class="fc" id="L112">            index = cs.length;</span>
+        }
+
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        for (int i = 1; i &lt; index; i++) {</span>
+<span class="fc" id="L116">            final Constant c = constants[i];</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">            if (c instanceof ConstantString) {</span>
+<span class="fc" id="L118">                final ConstantString s = (ConstantString) c;</span>
+<span class="fc" id="L119">                final ConstantUtf8 u8 = (ConstantUtf8) constants[s.getStringIndex()];</span>
+<span class="fc" id="L120">                final String key = u8.getBytes();</span>
+<span class="pc bpc" id="L121" title="1 of 2 branches missed.">                if (!stringTable.containsKey(key)) {</span>
+<span class="fc" id="L122">                    stringTable.put(key, Integer.valueOf(i));</span>
+                }
+<span class="fc bfc" id="L124" title="All 2 branches covered.">            } else if (c instanceof ConstantClass) {</span>
+<span class="fc" id="L125">                final ConstantClass s = (ConstantClass) c;</span>
+<span class="fc" id="L126">                final ConstantUtf8 u8 = (ConstantUtf8) constants[s.getNameIndex()];</span>
+<span class="fc" id="L127">                final String key = u8.getBytes();</span>
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">                if (!classTable.containsKey(key)) {</span>
+<span class="fc" id="L129">                    classTable.put(key, Integer.valueOf(i));</span>
+                }
+<span class="fc bfc" id="L131" title="All 2 branches covered.">            } else if (c instanceof ConstantNameAndType) {</span>
+<span class="fc" id="L132">                final ConstantNameAndType n = (ConstantNameAndType) c;</span>
+<span class="fc" id="L133">                final ConstantUtf8 u8NameIdx = (ConstantUtf8) constants[n.getNameIndex()];</span>
+<span class="fc" id="L134">                final ConstantUtf8 u8SigIdx = (ConstantUtf8) constants[n.getSignatureIndex()];</span>
+
+<span class="fc" id="L136">                sb.append(u8NameIdx.getBytes());</span>
+<span class="fc" id="L137">                sb.append(NAT_DELIM);</span>
+<span class="fc" id="L138">                sb.append(u8SigIdx.getBytes());</span>
+<span class="fc" id="L139">                final String key = sb.toString();</span>
+<span class="fc" id="L140">                sb.delete(0, sb.length());</span>
+
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">                if (!natTable.containsKey(key)) {</span>
+<span class="fc" id="L143">                    natTable.put(key, Integer.valueOf(i));</span>
+                }
+<span class="fc bfc" id="L145" title="All 2 branches covered.">            } else if (c instanceof ConstantUtf8) {</span>
+<span class="fc" id="L146">                final ConstantUtf8 u = (ConstantUtf8) c;</span>
+<span class="fc" id="L147">                final String key = u.getBytes();</span>
+<span class="pc bpc" id="L148" title="1 of 2 branches missed.">                if (!utf8Table.containsKey(key)) {</span>
+<span class="fc" id="L149">                    utf8Table.put(key, Integer.valueOf(i));</span>
+                }
+<span class="fc bfc" id="L151" title="All 2 branches covered.">            } else if (c instanceof ConstantCP) {</span>
+<span class="fc" id="L152">                final ConstantCP m = (ConstantCP) c;</span>
+                final String className;
+                ConstantUtf8 u8;
+
+<span class="fc bfc" id="L156" title="All 2 branches covered.">                if (c instanceof ConstantInvokeDynamic) {</span>
+<span class="fc" id="L157">                    className = Integer.toString(((ConstantInvokeDynamic) m).getBootstrapMethodAttrIndex());</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">                } else if (c instanceof ConstantDynamic) {</span>
+<span class="fc" id="L159">                    className = Integer.toString(((ConstantDynamic) m).getBootstrapMethodAttrIndex());</span>
+                } else {
+<span class="fc" id="L161">                    final ConstantClass clazz = (ConstantClass) constants[m.getClassIndex()];</span>
+<span class="fc" id="L162">                    u8 = (ConstantUtf8) constants[clazz.getNameIndex()];</span>
+<span class="fc" id="L163">                    className = Utility.pathToPackage(u8.getBytes());</span>
+                }
+
+<span class="fc" id="L166">                final ConstantNameAndType n = (ConstantNameAndType) constants[m.getNameAndTypeIndex()];</span>
+<span class="fc" id="L167">                u8 = (ConstantUtf8) constants[n.getNameIndex()];</span>
+<span class="fc" id="L168">                final String methodName = u8.getBytes();</span>
+<span class="fc" id="L169">                u8 = (ConstantUtf8) constants[n.getSignatureIndex()];</span>
+<span class="fc" id="L170">                final String signature = u8.getBytes();</span>
+
+                // Since name cannot begin with digit, we can use METHODREF_DELIM without fear of duplicates
+<span class="fc" id="L173">                String delim = METHODREF_DELIM;</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">                if (c instanceof ConstantInterfaceMethodref) {</span>
+<span class="fc" id="L175">                    delim = IMETHODREF_DELIM;</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">                } else if (c instanceof ConstantFieldref) {</span>
+<span class="fc" id="L177">                    delim = FIELDREF_DELIM;</span>
+                }
+
+<span class="fc" id="L180">                sb.append(className);</span>
+<span class="fc" id="L181">                sb.append(delim);</span>
+<span class="fc" id="L182">                sb.append(methodName);</span>
+<span class="fc" id="L183">                sb.append(delim);</span>
+<span class="fc" id="L184">                sb.append(signature);</span>
+<span class="fc" id="L185">                final String key = sb.toString();</span>
+<span class="fc" id="L186">                sb.delete(0, sb.length());</span>
+
+<span class="fc bfc" id="L188" title="All 2 branches covered.">                if (!cpTable.containsKey(key)) {</span>
+<span class="fc" id="L189">                    cpTable.put(key, Integer.valueOf(i));</span>
+                }
+            }
+//            else if (c == null) { // entries may be null
+//                // nothing to do
+//            } else if (c instanceof ConstantInteger) {
+//                // nothing to do
+//            } else if (c instanceof ConstantLong) {
+//                // nothing to do
+//            } else if (c instanceof ConstantFloat) {
+//                // nothing to do
+//            } else if (c instanceof ConstantDouble) {
+//                // nothing to do
+//            } else if (c instanceof org.apache.bcel.classfile.ConstantMethodType) {
+//                // TODO should this be handled somehow?
+//            } else if (c instanceof org.apache.bcel.classfile.ConstantMethodHandle) {
+//                // TODO should this be handled somehow?
+//            } else if (c instanceof org.apache.bcel.classfile.ConstantModule) {
+//                // TODO should this be handled somehow?
+//            } else if (c instanceof org.apache.bcel.classfile.ConstantPackage) {
+//                // TODO should this be handled somehow?
+//            } else {
+//                // Not helpful, should throw an exception.
+//                assert false : &quot;Unexpected constant type: &quot; + c.getClass().getName();
+//            }
+        }
+<span class="fc" id="L215">    }</span>
+
+    /**
+     * Constructs a new instance with the given constant pool.
+     *
+     * @param cp the constant pool.
+     */
+    public ConstantPoolGen(final ConstantPool cp) {
+<span class="fc" id="L223">        this(cp.getConstantPool());</span>
+<span class="fc" id="L224">    }</span>
+
+    /**
+     * Add a reference to an array class (for example, String[][]) as needed by MULTIANEWARRAY instruction, for example, to the ConstantPool.
+     *
+     * @param type type of array class.
+     * @return index of entry.
+     */
+    public int addArrayClass(final ArrayType type) {
+<span class="nc" id="L233">        return addClass_(type.getSignature());</span>
+    }
+
+    /**
+     * Add a new Class reference to the ConstantPool for a given type.
+     *
+     * @param type Class to add.
+     * @return index of entry.
+     */
+    public int addClass(final ObjectType type) {
+<span class="fc" id="L243">        return addClass(type.getClassName());</span>
+    }
+
+    /**
+     * Add a new Class reference to the ConstantPool, if it is not already in there.
+     *
+     * @param str Class to add.
+     * @return index of entry.
+     */
+    public int addClass(final String str) {
+<span class="fc" id="L253">        return addClass_(Utility.packageToPath(str));</span>
+    }
+
+    private int addClass_(final String clazz) {
+        final int cpRet;
+<span class="fc bfc" id="L258" title="All 2 branches covered.">        if ((cpRet = lookupClass(clazz)) != -1) {</span>
+<span class="fc" id="L259">            return cpRet; // Already in CP</span>
+        }
+<span class="fc" id="L261">        adjustSize();</span>
+<span class="fc" id="L262">        final ConstantClass c = new ConstantClass(addUtf8(clazz));</span>
+<span class="fc" id="L263">        final int ret = index;</span>
+<span class="fc" id="L264">        constants[index++] = c;</span>
+<span class="fc" id="L265">        return computeIfAbsent(classTable, clazz, ret);</span>
+    }
+
+    /**
+     * Adds a constant from another ConstantPool and returns the new index.
+     *
+     * @param constant The constant to add.
+     * @param cpGen Source pool.
+     * @return index of entry.
+     */
+    public int addConstant(final Constant constant, final ConstantPoolGen cpGen) {
+<span class="nc" id="L276">        final Constant[] constants = cpGen.getConstantPool().getConstantPool();</span>
+<span class="nc bnc" id="L277" title="All 10 branches missed.">        switch (constant.getTag()) {</span>
+        case Const.CONSTANT_String: {
+<span class="nc" id="L279">            final ConstantString s = (ConstantString) constant;</span>
+<span class="nc" id="L280">            final ConstantUtf8 u8 = (ConstantUtf8) constants[s.getStringIndex()];</span>
+<span class="nc" id="L281">            return addString(u8.getBytes());</span>
+        }
+        case Const.CONSTANT_Class: {
+<span class="nc" id="L284">            final ConstantClass s = (ConstantClass) constant;</span>
+<span class="nc" id="L285">            final ConstantUtf8 u8 = (ConstantUtf8) constants[s.getNameIndex()];</span>
+<span class="nc" id="L286">            return addClass(u8.getBytes());</span>
+        }
+        case Const.CONSTANT_NameAndType: {
+<span class="nc" id="L289">            final ConstantNameAndType n = (ConstantNameAndType) constant;</span>
+<span class="nc" id="L290">            final ConstantUtf8 u8 = (ConstantUtf8) constants[n.getNameIndex()];</span>
+<span class="nc" id="L291">            final ConstantUtf8 u8_2 = (ConstantUtf8) constants[n.getSignatureIndex()];</span>
+<span class="nc" id="L292">            return addNameAndType(u8.getBytes(), u8_2.getBytes());</span>
+        }
+        case Const.CONSTANT_Utf8:
+<span class="nc" id="L295">            return addUtf8(((ConstantUtf8) constant).getBytes());</span>
+        case Const.CONSTANT_Double:
+<span class="nc" id="L297">            return addDouble(((ConstantDouble) constant).getBytes());</span>
+        case Const.CONSTANT_Float:
+<span class="nc" id="L299">            return addFloat(((ConstantFloat) constant).getBytes());</span>
+        case Const.CONSTANT_Long:
+<span class="nc" id="L301">            return addLong(((ConstantLong) constant).getBytes());</span>
+        case Const.CONSTANT_Integer:
+<span class="nc" id="L303">            return addInteger(((ConstantInteger) constant).getBytes());</span>
+        case Const.CONSTANT_InterfaceMethodref:
+        case Const.CONSTANT_Methodref:
+        case Const.CONSTANT_Fieldref: {
+<span class="nc" id="L307">            final ConstantCP m = (ConstantCP) constant;</span>
+<span class="nc" id="L308">            final ConstantClass clazz = (ConstantClass) constants[m.getClassIndex()];</span>
+<span class="nc" id="L309">            final ConstantNameAndType n = (ConstantNameAndType) constants[m.getNameAndTypeIndex()];</span>
+<span class="nc" id="L310">            ConstantUtf8 u8 = (ConstantUtf8) constants[clazz.getNameIndex()];</span>
+<span class="nc" id="L311">            final String className = Utility.pathToPackage(u8.getBytes());</span>
+<span class="nc" id="L312">            u8 = (ConstantUtf8) constants[n.getNameIndex()];</span>
+<span class="nc" id="L313">            final String name = u8.getBytes();</span>
+<span class="nc" id="L314">            u8 = (ConstantUtf8) constants[n.getSignatureIndex()];</span>
+<span class="nc" id="L315">            final String signature = u8.getBytes();</span>
+<span class="nc bnc" id="L316" title="All 4 branches missed.">            switch (constant.getTag()) {</span>
+            case Const.CONSTANT_InterfaceMethodref:
+<span class="nc" id="L318">                return addInterfaceMethodref(className, name, signature);</span>
+            case Const.CONSTANT_Methodref:
+<span class="nc" id="L320">                return addMethodref(className, name, signature);</span>
+            case Const.CONSTANT_Fieldref:
+<span class="nc" id="L322">                return addFieldref(className, name, signature);</span>
+            default: // Never reached
+<span class="nc" id="L324">                throw new IllegalArgumentException(&quot;Unknown constant type &quot; + constant);</span>
+            }
+        }
+        default: // Never reached
+<span class="nc" id="L328">            throw new IllegalArgumentException(&quot;Unknown constant type &quot; + constant);</span>
+        }
+    }
+
+    /**
+     * Add a new double constant to the ConstantPool, if it is not already in there.
+     *
+     * @param n Double number to add.
+     * @return index of entry.
+     */
+    public int addDouble(final double n) {
+        int ret;
+<span class="pc bpc" id="L340" title="1 of 2 branches missed.">        if ((ret = lookupDouble(n)) != -1) {</span>
+<span class="nc" id="L341">            return ret; // Already in CP</span>
+        }
+<span class="fc" id="L343">        adjustSize();</span>
+<span class="fc" id="L344">        ret = index;</span>
+<span class="fc" id="L345">        constants[index] = new ConstantDouble(n);</span>
+<span class="fc" id="L346">        index += 2; // Wastes one entry according to spec</span>
+<span class="fc" id="L347">        return ret;</span>
+    }
+
+    /**
+     * Add a new Fieldref constant to the ConstantPool, if it is not already in there.
+     *
+     * @param className class name string to add.
+     * @param fieldName field name string to add.
+     * @param signature signature string to add.
+     * @return index of entry.
+     */
+    public int addFieldref(final String className, final String fieldName, final String signature) {
+        final int cpRet;
+<span class="fc bfc" id="L360" title="All 2 branches covered.">        if ((cpRet = lookupFieldref(className, fieldName, signature)) != -1) {</span>
+<span class="fc" id="L361">            return cpRet; // Already in CP</span>
+        }
+<span class="fc" id="L363">        adjustSize();</span>
+<span class="fc" id="L364">        final int classIndex = addClass(className);</span>
+<span class="fc" id="L365">        final int nameAndTypeIndex = addNameAndType(fieldName, signature);</span>
+<span class="fc" id="L366">        final int ret = index;</span>
+<span class="fc" id="L367">        constants[index++] = new ConstantFieldref(classIndex, nameAndTypeIndex);</span>
+<span class="fc" id="L368">        return computeIfAbsent(cpTable, className + FIELDREF_DELIM + fieldName + FIELDREF_DELIM + signature, ret);</span>
+    }
+
+    /**
+     * Add a new Float constant to the ConstantPool, if it is not already in there.
+     *
+     * @param n Float number to add.
+     * @return index of entry.
+     */
+    public int addFloat(final float n) {
+        int ret;
+<span class="pc bpc" id="L379" title="1 of 2 branches missed.">        if ((ret = lookupFloat(n)) != -1) {</span>
+<span class="nc" id="L380">            return ret; // Already in CP</span>
+        }
+<span class="fc" id="L382">        adjustSize();</span>
+<span class="fc" id="L383">        ret = index;</span>
+<span class="fc" id="L384">        constants[index++] = new ConstantFloat(n);</span>
+<span class="fc" id="L385">        return ret;</span>
+    }
+
+    /**
+     * Add a new Integer constant to the ConstantPool, if it is not already in there.
+     *
+     * @param n integer number to add.
+     * @return index of entry.
+     */
+    public int addInteger(final int n) {
+        int ret;
+<span class="fc bfc" id="L396" title="All 2 branches covered.">        if ((ret = lookupInteger(n)) != -1) {</span>
+<span class="fc" id="L397">            return ret; // Already in CP</span>
+        }
+<span class="fc" id="L399">        adjustSize();</span>
+<span class="fc" id="L400">        ret = index;</span>
+<span class="fc" id="L401">        constants[index++] = new ConstantInteger(n);</span>
+<span class="fc" id="L402">        return ret;</span>
+    }
+
+    /**
+     * Adds a new InterfaceMethodref constant to the ConstantPool.
+     *
+     * @param method the method to add.
+     * @return index of entry.
+     */
+    public int addInterfaceMethodref(final MethodGen method) {
+<span class="nc" id="L412">        return addInterfaceMethodref(method.getClassName(), method.getName(), method.getSignature());</span>
+    }
+
+    /**
+     * Add a new InterfaceMethodref constant to the ConstantPool, if it is not already in there.
+     *
+     * @param className class name string to add.
+     * @param methodName method name string to add.
+     * @param signature signature string to add.
+     * @return index of entry.
+     */
+    public int addInterfaceMethodref(final String className, final String methodName, final String signature) {
+        final int cpRet;
+<span class="nc bnc" id="L425" title="All 2 branches missed.">        if ((cpRet = lookupInterfaceMethodref(className, methodName, signature)) != -1) {</span>
+<span class="nc" id="L426">            return cpRet; // Already in CP</span>
+        }
+<span class="nc" id="L428">        adjustSize();</span>
+<span class="nc" id="L429">        final int classIndex = addClass(className);</span>
+<span class="nc" id="L430">        final int nameAndTypeIndex = addNameAndType(methodName, signature);</span>
+<span class="nc" id="L431">        final int ret = index;</span>
+<span class="nc" id="L432">        constants[index++] = new ConstantInterfaceMethodref(classIndex, nameAndTypeIndex);</span>
+<span class="nc" id="L433">        return computeIfAbsent(cpTable, className + IMETHODREF_DELIM + methodName + IMETHODREF_DELIM + signature, ret);</span>
+    }
+
+    /**
+     * Add a new long constant to the ConstantPool, if it is not already in there.
+     *
+     * @param n Long number to add.
+     * @return index of entry.
+     */
+    public int addLong(final long n) {
+        int ret;
+<span class="pc bpc" id="L444" title="1 of 2 branches missed.">        if ((ret = lookupLong(n)) != -1) {</span>
+<span class="nc" id="L445">            return ret; // Already in CP</span>
+        }
+<span class="fc" id="L447">        adjustSize();</span>
+<span class="fc" id="L448">        ret = index;</span>
+<span class="fc" id="L449">        constants[index] = new ConstantLong(n);</span>
+<span class="fc" id="L450">        index += 2; // Wastes one entry according to spec</span>
+<span class="fc" id="L451">        return ret;</span>
+    }
+
+    /**
+     * Adds a new Methodref constant to the ConstantPool.
+     *
+     * @param method the method to add.
+     * @return index of entry.
+     */
+    public int addMethodref(final MethodGen method) {
+<span class="nc" id="L461">        return addMethodref(method.getClassName(), method.getName(), method.getSignature());</span>
+    }
+
+    /**
+     * Add a new Methodref constant to the ConstantPool, if it is not already in there.
+     *
+     * @param className class name string to add.
+     * @param methodName method name string to add.
+     * @param signature method signature string to add.
+     * @return index of entry.
+     */
+    public int addMethodref(final String className, final String methodName, final String signature) {
+        final int cpRet;
+<span class="fc bfc" id="L474" title="All 2 branches covered.">        if ((cpRet = lookupMethodref(className, methodName, signature)) != -1) {</span>
+<span class="fc" id="L475">            return cpRet; // Already in CP</span>
+        }
+<span class="fc" id="L477">        adjustSize();</span>
+<span class="fc" id="L478">        final int nameAndTypeIndex = addNameAndType(methodName, signature);</span>
+<span class="fc" id="L479">        final int classIndex = addClass(className);</span>
+<span class="fc" id="L480">        final int ret = index;</span>
+<span class="fc" id="L481">        constants[index++] = new ConstantMethodref(classIndex, nameAndTypeIndex);</span>
+<span class="fc" id="L482">        return computeIfAbsent(cpTable, className + METHODREF_DELIM + methodName + METHODREF_DELIM + signature, ret);</span>
+    }
+
+    /**
+     * Add a new NameAndType constant to the ConstantPool if it is not already in there.
+     *
+     * @param name Name string to add.
+     * @param signature signature string to add.
+     * @return index of entry.
+     */
+    public int addNameAndType(final String name, final String signature) {
+        int ret;
+<span class="fc bfc" id="L494" title="All 2 branches covered.">        if ((ret = lookupNameAndType(name, signature)) != -1) {</span>
+<span class="fc" id="L495">            return ret; // Already in CP</span>
+        }
+<span class="fc" id="L497">        adjustSize();</span>
+<span class="fc" id="L498">        final int nameIndex = addUtf8(name);</span>
+<span class="fc" id="L499">        final int signatureIndex = addUtf8(signature);</span>
+<span class="fc" id="L500">        ret = index;</span>
+<span class="fc" id="L501">        constants[index++] = new ConstantNameAndType(nameIndex, signatureIndex);</span>
+<span class="fc" id="L502">        return computeIfAbsent(natTable, name + NAT_DELIM + signature, ret);</span>
+    }
+
+    /**
+     * Add a new String constant to the ConstantPool, if it is not already in there.
+     *
+     * @param str String to add.
+     * @return index of entry.
+     */
+    public int addString(final String str) {
+        int ret;
+<span class="pc bpc" id="L513" title="1 of 2 branches missed.">        if ((ret = lookupString(str)) != -1) {</span>
+<span class="nc" id="L514">            return ret; // Already in CP</span>
+        }
+<span class="fc" id="L516">        final int utf8 = addUtf8(str);</span>
+<span class="fc" id="L517">        adjustSize();</span>
+<span class="fc" id="L518">        final ConstantString s = new ConstantString(utf8);</span>
+<span class="fc" id="L519">        ret = index;</span>
+<span class="fc" id="L520">        constants[index++] = s;</span>
+<span class="fc" id="L521">        return computeIfAbsent(stringTable, str, ret);</span>
+    }
+
+    /**
+     * Add a new Utf8 constant to the ConstantPool, if it is not already in there.
+     *
+     * @param n Utf8 string to add.
+     * @return index of entry.
+     */
+    public int addUtf8(final String n) {
+        int ret;
+<span class="fc bfc" id="L532" title="All 2 branches covered.">        if ((ret = lookupUtf8(n)) != -1) {</span>
+<span class="fc" id="L533">            return ret; // Already in CP</span>
+        }
+<span class="fc" id="L535">        adjustSize();</span>
+<span class="fc" id="L536">        ret = index;</span>
+<span class="fc" id="L537">        constants[index++] = new ConstantUtf8(n);</span>
+<span class="fc" id="L538">        return computeIfAbsent(utf8Table, n, ret);</span>
+    }
+
+    /**
+     * Resize internal array of constants.
+     */
+    protected void adjustSize() {
+        // 3 extra spaces are needed as some entries may take 3 slots
+<span class="fc bfc" id="L546" title="All 2 branches covered.">        if (index + 3 &gt;= Const.MAX_CP_ENTRIES + 1) {</span>
+<span class="fc" id="L547">            throw new IllegalStateException(&quot;The number of constants &quot; + (index + 3)</span>
+                    + &quot; is over the size of the constant pool: &quot;
+                    + Const.MAX_CP_ENTRIES);
+        }
+
+<span class="fc bfc" id="L552" title="All 2 branches covered.">        if (index + 3 &gt;= size) {</span>
+<span class="fc" id="L553">            final Constant[] tmp = constants;</span>
+<span class="fc" id="L554">            size *= 2;</span>
+            // the constant array shall not exceed the size of the constant pool
+<span class="fc" id="L556">            size = Math.min(size, Const.MAX_CP_ENTRIES + 1);</span>
+<span class="fc" id="L557">            constants = new Constant[size];</span>
+<span class="fc" id="L558">            System.arraycopy(tmp, 0, constants, 0, index);</span>
+        }
+<span class="fc" id="L560">    }</span>
+
+    private int computeIfAbsent(final Map&lt;String, Integer&gt; map, final String key, final int value) {
+<span class="fc" id="L563">        return map.computeIfAbsent(key, k -&gt; Integer.valueOf(value));</span>
+    }
+
+    /**
+     * Gets a constant pool entry at the specified index.
+     *
+     * @param i index in constant pool.
+     * @return constant pool entry at index i.
+     */
+    public Constant getConstant(final int i) {
+<span class="fc" id="L573">        return constants[i];</span>
+    }
+
+    /**
+     * Gets the intermediate constant pool.
+     *
+     * @return intermediate constant pool.
+     */
+    public ConstantPool getConstantPool() {
+<span class="fc" id="L582">        return new ConstantPool(constants);</span>
+    }
+
+    /**
+     * Gets the constant pool with proper length.
+     *
+     * @return constant pool with proper length.
+     */
+    public ConstantPool getFinalConstantPool() {
+<span class="fc" id="L591">        return new ConstantPool(Arrays.copyOf(constants, index));</span>
+    }
+
+    private int getIndex(final Map&lt;String, Integer&gt; map, final String key) {
+<span class="fc" id="L595">        return toIndex(map.get(key));</span>
+    }
+
+    /**
+     * Gets the current size of constant pool.
+     *
+     * @return current size of constant pool.
+     */
+    public int getSize() {
+<span class="fc" id="L604">        return index;</span>
+    }
+
+    /**
+     * Look for ConstantClass in ConstantPool named 'str'.
+     *
+     * @param str String to search for.
+     * @return index on success, -1 otherwise.
+     */
+    public int lookupClass(final String str) {
+<span class="fc" id="L614">        return getIndex(classTable, Utility.packageToPath(str));</span>
+    }
+
+    /**
+     * Look for ConstantDouble in ConstantPool.
+     *
+     * @param n Double number to look for.
+     * @return index on success, -1 otherwise.
+     */
+    public int lookupDouble(final double n) {
+<span class="fc" id="L624">        final long bits = Double.doubleToLongBits(n);</span>
+<span class="fc bfc" id="L625" title="All 2 branches covered.">        for (int i = 1; i &lt; index; i++) {</span>
+<span class="fc bfc" id="L626" title="All 2 branches covered.">            if (constants[i] instanceof ConstantDouble) {</span>
+<span class="fc" id="L627">                final ConstantDouble c = (ConstantDouble) constants[i];</span>
+<span class="pc bpc" id="L628" title="1 of 2 branches missed.">                if (Double.doubleToLongBits(c.getBytes()) == bits) {</span>
+<span class="fc" id="L629">                    return i;</span>
+                }
+            }
+        }
+<span class="fc" id="L633">        return -1;</span>
+    }
+
+    /**
+     * Look for ConstantFieldref in ConstantPool.
+     *
+     * @param className Where to find method.
+     * @param fieldName Guess what.
+     * @param signature return and argument types.
+     * @return index on success, -1 otherwise.
+     */
+    public int lookupFieldref(final String className, final String fieldName, final String signature) {
+<span class="fc" id="L645">        return getIndex(cpTable, className + FIELDREF_DELIM + fieldName + FIELDREF_DELIM + signature);</span>
+    }
+
+    /**
+     * Look for ConstantFloat in ConstantPool.
+     *
+     * @param n Float number to look for.
+     * @return index on success, -1 otherwise.
+     */
+    public int lookupFloat(final float n) {
+<span class="fc" id="L655">        final int bits = Float.floatToIntBits(n);</span>
+<span class="fc bfc" id="L656" title="All 2 branches covered.">        for (int i = 1; i &lt; index; i++) {</span>
+<span class="fc bfc" id="L657" title="All 2 branches covered.">            if (constants[i] instanceof ConstantFloat) {</span>
+<span class="fc" id="L658">                final ConstantFloat c = (ConstantFloat) constants[i];</span>
+<span class="pc bpc" id="L659" title="1 of 2 branches missed.">                if (Float.floatToIntBits(c.getBytes()) == bits) {</span>
+<span class="fc" id="L660">                    return i;</span>
+                }
+            }
+        }
+<span class="fc" id="L664">        return -1;</span>
+    }
+
+    /**
+     * Look for ConstantInteger in ConstantPool.
+     *
+     * @param n integer number to look for.
+     * @return index on success, -1 otherwise.
+     */
+    public int lookupInteger(final int n) {
+<span class="fc bfc" id="L674" title="All 2 branches covered.">        for (int i = 1; i &lt; index; i++) {</span>
+<span class="fc bfc" id="L675" title="All 2 branches covered.">            if (constants[i] instanceof ConstantInteger) {</span>
+<span class="fc" id="L676">                final ConstantInteger c = (ConstantInteger) constants[i];</span>
+<span class="pc bpc" id="L677" title="1 of 2 branches missed.">                if (c.getBytes() == n) {</span>
+<span class="fc" id="L678">                    return i;</span>
+                }
+            }
+        }
+<span class="fc" id="L682">        return -1;</span>
+    }
+
+    /**
+     * Looks up an InterfaceMethodref in the ConstantPool.
+     *
+     * @param method the method to look for.
+     * @return index on success, -1 otherwise.
+     */
+    public int lookupInterfaceMethodref(final MethodGen method) {
+<span class="nc" id="L692">        return lookupInterfaceMethodref(method.getClassName(), method.getName(), method.getSignature());</span>
+    }
+
+    /**
+     * Look for ConstantInterfaceMethodref in ConstantPool.
+     *
+     * @param className Where to find method.
+     * @param methodName Guess what.
+     * @param signature return and argument types.
+     * @return index on success, -1 otherwise.
+     */
+    public int lookupInterfaceMethodref(final String className, final String methodName, final String signature) {
+<span class="nc" id="L704">        return getIndex(cpTable, className + IMETHODREF_DELIM + methodName + IMETHODREF_DELIM + signature);</span>
+    }
+
+    /**
+     * Look for ConstantLong in ConstantPool.
+     *
+     * @param n Long number to look for.
+     * @return index on success, -1 otherwise.
+     */
+    public int lookupLong(final long n) {
+<span class="fc bfc" id="L714" title="All 2 branches covered.">        for (int i = 1; i &lt; index; i++) {</span>
+<span class="fc bfc" id="L715" title="All 2 branches covered.">            if (constants[i] instanceof ConstantLong) {</span>
+<span class="fc" id="L716">                final ConstantLong c = (ConstantLong) constants[i];</span>
+<span class="fc bfc" id="L717" title="All 2 branches covered.">                if (c.getBytes() == n) {</span>
+<span class="fc" id="L718">                    return i;</span>
+                }
+            }
+        }
+<span class="fc" id="L722">        return -1;</span>
+    }
+
+    /**
+     * Looks up a Methodref in the ConstantPool.
+     *
+     * @param method the method to look for.
+     * @return index on success, -1 otherwise.
+     */
+    public int lookupMethodref(final MethodGen method) {
+<span class="nc" id="L732">        return lookupMethodref(method.getClassName(), method.getName(), method.getSignature());</span>
+    }
+
+    /**
+     * Look for ConstantMethodref in ConstantPool.
+     *
+     * @param className Where to find method.
+     * @param methodName Guess what.
+     * @param signature return and argument types.
+     * @return index on success, -1 otherwise.
+     */
+    public int lookupMethodref(final String className, final String methodName, final String signature) {
+<span class="fc" id="L744">        return getIndex(cpTable, className + METHODREF_DELIM + methodName + METHODREF_DELIM + signature);</span>
+    }
+
+    /**
+     * Look for ConstantNameAndType in ConstantPool.
+     *
+     * @param name of variable/method.
+     * @param signature of variable/method.
+     * @return index on success, -1 otherwise.
+     */
+    public int lookupNameAndType(final String name, final String signature) {
+<span class="fc" id="L755">        return getIndex(natTable, name + NAT_DELIM + signature);</span>
+    }
+
+    /**
+     * Look for ConstantString in ConstantPool containing String 'str'.
+     *
+     * @param str String to search for.
+     * @return index on success, -1 otherwise.
+     */
+    public int lookupString(final String str) {
+<span class="fc" id="L765">        return getIndex(stringTable, str);</span>
+    }
+
+    /**
+     * Look for ConstantUtf8 in ConstantPool.
+     *
+     * @param n Utf8 string to look for.
+     * @return index on success, -1 otherwise.
+     */
+    public int lookupUtf8(final String n) {
+<span class="fc" id="L775">        return getIndex(utf8Table, n);</span>
+    }
+
+    /**
+     * Use with care!
+     *
+     * @param i index in constant pool.
+     * @param c new constant pool entry at index i.
+     */
+    public void setConstant(final int i, final Constant c) {
+<span class="nc" id="L785">        constants[i] = c;</span>
+<span class="nc" id="L786">    }</span>
+
+    private int toIndex(final Integer index) {
+<span class="fc bfc" id="L789" title="All 2 branches covered.">        return index != null ? index.intValue() : -1;</span>
+    }
+
+    /**
+     * @return String representation.
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L797">        final StringBuilder buf = new StringBuilder();</span>
+<span class="nc bnc" id="L798" title="All 2 branches missed.">        for (int i = 1; i &lt; index; i++) {</span>
+<span class="nc" id="L799">            buf.append(i).append(&quot;)&quot;).append(constants[i]).append(&quot;\n&quot;);</span>
+        }
+<span class="nc" id="L801">        return buf.toString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

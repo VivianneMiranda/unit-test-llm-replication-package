@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AnnotationElementValueGen.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">AnnotationElementValueGen.java</span></div><h1>AnnotationElementValueGen.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import java.io.DataOutputStream;
+import java.io.IOException;
+
+import org.apache.bcel.classfile.AnnotationElementValue;
+import org.apache.bcel.classfile.ElementValue;
+
+/**
+ * Generates annotation element values.
+ *
+ * @since 6.0
+ */
+public class AnnotationElementValueGen extends ElementValueGen {
+    // For annotation element values, this is the annotation
+    private final AnnotationEntryGen a;
+
+    /**
+     * Constructs an AnnotationElementValueGen.
+     *
+     * @param value the annotation element value.
+     * @param cpool the constant pool generator.
+     * @param copyPoolEntries whether to copy pool entries.
+     */
+    public AnnotationElementValueGen(final AnnotationElementValue value, final ConstantPoolGen cpool, final boolean copyPoolEntries) {
+<span class="nc" id="L44">        super(ANNOTATION, cpool);</span>
+<span class="nc" id="L45">        a = new AnnotationEntryGen(value.getAnnotationEntry(), cpool, copyPoolEntries);</span>
+<span class="nc" id="L46">    }</span>
+
+    /**
+     * Constructs an AnnotationElementValueGen.
+     *
+     * @param a the annotation entry generator.
+     * @param cpool the constant pool generator.
+     */
+    public AnnotationElementValueGen(final AnnotationEntryGen a, final ConstantPoolGen cpool) {
+<span class="nc" id="L55">        super(ANNOTATION, cpool);</span>
+<span class="nc" id="L56">        this.a = a;</span>
+<span class="nc" id="L57">    }</span>
+
+    /**
+     * Constructs an AnnotationElementValueGen.
+     *
+     * @param type the type.
+     * @param annotation the annotation.
+     * @param cpool the constant pool generator.
+     */
+    public AnnotationElementValueGen(final int type, final AnnotationEntryGen annotation, final ConstantPoolGen cpool) {
+<span class="nc" id="L67">        super(type, cpool);</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">        if (type != ANNOTATION) {</span>
+<span class="nc" id="L69">            throw new IllegalArgumentException(&quot;Only element values of type annotation can be built with this ctor - type specified: &quot; + type);</span>
+        }
+<span class="nc" id="L71">        this.a = annotation;</span>
+<span class="nc" id="L72">    }</span>
+
+    @Override
+    public void dump(final DataOutputStream dos) throws IOException {
+<span class="nc" id="L76">        dos.writeByte(super.getElementValueType()); // u1 type of value (ANNOTATION == '@')</span>
+<span class="nc" id="L77">        a.dump(dos);</span>
+<span class="nc" id="L78">    }</span>
+
+    /**
+     * Gets the annotation.
+     *
+     * @return the annotation.
+     */
+    public AnnotationEntryGen getAnnotation() {
+<span class="nc" id="L86">        return a;</span>
+    }
+
+    /**
+     * Returns an immutable variant of this AnnotationElementValueGen.
+     *
+     * @return an immutable variant of this AnnotationElementValueGen.
+     */
+    @Override
+    public ElementValue getElementValue() {
+<span class="nc" id="L96">        return new AnnotationElementValue(super.getElementValueType(), a.getAnnotation(), getConstantPool().getConstantPool());</span>
+    }
+
+    @Override
+    public String stringifyValue() {
+<span class="nc" id="L101">        throw new UnsupportedOperationException(&quot;Not implemented yet&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

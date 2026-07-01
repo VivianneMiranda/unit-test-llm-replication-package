@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Field.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">Field.java</span></div><h1>Field.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.classfile;
+
+import java.io.DataInput;
+import java.io.IOException;
+import java.util.Objects;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.generic.Type;
+import org.apache.bcel.util.BCELComparator;
+
+/**
+ * This class represents the field info structure, that is, the representation for a variable in the class. See JVM
+ * specification for details.
+ */
+public final class Field extends FieldOrMethod {
+
+    /**
+     * Empty array constant.
+     *
+     * @since 6.6.0
+     */
+<span class="fc" id="L40">    public static final Field[] EMPTY_ARRAY = {};</span>
+
+<span class="fc" id="L42">    private static BCELComparator&lt;Field&gt; bcelComparator = new BCELComparator&lt;Field&gt;() {</span>
+
+        @Override
+        public boolean equals(final Field a, final Field b) {
+<span class="nc bnc" id="L46" title="All 10 branches missed.">            return a == b || a != null &amp;&amp; b != null &amp;&amp; Objects.equals(a.getName(), b.getName()) &amp;&amp; Objects.equals(a.getSignature(), b.getSignature());</span>
+        }
+
+        @Override
+        public int hashCode(final Field o) {
+<span class="nc bnc" id="L51" title="All 2 branches missed.">            return o != null ? Objects.hash(o.getSignature(), o.getName()) : 0;</span>
+        }
+    };
+
+    /**
+     * Gets the comparison strategy object.
+     *
+     * @return Comparison strategy object.
+     */
+    public static BCELComparator&lt;Field&gt; getComparator() {
+<span class="nc" id="L61">        return bcelComparator;</span>
+    }
+
+    /**
+     * Sets the comparison strategy object.
+     *
+     * @param comparator Comparison strategy object.
+     */
+    public static void setComparator(final BCELComparator&lt;Field&gt; comparator) {
+<span class="nc" id="L70">        bcelComparator = comparator;</span>
+<span class="nc" id="L71">    }</span>
+
+    /**
+     * Constructs object from file stream.
+     *
+     * @param file Input stream.
+     * @param constantPool the constant pool.
+     */
+    Field(final DataInput file, final ConstantPool constantPool) throws IOException, ClassFormatException {
+<span class="fc" id="L80">        super(file, constantPool);</span>
+<span class="fc" id="L81">    }</span>
+
+    /**
+     * Initialize from another object. Note that both objects use the same references (shallow copy). Use clone() for a
+     * physical copy.
+     *
+     * @param c Source to copy.
+     */
+    public Field(final Field c) {
+<span class="nc" id="L90">        super(c);</span>
+<span class="nc" id="L91">    }</span>
+
+    /**
+     * Constructs a Field.
+     *
+     * @param accessFlags Access rights of field.
+     * @param nameIndex Points to field name in constant pool.
+     * @param signatureIndex Points to encoded signature.
+     * @param attributes Collection of attributes.
+     * @param constantPool Array of constants.
+     */
+    public Field(final int accessFlags, final int nameIndex, final int signatureIndex, final Attribute[] attributes, final ConstantPool constantPool) {
+<span class="nc" id="L103">        super(accessFlags, nameIndex, signatureIndex, attributes, constantPool);</span>
+<span class="nc" id="L104">    }</span>
+
+    /**
+     * Called by objects that are traversing the nodes of the tree implicitly defined by the contents of a Java class.
+     * I.e., the hierarchy of methods, fields, attributes, etc. spawns a tree of objects.
+     *
+     * @param v Visitor object.
+     */
+    @Override
+    public void accept(final Visitor v) {
+<span class="nc" id="L114">        v.visitField(this);</span>
+<span class="nc" id="L115">    }</span>
+
+    /**
+     * Creates a deep copy of this field.
+     *
+     * @param constantPool the constant pool.
+     * @return deep copy of this field.
+     */
+    public Field copy(final ConstantPool constantPool) {
+<span class="nc" id="L124">        return (Field) copy_(constantPool);</span>
+    }
+
+    /**
+     * Return value as defined by given BCELComparator strategy. By default two Field objects are said to be equal when
+     * their names and signatures are equal.
+     *
+     * @see Object#equals(Object)
+     */
+    @Override
+    public boolean equals(final Object obj) {
+<span class="nc bnc" id="L135" title="All 4 branches missed.">        return obj instanceof Field &amp;&amp; bcelComparator.equals(this, (Field) obj);</span>
+    }
+
+    /**
+     * Gets the constant value associated with this field.
+     *
+     * @return constant value associated with this field (may be null).
+     */
+    public ConstantValue getConstantValue() {
+<span class="nc bnc" id="L144" title="All 2 branches missed.">        for (final Attribute attribute : super.getAttributes()) {</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">            if (attribute.getTag() == Const.ATTR_CONSTANT_VALUE) {</span>
+<span class="nc" id="L146">                return (ConstantValue) attribute;</span>
+            }
+        }
+<span class="nc" id="L149">        return null;</span>
+    }
+
+    /**
+     * See https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.2.2
+     *
+     * @return type of field.
+     */
+    public Type getType() {
+<span class="nc" id="L158">        return Type.getType(getSignature());</span>
+    }
+
+    /**
+     * Return value as defined by given BCELComparator strategy. By default return the hash code of the field's name XOR
+     * signature.
+     *
+     * @see Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+<span class="nc" id="L169">        return bcelComparator.hashCode(this);</span>
+    }
+
+    /**
+     * Return string representation close to declaration format, for example: 'public static final short MAX = 100'.
+     *
+     * @return String representation of field, including the signature.
+     */
+    @Override
+    public String toString() {
+        // Get names from constant pool
+<span class="nc" id="L180">        String access = Utility.accessToString(super.getAccessFlags());</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">        access = access.isEmpty() ? &quot;&quot; : access + &quot; &quot;;</span>
+<span class="nc" id="L182">        final String signature = Utility.signatureToString(getSignature());</span>
+<span class="nc" id="L183">        final String name = getName();</span>
+<span class="nc" id="L184">        final StringBuilder buf = new StringBuilder(64); // CHECKSTYLE IGNORE MagicNumber</span>
+<span class="nc" id="L185">        buf.append(access).append(signature).append(&quot; &quot;).append(name);</span>
+<span class="nc" id="L186">        final ConstantValue cv = getConstantValue();</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">        if (cv != null) {</span>
+<span class="nc" id="L188">            buf.append(&quot; = &quot;).append(cv);</span>
+        }
+<span class="nc bnc" id="L190" title="All 2 branches missed.">        for (final Attribute attribute : super.getAttributes()) {</span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">            if (!(attribute instanceof ConstantValue)) {</span>
+<span class="nc" id="L192">                buf.append(&quot; [&quot;).append(attribute).append(&quot;]&quot;);</span>
+            }
+        }
+<span class="nc" id="L195">        return buf.toString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

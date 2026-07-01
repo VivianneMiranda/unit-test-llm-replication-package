@@ -1,0 +1,1241 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InstructionList.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">InstructionList.java</span></div><h1>InstructionList.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.classfile.Constant;
+import org.apache.bcel.util.ByteSequence;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.stream.Streams;
+
+/**
+ * This class is a container for a list of &lt;a href=&quot;Instruction.html&quot;&gt;Instruction&lt;/a&gt; objects. Instructions can be appended, inserted, moved, deleted, and so
+ * on. Instructions are being wrapped into &lt;a href=&quot;InstructionHandle.html&quot;&gt;InstructionHandles&lt;/a&gt; objects that are returned upon append/insert operations. They
+ * give the user (read only) access to the list structure, such that it can be traversed and manipulated in a controlled way.
+ * &lt;p&gt;
+ * A list is finally dumped to a byte code array with &lt;a href=&quot;#getByteCode()&quot;&gt;getByteCode&lt;/a&gt;.
+ * &lt;/p&gt;
+ *
+ * @see Instruction
+ * @see InstructionHandle
+ * @see BranchHandle
+ */
+public class InstructionList implements Iterable&lt;InstructionHandle&gt; {
+
+    /**
+     * Find the target instruction (handle) that corresponds to the given target position (byte code offset).
+     *
+     * @param ihs array of instruction handles, for example il.getInstructionHandles().
+     * @param pos array of positions corresponding to ihs, for example il.getInstructionPositions().
+     * @param count length of arrays.
+     * @param target target position to search for.
+     * @return target position's instruction handle if available.
+     */
+    public static InstructionHandle findHandle(final InstructionHandle[] ihs, final int[] pos, final int count, final int target) {
+<span class="pc bpc" id="L62" title="2 of 4 branches missed.">        if (ihs != null &amp;&amp; pos != null) {</span>
+<span class="fc" id="L63">            int l = 0;</span>
+<span class="fc" id="L64">            int r = count - 1;</span>
+            /*
+             * Do a binary search since the pos array is orderd.
+             */
+            do {
+<span class="fc" id="L69">                final int i = l + r &gt;&gt;&gt; 1;</span>
+<span class="fc" id="L70">                final int j = pos[i];</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">                if (j == target) {</span>
+<span class="fc" id="L72">                    return ihs[i];</span>
+                }
+<span class="fc bfc" id="L74" title="All 2 branches covered.">                if (target &lt; j) {</span>
+<span class="fc" id="L75">                    r = i - 1;</span>
+                } else {
+<span class="fc" id="L77">                    l = i + 1;</span>
+                }
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">            } while (l &lt;= r);</span>
+        }
+<span class="nc" id="L81">        return null;</span>
+    }
+
+    private InstructionHandle start;
+    private InstructionHandle end;
+    private int length; // number of elements in list
+
+    private int[] bytePositions; // byte code offsets corresponding to instructions
+
+    private List&lt;InstructionListObserver&gt; observers;
+
+    /**
+     * Create (empty) instruction list.
+     */
+<span class="fc" id="L95">    public InstructionList() {</span>
+<span class="fc" id="L96">    }</span>
+
+    /**
+     * Create instruction list containing one instruction.
+     *
+     * @param i initial instruction.
+     */
+<span class="fc" id="L103">    public InstructionList(final BranchInstruction i) {</span>
+<span class="fc" id="L104">        append(i);</span>
+<span class="fc" id="L105">    }</span>
+
+    /**
+     * Initialize instruction list from byte array.
+     *
+     * @param code byte array containing the instructions.
+     */
+<span class="fc" id="L112">    public InstructionList(final byte[] code) {</span>
+<span class="fc" id="L113">        int count = 0; // Contains actual length</span>
+        final int[] pos;
+        final InstructionHandle[] ihs;
+<span class="fc" id="L116">        try (ByteSequence bytes = new ByteSequence(code)) {</span>
+<span class="fc" id="L117">            ihs = new InstructionHandle[code.length];</span>
+<span class="fc" id="L118">            pos = new int[code.length]; // Can't be more than that</span>
+            /*
+             * Pass 1: Create an object for each byte code and append them to the list.
+             */
+<span class="fc bfc" id="L122" title="All 2 branches covered.">            while (bytes.available() &gt; 0) {</span>
+                // Remember byte offset and associate it with the instruction
+<span class="fc" id="L124">                final int off = bytes.getIndex();</span>
+<span class="fc" id="L125">                pos[count] = off;</span>
+                /*
+                 * Reads one instruction from the byte stream, the byte position is set accordingly.
+                 */
+<span class="fc" id="L129">                final Instruction i = Instruction.readInstruction(bytes);</span>
+                final InstructionHandle ih;
+<span class="fc bfc" id="L131" title="All 2 branches covered.">                if (i instanceof BranchInstruction) {</span>
+<span class="fc" id="L132">                    ih = append((BranchInstruction) i);</span>
+                } else {
+<span class="fc" id="L134">                    ih = append(i);</span>
+                }
+<span class="fc" id="L136">                ih.setPosition(off);</span>
+<span class="fc" id="L137">                ihs[count] = ih;</span>
+<span class="fc" id="L138">                count++;</span>
+<span class="fc" id="L139">            }</span>
+<span class="nc" id="L140">        } catch (final IOException e) {</span>
+<span class="nc" id="L141">            throw new ClassGenException(e.toString(), e);</span>
+<span class="fc" id="L142">        }</span>
+<span class="fc" id="L143">        bytePositions = Arrays.copyOf(pos, count); // Trim to proper size</span>
+        /*
+         * Pass 2: Look for BranchInstruction and update their targets, that is, convert offsets to instruction handles.
+         */
+<span class="fc bfc" id="L147" title="All 2 branches covered.">        for (int i = 0; i &lt; count; i++) {</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">            if (ihs[i] instanceof BranchHandle) {</span>
+<span class="fc" id="L149">                final BranchInstruction bi = (BranchInstruction) ihs[i].getInstruction();</span>
+<span class="fc" id="L150">                int target = bi.getPosition() + bi.getIndex(); /*</span>
+                                                                * Byte code position: relative -&gt; absolute.
+                                                                */
+                // Search for target position
+<span class="fc" id="L154">                InstructionHandle ih = findHandle(ihs, pos, count, target);</span>
+<span class="pc bpc" id="L155" title="1 of 2 branches missed.">                if (ih == null) {</span>
+<span class="nc" id="L156">                    throw new ClassGenException(&quot;Couldn't find target for branch: &quot; + bi);</span>
+                }
+<span class="fc" id="L158">                bi.setTarget(ih); // Update target</span>
+                // If it is a Select instruction, update all branch targets
+<span class="pc bpc" id="L160" title="1 of 2 branches missed.">                if (bi instanceof Select) { // Either LOOKUPSWITCH or TABLESWITCH</span>
+<span class="nc" id="L161">                    final Select s = (Select) bi;</span>
+<span class="nc" id="L162">                    final int[] indices = s.getIndices();</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">                    for (int j = 0; j &lt; indices.length; j++) {</span>
+<span class="nc" id="L164">                        target = bi.getPosition() + indices[j];</span>
+<span class="nc" id="L165">                        ih = findHandle(ihs, pos, count, target);</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">                        if (ih == null) {</span>
+<span class="nc" id="L167">                            throw new ClassGenException(&quot;Couldn't find target for switch: &quot; + bi);</span>
+                        }
+<span class="nc" id="L169">                        s.setTarget(j, ih); // Update target</span>
+                    }
+                }
+            }
+        }
+<span class="fc" id="L174">    }</span>
+
+    /**
+     * Initialize list with (nonnull) compound instruction. Consumes argument list, that is, it becomes empty.
+     *
+     * @param c compound instruction (list).
+     */
+<span class="nc" id="L181">    public InstructionList(final CompoundInstruction c) {</span>
+<span class="nc" id="L182">        append(c.getInstructionList());</span>
+<span class="nc" id="L183">    }</span>
+
+    /**
+     * Create instruction list containing one instruction.
+     *
+     * @param i initial instruction.
+     */
+<span class="fc" id="L190">    public InstructionList(final Instruction i) {</span>
+<span class="fc" id="L191">        append(i);</span>
+<span class="fc" id="L192">    }</span>
+
+    /**
+     * Add observer for this object.
+     *
+     * @param o the observer to add.
+     */
+    public void addObserver(final InstructionListObserver o) {
+<span class="nc bnc" id="L200" title="All 2 branches missed.">        if (observers == null) {</span>
+<span class="nc" id="L201">            observers = new ArrayList&lt;&gt;();</span>
+        }
+<span class="nc" id="L203">        observers.add(o);</span>
+<span class="nc" id="L204">    }</span>
+
+    /**
+     * Append a branch instruction to the end of this list.
+     *
+     * @param i branch instruction to append.
+     * @return branch instruction handle of the appended instruction.
+     */
+    public BranchHandle append(final BranchInstruction i) {
+<span class="fc" id="L213">        final BranchHandle ih = BranchHandle.getBranchHandle(i);</span>
+<span class="fc" id="L214">        append(ih);</span>
+<span class="fc" id="L215">        return ih;</span>
+    }
+
+    /**
+     * Append a compound instruction.
+     *
+     * @param c The composite instruction (containing an InstructionList).
+     * @return instruction handle of the first appended instruction.
+     */
+    public InstructionHandle append(final CompoundInstruction c) {
+<span class="nc" id="L225">        return append(c.getInstructionList());</span>
+    }
+
+    /**
+     * Append an instruction to the end of this list.
+     *
+     * @param i instruction to append.
+     * @return instruction handle of the appended instruction.
+     */
+    public InstructionHandle append(final Instruction i) {
+<span class="fc" id="L235">        final InstructionHandle ih = InstructionHandle.getInstructionHandle(i);</span>
+<span class="fc" id="L236">        append(ih);</span>
+<span class="fc" id="L237">        return ih;</span>
+    }
+
+    /**
+     * Append a compound instruction, after instruction i.
+     *
+     * @param i Instruction in list.
+     * @param c The composite instruction (containing an InstructionList).
+     * @return instruction handle of the first appended instruction.
+     */
+    public InstructionHandle append(final Instruction i, final CompoundInstruction c) {
+<span class="nc" id="L248">        return append(i, c.getInstructionList());</span>
+    }
+
+    /**
+     * Append a single instruction j after another instruction i, which must be in this list of course!
+     *
+     * @param i Instruction in list.
+     * @param j Instruction to append after i in list.
+     * @return instruction handle of the first appended instruction.
+     */
+    public InstructionHandle append(final Instruction i, final Instruction j) {
+<span class="nc" id="L259">        return append(i, new InstructionList(j));</span>
+    }
+
+    /**
+     * Append another list after instruction i contained in this list. Consumes argument list, that is, it becomes empty.
+     *
+     * @param i where to append the instruction list.
+     * @param il Instruction list to append to this one.
+     * @return instruction handle pointing to the &lt;strong&gt;first&lt;/strong&gt; appended instruction.
+     */
+    public InstructionHandle append(final Instruction i, final InstructionList il) {
+        final InstructionHandle ih;
+<span class="nc bnc" id="L271" title="All 2 branches missed.">        if ((ih = findInstruction2(i)) == null) {</span>
+<span class="nc" id="L272">            throw new ClassGenException(&quot;Instruction &quot; + i + &quot; is not contained in this list.&quot;);</span>
+        }
+<span class="nc" id="L274">        return append(ih, il);</span>
+    }
+
+    /**
+     * Append an instruction to the end of this list.
+     *
+     * @param ih instruction to append.
+     */
+    private void append(final InstructionHandle ih) {
+<span class="fc bfc" id="L283" title="All 2 branches covered.">        if (isEmpty()) {</span>
+<span class="fc" id="L284">            start = end = ih;</span>
+<span class="fc" id="L285">            ih.setNext(ih.setPrev(null));</span>
+        } else {
+<span class="fc" id="L287">            end.setNext(ih);</span>
+<span class="fc" id="L288">            ih.setPrev(end);</span>
+<span class="fc" id="L289">            ih.setNext(null);</span>
+<span class="fc" id="L290">            end = ih;</span>
+        }
+<span class="fc" id="L292">        length++; // Update length</span>
+<span class="fc" id="L293">    }</span>
+
+    /**
+     * Append an instruction after instruction (handle) ih contained in this list.
+     *
+     * @param ih where to append the instruction list.
+     * @param i Instruction to append.
+     * @return instruction handle pointing to the &lt;strong&gt;first&lt;/strong&gt; appended instruction.
+     */
+    public BranchHandle append(final InstructionHandle ih, final BranchInstruction i) {
+<span class="nc" id="L303">        final BranchHandle bh = BranchHandle.getBranchHandle(i);</span>
+<span class="nc" id="L304">        final InstructionList il = new InstructionList();</span>
+<span class="nc" id="L305">        il.append(bh);</span>
+<span class="nc" id="L306">        append(ih, il);</span>
+<span class="nc" id="L307">        return bh;</span>
+    }
+
+    /**
+     * Append a compound instruction.
+     *
+     * @param ih where to append the instruction list.
+     * @param c The composite instruction (containing an InstructionList).
+     * @return instruction handle of the first appended instruction.
+     */
+    public InstructionHandle append(final InstructionHandle ih, final CompoundInstruction c) {
+<span class="nc" id="L318">        return append(ih, c.getInstructionList());</span>
+    }
+
+    /**
+     * Append an instruction after instruction (handle) ih contained in this list.
+     *
+     * @param ih where to append the instruction list.
+     * @param i Instruction to append.
+     * @return instruction handle pointing to the &lt;strong&gt;first&lt;/strong&gt; appended instruction.
+     */
+    public InstructionHandle append(final InstructionHandle ih, final Instruction i) {
+<span class="nc" id="L329">        return append(ih, new InstructionList(i));</span>
+    }
+
+    /**
+     * Append another list after instruction (handle) ih contained in this list. Consumes argument list, that is, it becomes
+     * empty.
+     *
+     * @param ih where to append the instruction list.
+     * @param il Instruction list to append to this one.
+     * @return instruction handle pointing to the &lt;strong&gt;first&lt;/strong&gt; appended instruction.
+     */
+    public InstructionHandle append(final InstructionHandle ih, final InstructionList il) {
+<span class="pc bpc" id="L341" title="1 of 2 branches missed.">        if (il == null) {</span>
+<span class="nc" id="L342">            throw new ClassGenException(&quot;Appending null InstructionList&quot;);</span>
+        }
+<span class="pc bpc" id="L344" title="1 of 2 branches missed.">        if (il.isEmpty()) {</span>
+<span class="nc" id="L345">            return ih;</span>
+        }
+<span class="fc" id="L347">        final InstructionHandle next = ih.getNext();</span>
+<span class="fc" id="L348">        final InstructionHandle ret = il.start;</span>
+<span class="fc" id="L349">        ih.setNext(il.start);</span>
+<span class="fc" id="L350">        il.start.setPrev(ih);</span>
+<span class="fc" id="L351">        il.end.setNext(next);</span>
+<span class="pc bpc" id="L352" title="1 of 2 branches missed.">        if (next != null) {</span>
+<span class="nc" id="L353">            next.setPrev(il.end);</span>
+        } else {
+<span class="fc" id="L355">            end = il.end; // Update end ...</span>
+        }
+<span class="fc" id="L357">        length += il.length; // Update length</span>
+<span class="fc" id="L358">        il.clear();</span>
+<span class="fc" id="L359">        return ret;</span>
+    }
+
+    /**
+     * Append another list to this one. Consumes argument list, that is, it becomes empty.
+     *
+     * @param il list to append to end of this list.
+     * @return instruction handle of the &lt;strong&gt;first&lt;/strong&gt; appended instruction.
+     */
+    public InstructionHandle append(final InstructionList il) {
+<span class="pc bpc" id="L369" title="1 of 2 branches missed.">        if (il == null) {</span>
+<span class="nc" id="L370">            throw new ClassGenException(&quot;Appending null InstructionList&quot;);</span>
+        }
+<span class="pc bpc" id="L372" title="1 of 2 branches missed.">        if (il.isEmpty()) {</span>
+<span class="nc" id="L373">            return null;</span>
+        }
+<span class="pc bpc" id="L375" title="1 of 2 branches missed.">        if (isEmpty()) {</span>
+<span class="nc" id="L376">            start = il.start;</span>
+<span class="nc" id="L377">            end = il.end;</span>
+<span class="nc" id="L378">            length = il.length;</span>
+<span class="nc" id="L379">            il.clear();</span>
+<span class="nc" id="L380">            return start;</span>
+        }
+<span class="fc" id="L382">        return append(end, il); // was end.instruction</span>
+    }
+
+    private void clear() {
+<span class="fc" id="L386">        start = end = null;</span>
+<span class="fc" id="L387">        length = 0;</span>
+<span class="fc" id="L388">    }</span>
+
+    /**
+     * Checks if the list contains the given instruction.
+     *
+     * @param i the instruction to check.
+     * @return true if the list contains the instruction.
+     */
+    public boolean contains(final Instruction i) {
+<span class="fc bfc" id="L397" title="All 2 branches covered.">        return findInstruction1(i) != null;</span>
+    }
+
+    /**
+     * Checks if the list contains the given instruction handle.
+     *
+     * @param i the instruction handle to check.
+     * @return true if the list contains the instruction handle.
+     */
+    public boolean contains(final InstructionHandle i) {
+<span class="pc bpc" id="L407" title="1 of 2 branches missed.">        if (i == null) {</span>
+<span class="nc" id="L408">            return false;</span>
+        }
+<span class="pc bpc" id="L410" title="1 of 2 branches missed.">        for (InstructionHandle ih = start; ih != null; ih = ih.getNext()) {</span>
+<span class="pc bpc" id="L411" title="1 of 2 branches missed.">            if (ih == i) {</span>
+<span class="fc" id="L412">                return true;</span>
+            }
+        }
+<span class="nc" id="L415">        return false;</span>
+    }
+
+    /**
+     * Creates a complete deep copy of this list.
+     *
+     * @return complete, that is, deep copy of this list.
+     */
+    public InstructionList copy() {
+<span class="fc" id="L424">        final Map&lt;InstructionHandle, InstructionHandle&gt; map = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L425">        final InstructionList il = new InstructionList();</span>
+        /*
+         * Pass 1: Make copies of all instructions, append them to the new list and associate old instruction references with
+         * the new ones, that is, a 1:1 mapping.
+         */
+<span class="fc bfc" id="L430" title="All 2 branches covered.">        for (InstructionHandle ih = start; ih != null; ih = ih.getNext()) {</span>
+<span class="fc" id="L431">            final Instruction i = ih.getInstruction();</span>
+<span class="fc" id="L432">            final Instruction c = i.copy(); // Use clone for shallow copy</span>
+<span class="pc bpc" id="L433" title="1 of 2 branches missed.">            if (c instanceof BranchInstruction) {</span>
+<span class="nc" id="L434">                map.put(ih, il.append((BranchInstruction) c));</span>
+            } else {
+<span class="fc" id="L436">                map.put(ih, il.append(c));</span>
+            }
+        }
+        /*
+         * Pass 2: Update branch targets.
+         */
+<span class="fc" id="L442">        InstructionHandle ih = start;</span>
+<span class="fc" id="L443">        InstructionHandle ch = il.start;</span>
+<span class="fc bfc" id="L444" title="All 2 branches covered.">        while (ih != null) {</span>
+<span class="fc" id="L445">            final Instruction i = ih.getInstruction();</span>
+<span class="fc" id="L446">            final Instruction c = ch.getInstruction();</span>
+<span class="pc bpc" id="L447" title="1 of 2 branches missed.">            if (i instanceof BranchInstruction) {</span>
+<span class="nc" id="L448">                final BranchInstruction bi = (BranchInstruction) i;</span>
+<span class="nc" id="L449">                final BranchInstruction bc = (BranchInstruction) c;</span>
+<span class="nc" id="L450">                final InstructionHandle itarget = bi.getTarget(); // old target</span>
+                // New target is in hash map
+<span class="nc" id="L452">                bc.setTarget(map.get(itarget));</span>
+<span class="nc bnc" id="L453" title="All 2 branches missed.">                if (bi instanceof Select) { // Either LOOKUPSWITCH or TABLESWITCH</span>
+<span class="nc" id="L454">                    final InstructionHandle[] itargets = ((Select) bi).getTargets();</span>
+<span class="nc" id="L455">                    final InstructionHandle[] ctargets = ((Select) bc).getTargets();</span>
+<span class="nc bnc" id="L456" title="All 2 branches missed.">                    for (int j = 0; j &lt; itargets.length; j++) { // Update all targets</span>
+<span class="nc" id="L457">                        ctargets[j] = map.get(itargets[j]);</span>
+                    }
+                }
+            }
+<span class="fc" id="L461">            ih = ih.getNext();</span>
+<span class="fc" id="L462">            ch = ch.getNext();</span>
+<span class="fc" id="L463">        }</span>
+<span class="fc" id="L464">        return il;</span>
+    }
+
+    /**
+     * Remove instruction from this list. The corresponding Instruction handles must not be reused!
+     *
+     * @param i instruction to remove.
+     * @throws TargetLostException if target is lost.
+     */
+    public void delete(final Instruction i) throws TargetLostException {
+        final InstructionHandle ih;
+<span class="nc bnc" id="L475" title="All 2 branches missed.">        if ((ih = findInstruction1(i)) == null) {</span>
+<span class="nc" id="L476">            throw new ClassGenException(&quot;Instruction &quot; + i + &quot; is not contained in this list.&quot;);</span>
+        }
+<span class="nc" id="L478">        delete(ih);</span>
+<span class="nc" id="L479">    }</span>
+
+    /**
+     * Remove instructions from instruction 'from' to instruction 'to' contained in this list. The user must ensure that
+     * 'from' is an instruction before 'to', or risk havoc. The corresponding Instruction handles must not be reused!
+     *
+     * @param from where to start deleting (inclusive).
+     * @param to where to end deleting (inclusive).
+     * @throws TargetLostException if target is lost.
+     */
+    public void delete(final Instruction from, final Instruction to) throws TargetLostException {
+        final InstructionHandle fromIh;
+        final InstructionHandle toIh;
+<span class="nc bnc" id="L492" title="All 2 branches missed.">        if ((fromIh = findInstruction1(from)) == null) {</span>
+<span class="nc" id="L493">            throw new ClassGenException(&quot;Instruction &quot; + from + &quot; is not contained in this list.&quot;);</span>
+        }
+<span class="nc bnc" id="L495" title="All 2 branches missed.">        if ((toIh = findInstruction2(to)) == null) {</span>
+<span class="nc" id="L496">            throw new ClassGenException(&quot;Instruction &quot; + to + &quot; is not contained in this list.&quot;);</span>
+        }
+<span class="nc" id="L498">        delete(fromIh, toIh);</span>
+<span class="nc" id="L499">    }</span>
+
+    /**
+     * Remove instruction from this list. The corresponding Instruction handles must not be reused!
+     *
+     * @param ih instruction (handle) to remove.
+     * @throws TargetLostException if target is lost.
+     */
+    public void delete(final InstructionHandle ih) throws TargetLostException {
+<span class="fc" id="L508">        remove(ih.getPrev(), ih.getNext());</span>
+<span class="fc" id="L509">    }</span>
+
+    /**
+     * Remove instructions from instruction 'from' to instruction 'to' contained in this list. The user must ensure that
+     * 'from' is an instruction before 'to', or risk havoc. The corresponding Instruction handles must not be reused!
+     *
+     * @param from where to start deleting (inclusive).
+     * @param to where to end deleting (inclusive).
+     * @throws TargetLostException if target is lost.
+     */
+    public void delete(final InstructionHandle from, final InstructionHandle to) throws TargetLostException {
+<span class="nc" id="L520">        remove(from.getPrev(), to.getNext());</span>
+<span class="nc" id="L521">    }</span>
+
+    /**
+     * Delete contents of list. Provides better memory utilization, because the system then may reuse the instruction
+     * handles. This method is typically called right after {@link MethodGen#getMethod()}.
+     */
+    public void dispose() {
+        // Traverse in reverse order, because ih.next is overwritten
+<span class="fc bfc" id="L529" title="All 2 branches covered.">        for (InstructionHandle ih = end; ih != null; ih = ih.getPrev()) {</span>
+            // Causes BranchInstructions to release target and targeters, because it calls dispose() on the contained instruction.
+<span class="fc" id="L531">            ih.dispose();</span>
+        }
+<span class="fc" id="L533">        clear();</span>
+<span class="fc" id="L534">    }</span>
+
+    /**
+     * Gets instruction handle for instruction at byte code position pos. This only works properly, if the list is freshly
+     * initialized from a byte array or setPositions() has been called before this method.
+     *
+     * @param pos byte code position to search for.
+     * @return target position's instruction handle if available.
+     */
+    public InstructionHandle findHandle(final int pos) {
+<span class="fc" id="L544">        final int[] positions = bytePositions;</span>
+<span class="fc" id="L545">        InstructionHandle ih = start;</span>
+<span class="fc bfc" id="L546" title="All 2 branches covered.">        for (int i = 0; i &lt; length; i++) {</span>
+<span class="fc bfc" id="L547" title="All 2 branches covered.">            if (positions[i] == pos) {</span>
+<span class="fc" id="L548">                return ih;</span>
+            }
+<span class="fc" id="L550">            ih = ih.getNext();</span>
+        }
+<span class="fc" id="L552">        return null;</span>
+    }
+
+    /**
+     * Search for given Instruction reference, start at beginning of list.
+     *
+     * @param i instruction to search for.
+     * @return instruction found on success, null otherwise.
+     */
+    private InstructionHandle findInstruction1(final Instruction i) {
+<span class="fc bfc" id="L562" title="All 2 branches covered.">        for (InstructionHandle ih = start; ih != null; ih = ih.getNext()) {</span>
+<span class="fc bfc" id="L563" title="All 2 branches covered.">            if (ih.getInstruction() == i) {</span>
+<span class="fc" id="L564">                return ih;</span>
+            }
+        }
+<span class="fc" id="L567">        return null;</span>
+    }
+
+    /**
+     * Search for given Instruction reference, start at end of list
+     *
+     * @param i instruction to search for.
+     * @return instruction found on success, null otherwise.
+     */
+    private InstructionHandle findInstruction2(final Instruction i) {
+<span class="nc bnc" id="L577" title="All 2 branches missed.">        for (InstructionHandle ih = end; ih != null; ih = ih.getPrev()) {</span>
+<span class="nc bnc" id="L578" title="All 2 branches missed.">            if (ih.getInstruction() == i) {</span>
+<span class="nc" id="L579">                return ih;</span>
+            }
+        }
+<span class="nc" id="L582">        return null;</span>
+    }
+
+    /**
+     * When everything is finished, use this method to convert the instruction list into an array of bytes.
+     *
+     * @return the byte code ready to be dumped.
+     */
+    public byte[] getByteCode() {
+        // Update position indices of instructions
+<span class="fc" id="L592">        setPositions();</span>
+<span class="fc" id="L593">        final ByteArrayOutputStream b = new ByteArrayOutputStream();</span>
+<span class="fc" id="L594">        final DataOutputStream out = new DataOutputStream(b);</span>
+        try {
+<span class="fc bfc" id="L596" title="All 2 branches covered.">            for (InstructionHandle ih = start; ih != null; ih = ih.getNext()) {</span>
+<span class="fc" id="L597">                final Instruction i = ih.getInstruction();</span>
+<span class="fc" id="L598">                i.dump(out); // Traverse list</span>
+            }
+<span class="fc" id="L600">            out.flush();</span>
+<span class="nc" id="L601">        } catch (final IOException e) {</span>
+<span class="nc" id="L602">            System.err.println(e);</span>
+<span class="nc" id="L603">            return ArrayUtils.EMPTY_BYTE_ARRAY;</span>
+<span class="fc" id="L604">        }</span>
+<span class="fc" id="L605">        return b.toByteArray();</span>
+    }
+
+    /**
+     * Gets the end of list.
+     *
+     * @return end of list.
+     */
+    public InstructionHandle getEnd() {
+<span class="fc" id="L614">        return end;</span>
+    }
+
+    /**
+     * Gets array containing all instructions.
+     *
+     * @return array containing all instructions (handles).
+     */
+    public InstructionHandle[] getInstructionHandles() {
+<span class="fc" id="L623">        final InstructionHandle[] ihs = new InstructionHandle[length];</span>
+<span class="fc" id="L624">        InstructionHandle ih = start;</span>
+<span class="fc bfc" id="L625" title="All 2 branches covered.">        for (int i = 0; i &lt; length; i++) {</span>
+<span class="fc" id="L626">            ihs[i] = ih;</span>
+<span class="fc" id="L627">            ih = ih.getNext();</span>
+        }
+<span class="fc" id="L629">        return ihs;</span>
+    }
+
+    /**
+     * Gets positions (offsets) of all instructions in the list. This relies on that the list has been freshly created from
+     * an byte code array, or that setPositions() has been called. Otherwise this may be inaccurate.
+     *
+     * @return array containing all instruction's offset in byte code.
+     */
+    public int[] getInstructionPositions() {
+<span class="fc" id="L639">        return bytePositions;</span>
+    }
+
+    /**
+     * Gets an array of instructions without target information for branch instructions.
+     *
+     * @return an array of instructions without target information for branch instructions.
+     */
+    public Instruction[] getInstructions() {
+<span class="fc" id="L648">        final List&lt;Instruction&gt; instructions = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L649">        try (ByteSequence bytes = new ByteSequence(getByteCode())) {</span>
+<span class="fc bfc" id="L650" title="All 2 branches covered.">            while (bytes.available() &gt; 0) {</span>
+<span class="fc" id="L651">                instructions.add(Instruction.readInstruction(bytes));</span>
+            }
+<span class="nc" id="L653">        } catch (final IOException e) {</span>
+<span class="nc" id="L654">            throw new ClassGenException(e.toString(), e);</span>
+<span class="fc" id="L655">        }</span>
+<span class="fc" id="L656">        return instructions.toArray(Instruction.EMPTY_ARRAY);</span>
+    }
+
+    /**
+     * Gets the length of list.
+     *
+     * @return length of list (Number of instructions, not bytes).
+     */
+    public int getLength() {
+<span class="fc" id="L665">        return length;</span>
+    }
+
+    /**
+     * Gets the start of list.
+     *
+     * @return start of list.
+     */
+    public InstructionHandle getStart() {
+<span class="fc" id="L674">        return start;</span>
+    }
+
+    /**
+     * Insert a branch instruction at start of this list.
+     *
+     * @param i branch instruction to insert.
+     * @return branch instruction handle of the appended instruction.
+     */
+    public BranchHandle insert(final BranchInstruction i) {
+<span class="nc" id="L684">        final BranchHandle ih = BranchHandle.getBranchHandle(i);</span>
+<span class="nc" id="L685">        insert(ih);</span>
+<span class="nc" id="L686">        return ih;</span>
+    }
+
+    /**
+     * Insert a compound instruction.
+     *
+     * @param c The composite instruction (containing an InstructionList).
+     * @return instruction handle of the first inserted instruction.
+     */
+    public InstructionHandle insert(final CompoundInstruction c) {
+<span class="nc" id="L696">        return insert(c.getInstructionList());</span>
+    }
+
+    /**
+     * Insert an instruction at start of this list.
+     *
+     * @param i instruction to insert.
+     * @return instruction handle of the inserted instruction.
+     */
+    public InstructionHandle insert(final Instruction i) {
+<span class="fc" id="L706">        final InstructionHandle ih = InstructionHandle.getInstructionHandle(i);</span>
+<span class="fc" id="L707">        insert(ih);</span>
+<span class="fc" id="L708">        return ih;</span>
+    }
+
+    /**
+     * Insert a compound instruction before instruction i.
+     *
+     * @param i Instruction in list.
+     * @param c The composite instruction (containing an InstructionList).
+     * @return instruction handle of the first inserted instruction.
+     */
+    public InstructionHandle insert(final Instruction i, final CompoundInstruction c) {
+<span class="nc" id="L719">        return insert(i, c.getInstructionList());</span>
+    }
+
+    /**
+     * Insert a single instruction j before another instruction i, which must be in this list of course!
+     *
+     * @param i Instruction in list.
+     * @param j Instruction to insert before i in list.
+     * @return instruction handle of the first inserted instruction.
+     */
+    public InstructionHandle insert(final Instruction i, final Instruction j) {
+<span class="nc" id="L730">        return insert(i, new InstructionList(j));</span>
+    }
+
+    /**
+     * Insert another list before Instruction i contained in this list. Consumes argument list, that is, it becomes empty.
+     *
+     * @param i where to append the instruction list.
+     * @param il Instruction list to insert.
+     * @return instruction handle pointing to the first inserted instruction, that is, il.getStart().
+     */
+    public InstructionHandle insert(final Instruction i, final InstructionList il) {
+        final InstructionHandle ih;
+<span class="nc bnc" id="L742" title="All 2 branches missed.">        if ((ih = findInstruction1(i)) == null) {</span>
+<span class="nc" id="L743">            throw new ClassGenException(&quot;Instruction &quot; + i + &quot; is not contained in this list.&quot;);</span>
+        }
+<span class="nc" id="L745">        return insert(ih, il);</span>
+    }
+
+    /**
+     * Insert an instruction at start of this list.
+     *
+     * @param ih instruction to insert.
+     */
+    private void insert(final InstructionHandle ih) {
+<span class="pc bpc" id="L754" title="1 of 2 branches missed.">        if (isEmpty()) {</span>
+<span class="nc" id="L755">            start = end = ih;</span>
+<span class="nc" id="L756">            ih.setNext(ih.setPrev(null));</span>
+        } else {
+<span class="fc" id="L758">            start.setPrev(ih);</span>
+<span class="fc" id="L759">            ih.setNext(start);</span>
+<span class="fc" id="L760">            ih.setPrev(null);</span>
+<span class="fc" id="L761">            start = ih;</span>
+        }
+<span class="fc" id="L763">        length++;</span>
+<span class="fc" id="L764">    }</span>
+
+    /**
+     * Insert an instruction before instruction (handle) ih contained in this list.
+     *
+     * @param ih where to insert to the instruction list.
+     * @param i Instruction to insert.
+     * @return instruction handle of the first inserted instruction.
+     */
+    public BranchHandle insert(final InstructionHandle ih, final BranchInstruction i) {
+<span class="nc" id="L774">        final BranchHandle bh = BranchHandle.getBranchHandle(i);</span>
+<span class="nc" id="L775">        final InstructionList il = new InstructionList();</span>
+<span class="nc" id="L776">        il.append(bh);</span>
+<span class="nc" id="L777">        insert(ih, il);</span>
+<span class="nc" id="L778">        return bh;</span>
+    }
+
+    /**
+     * Insert a compound instruction.
+     *
+     * @param ih where to insert the instruction list.
+     * @param c The composite instruction (containing an InstructionList).
+     * @return instruction handle of the first inserted instruction.
+     */
+    public InstructionHandle insert(final InstructionHandle ih, final CompoundInstruction c) {
+<span class="nc" id="L789">        return insert(ih, c.getInstructionList());</span>
+    }
+
+    /**
+     * Insert an instruction before instruction (handle) ih contained in this list.
+     *
+     * @param ih where to insert to the instruction list.
+     * @param i Instruction to insert.
+     * @return instruction handle of the first inserted instruction.
+     */
+    public InstructionHandle insert(final InstructionHandle ih, final Instruction i) {
+<span class="nc" id="L800">        return insert(ih, new InstructionList(i));</span>
+    }
+
+    /**
+     * Insert another list before Instruction handle ih contained in this list. Consumes argument list, that is, it becomes
+     * empty.
+     *
+     * @param ih where to append the instruction list.
+     * @param il Instruction list to insert.
+     * @return instruction handle of the first inserted instruction.
+     */
+    public InstructionHandle insert(final InstructionHandle ih, final InstructionList il) {
+<span class="pc bpc" id="L812" title="1 of 2 branches missed.">        if (il == null) {</span>
+<span class="nc" id="L813">            throw new ClassGenException(&quot;Inserting null InstructionList&quot;);</span>
+        }
+<span class="pc bpc" id="L815" title="1 of 2 branches missed.">        if (il.isEmpty()) {</span>
+<span class="nc" id="L816">            return ih;</span>
+        }
+<span class="fc" id="L818">        final InstructionHandle prev = ih.getPrev();</span>
+<span class="fc" id="L819">        final InstructionHandle ret = il.start;</span>
+<span class="fc" id="L820">        ih.setPrev(il.end);</span>
+<span class="fc" id="L821">        il.end.setNext(ih);</span>
+<span class="fc" id="L822">        il.start.setPrev(prev);</span>
+<span class="pc bpc" id="L823" title="1 of 2 branches missed.">        if (prev != null) {</span>
+<span class="nc" id="L824">            prev.setNext(il.start);</span>
+        } else {
+<span class="fc" id="L826">            start = il.start; // Update start ...</span>
+        }
+<span class="fc" id="L828">        length += il.length; // Update length</span>
+<span class="fc" id="L829">        il.clear();</span>
+<span class="fc" id="L830">        return ret;</span>
+    }
+
+    /**
+     * Insert another list.
+     *
+     * @param il list to insert before start of this list.
+     * @return instruction handle of the first inserted instruction.
+     */
+    public InstructionHandle insert(final InstructionList il) {
+<span class="pc bpc" id="L840" title="1 of 2 branches missed.">        if (isEmpty()) {</span>
+<span class="nc" id="L841">            append(il); // Code is identical for this case</span>
+<span class="nc" id="L842">            return start;</span>
+        }
+<span class="fc" id="L844">        return insert(start, il);</span>
+    }
+
+    /**
+     * Tests for empty list.
+     *
+     * @return true if list is empty, false otherwise.
+     */
+    public boolean isEmpty() {
+<span class="fc bfc" id="L853" title="All 2 branches covered.">        return start == null;</span>
+    } // &amp;&amp; end == null
+
+    /**
+     * @return iterator that lists all instructions (handles).
+     */
+    @Override
+    public Iterator&lt;InstructionHandle&gt; iterator() {
+<span class="fc" id="L861">        return new Iterator&lt;InstructionHandle&gt;() {</span>
+
+<span class="fc" id="L863">            private InstructionHandle ih = start;</span>
+
+            @Override
+            public boolean hasNext() {
+<span class="fc bfc" id="L867" title="All 2 branches covered.">                return ih != null;</span>
+            }
+
+            @Override
+            public InstructionHandle next() throws NoSuchElementException {
+<span class="pc bpc" id="L872" title="1 of 2 branches missed.">                if (ih == null) {</span>
+<span class="nc" id="L873">                    throw new NoSuchElementException();</span>
+                }
+<span class="fc" id="L875">                final InstructionHandle i = ih;</span>
+<span class="fc" id="L876">                ih = ih.getNext();</span>
+<span class="fc" id="L877">                return i;</span>
+            }
+
+            @Override
+            public void remove() {
+<span class="nc" id="L882">                throw new UnsupportedOperationException();</span>
+            }
+        };
+    }
+
+    /**
+     * Move a single instruction (handle) to a new location.
+     *
+     * @param ih moved instruction.
+     * @param target new location of moved instruction.
+     */
+    public void move(final InstructionHandle ih, final InstructionHandle target) {
+<span class="nc" id="L894">        move(ih, ih, target);</span>
+<span class="nc" id="L895">    }</span>
+
+    /**
+     * Take all instructions (handles) from &quot;start&quot; to &quot;end&quot; and append them after the new location &quot;target&quot;. Of course,
+     * &quot;end&quot; must be after &quot;start&quot; and target must not be located withing this range. If you want to move something to the
+     * start of the list use null as value for target.
+     * &lt;p&gt;
+     * Any instruction targeters pointing to handles within the block, keep their targets.
+     * &lt;/p&gt;
+     *
+     * @param start of moved block.
+     * @param end of moved block.
+     * @param target of moved block.
+     */
+    public void move(final InstructionHandle start, final InstructionHandle end, final InstructionHandle target) {
+        // Step 1: Check constraints
+<span class="nc bnc" id="L911" title="All 4 branches missed.">        if (start == null || end == null) {</span>
+<span class="nc" id="L912">            throw new ClassGenException(&quot;Invalid null handle: From &quot; + start + &quot; to &quot; + end);</span>
+        }
+<span class="nc bnc" id="L914" title="All 4 branches missed.">        if (target == start || target == end) {</span>
+<span class="nc" id="L915">            throw new ClassGenException(&quot;Invalid range: From &quot; + start + &quot; to &quot; + end + &quot; contains target &quot; + target);</span>
+        }
+<span class="nc bnc" id="L917" title="All 2 branches missed.">        for (InstructionHandle ih = start; ih != end.getNext(); ih = ih.getNext()) {</span>
+<span class="nc bnc" id="L918" title="All 2 branches missed.">            if (ih == null) {</span>
+<span class="nc" id="L919">                throw new ClassGenException(&quot;Invalid range: From &quot; + start + &quot; to &quot; + end);</span>
+            }
+<span class="nc bnc" id="L921" title="All 2 branches missed.">            if (ih == target) {</span>
+<span class="nc" id="L922">                throw new ClassGenException(&quot;Invalid range: From &quot; + start + &quot; to &quot; + end + &quot; contains target &quot; + target);</span>
+            }
+        }
+        // Step 2: Temporarily remove the given instructions from the list
+<span class="nc" id="L926">        final InstructionHandle prev = start.getPrev();</span>
+<span class="nc" id="L927">        InstructionHandle next = end.getNext();</span>
+<span class="nc bnc" id="L928" title="All 2 branches missed.">        if (prev != null) {</span>
+<span class="nc" id="L929">            prev.setNext(next);</span>
+        } else {
+<span class="nc" id="L931">            this.start = next;</span>
+        }
+<span class="nc bnc" id="L933" title="All 2 branches missed.">        if (next != null) {</span>
+<span class="nc" id="L934">            next.setPrev(prev);</span>
+        } else {
+<span class="nc" id="L936">            this.end = prev;</span>
+        }
+<span class="nc" id="L938">        start.setPrev(end.setNext(null));</span>
+        // Step 3: append after target
+<span class="nc bnc" id="L940" title="All 2 branches missed.">        if (target == null) { // append to start of list</span>
+<span class="nc bnc" id="L941" title="All 2 branches missed.">            if (this.start != null) {</span>
+<span class="nc" id="L942">                this.start.setPrev(end);</span>
+            }
+<span class="nc" id="L944">            end.setNext(this.start);</span>
+<span class="nc" id="L945">            this.start = start;</span>
+        } else {
+<span class="nc" id="L947">            next = target.getNext();</span>
+<span class="nc" id="L948">            target.setNext(start);</span>
+<span class="nc" id="L949">            start.setPrev(target);</span>
+<span class="nc" id="L950">            end.setNext(next);</span>
+<span class="nc bnc" id="L951" title="All 2 branches missed.">            if (next != null) {</span>
+<span class="nc" id="L952">                next.setPrev(end);</span>
+            } else {
+<span class="nc" id="L954">                this.end = end;</span>
+            }
+        }
+<span class="nc" id="L957">    }</span>
+
+    /**
+     * Redirect all references from oldTarget to newTarget, that is, update targets of branch instructions.
+     *
+     * @param oldTarget the old target instruction handle.
+     * @param newTarget the new target instruction handle.
+     */
+    public void redirectBranches(final InstructionHandle oldTarget, final InstructionHandle newTarget) {
+<span class="fc bfc" id="L966" title="All 2 branches covered.">        for (InstructionHandle ih = start; ih != null; ih = ih.getNext()) {</span>
+<span class="fc" id="L967">            final Instruction i = ih.getInstruction();</span>
+<span class="fc bfc" id="L968" title="All 2 branches covered.">            if (i instanceof BranchInstruction) {</span>
+<span class="fc" id="L969">                final BranchInstruction b = (BranchInstruction) i;</span>
+<span class="fc" id="L970">                final InstructionHandle target = b.getTarget();</span>
+<span class="pc bpc" id="L971" title="1 of 2 branches missed.">                if (target == oldTarget) {</span>
+<span class="fc" id="L972">                    b.setTarget(newTarget);</span>
+                }
+<span class="pc bpc" id="L974" title="1 of 2 branches missed.">                if (b instanceof Select) { // Either LOOKUPSWITCH or TABLESWITCH</span>
+<span class="nc" id="L975">                    final InstructionHandle[] targets = ((Select) b).getTargets();</span>
+<span class="nc bnc" id="L976" title="All 2 branches missed.">                    for (int j = 0; j &lt; targets.length; j++) {</span>
+<span class="nc bnc" id="L977" title="All 2 branches missed.">                        if (targets[j] == oldTarget) {</span>
+<span class="nc" id="L978">                            ((Select) b).setTarget(j, newTarget);</span>
+                        }
+                    }
+                }
+            }
+        }
+<span class="fc" id="L984">    }</span>
+
+    /**
+     * Redirect all references of exception handlers from oldTarget to newTarget.
+     *
+     * @param exceptions array of exception handlers.
+     * @param oldTarget the old target instruction handle.
+     * @param newTarget the new target instruction handle.
+     * @see MethodGen
+     */
+    public void redirectExceptionHandlers(final CodeExceptionGen[] exceptions, final InstructionHandle oldTarget, final InstructionHandle newTarget) {
+<span class="nc" id="L995">        Streams.of(exceptions).forEach(exception -&gt; {</span>
+<span class="nc bnc" id="L996" title="All 2 branches missed.">            if (exception.getStartPC() == oldTarget) {</span>
+<span class="nc" id="L997">                exception.setStartPC(newTarget);</span>
+            }
+<span class="nc bnc" id="L999" title="All 2 branches missed.">            if (exception.getEndPC() == oldTarget) {</span>
+<span class="nc" id="L1000">                exception.setEndPC(newTarget);</span>
+            }
+<span class="nc bnc" id="L1002" title="All 2 branches missed.">            if (exception.getHandlerPC() == oldTarget) {</span>
+<span class="nc" id="L1003">                exception.setHandlerPC(newTarget);</span>
+            }
+<span class="nc" id="L1005">        });</span>
+<span class="nc" id="L1006">    }</span>
+
+    /**
+     * Redirect all references of local variables from oldTarget to newTarget.
+     *
+     * @param lg array of local variables.
+     * @param oldTarget the old target instruction handle.
+     * @param newTarget the new target instruction handle.
+     * @see MethodGen
+     */
+    public void redirectLocalVariables(final LocalVariableGen[] lg, final InstructionHandle oldTarget, final InstructionHandle newTarget) {
+<span class="nc" id="L1017">        Streams.of(lg).forEach(element -&gt; {</span>
+<span class="nc bnc" id="L1018" title="All 2 branches missed.">            if (element.getStart() == oldTarget) {</span>
+<span class="nc" id="L1019">                element.setStart(newTarget);</span>
+            }
+<span class="nc bnc" id="L1021" title="All 2 branches missed.">            if (element.getEnd() == oldTarget) {</span>
+<span class="nc" id="L1022">                element.setEnd(newTarget);</span>
+            }
+<span class="nc" id="L1024">        });</span>
+<span class="nc" id="L1025">    }</span>
+
+    /**
+     * Remove from instruction 'prev' to instruction 'next' both contained in this list. Throws TargetLostException when one
+     * of the removed instruction handles is still being targeted.
+     *
+     * @param prev where to start deleting (predecessor, exclusive).
+     * @param next where to end deleting (successor, exclusive).
+     */
+    private void remove(final InstructionHandle prev, InstructionHandle next) throws TargetLostException {
+        final InstructionHandle first;
+        final InstructionHandle last; // First and last deleted instruction
+<span class="pc bpc" id="L1037" title="2 of 4 branches missed.">        if (prev == null &amp;&amp; next == null) {</span>
+<span class="nc" id="L1038">            first = start;</span>
+<span class="nc" id="L1039">            last = end;</span>
+<span class="nc" id="L1040">            start = end = null;</span>
+        } else {
+<span class="pc bpc" id="L1042" title="1 of 2 branches missed.">            if (prev == null) { // At start of list</span>
+<span class="fc" id="L1043">                first = start;</span>
+<span class="fc" id="L1044">                start = next;</span>
+            } else {
+<span class="nc" id="L1046">                first = prev.getNext();</span>
+<span class="nc" id="L1047">                prev.setNext(next);</span>
+            }
+<span class="pc bpc" id="L1049" title="1 of 2 branches missed.">            if (next == null) { // At end of list</span>
+<span class="nc" id="L1050">                last = end;</span>
+<span class="nc" id="L1051">                end = prev;</span>
+            } else {
+<span class="fc" id="L1053">                last = next.getPrev();</span>
+<span class="fc" id="L1054">                next.setPrev(prev);</span>
+            }
+        }
+<span class="fc" id="L1057">        first.setPrev(null); // Completely separated from rest of list</span>
+<span class="fc" id="L1058">        last.setNext(null);</span>
+<span class="fc" id="L1059">        final List&lt;InstructionHandle&gt; targetList = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L1060" title="All 2 branches covered.">        for (InstructionHandle ih = first; ih != null; ih = ih.getNext()) {</span>
+<span class="fc" id="L1061">            ih.getInstruction().dispose(); // for example BranchInstructions release their targets</span>
+        }
+<span class="fc" id="L1063">        final StringBuilder buf = new StringBuilder(&quot;{ &quot;);</span>
+<span class="fc bfc" id="L1064" title="All 2 branches covered.">        for (InstructionHandle ih = first; ih != null; ih = next) {</span>
+<span class="fc" id="L1065">            next = ih.getNext();</span>
+<span class="fc" id="L1066">            length--;</span>
+<span class="fc bfc" id="L1067" title="All 2 branches covered.">            if (ih.hasTargeters()) { // Still got targeters?</span>
+<span class="fc" id="L1068">                targetList.add(ih);</span>
+<span class="fc" id="L1069">                buf.append(ih.toString(true)).append(&quot; &quot;);</span>
+<span class="fc" id="L1070">                ih.setNext(ih.setPrev(null));</span>
+            } else {
+<span class="fc" id="L1072">                ih.dispose();</span>
+            }
+        }
+<span class="fc" id="L1075">        buf.append(&quot;}&quot;);</span>
+<span class="fc bfc" id="L1076" title="All 2 branches covered.">        if (!targetList.isEmpty()) {</span>
+<span class="fc" id="L1077">            throw new TargetLostException(targetList.toArray(InstructionHandle.EMPTY_ARRAY), buf.toString());</span>
+        }
+<span class="fc" id="L1079">    }</span>
+
+    /**
+     * Remove observer for this object.
+     *
+     * @param o the observer to remove.
+     */
+    public void removeObserver(final InstructionListObserver o) {
+<span class="nc bnc" id="L1087" title="All 2 branches missed.">        if (observers != null) {</span>
+<span class="nc" id="L1088">            observers.remove(o);</span>
+        }
+<span class="nc" id="L1090">    }</span>
+
+    /**
+     * Replace all references to the old constant pool with references to the new constant pool.
+     *
+     * @param oldCp the old constant pool.
+     * @param newCp the new constant pool.
+     */
+    public void replaceConstantPool(final ConstantPoolGen oldCp, final ConstantPoolGen newCp) {
+<span class="nc bnc" id="L1099" title="All 2 branches missed.">        for (InstructionHandle ih = start; ih != null; ih = ih.getNext()) {</span>
+<span class="nc" id="L1100">            final Instruction i = ih.getInstruction();</span>
+<span class="nc bnc" id="L1101" title="All 2 branches missed.">            if (i instanceof CPInstruction) {</span>
+<span class="nc" id="L1102">                final CPInstruction ci = (CPInstruction) i;</span>
+<span class="nc" id="L1103">                final Constant c = oldCp.getConstant(ci.getIndex());</span>
+<span class="nc" id="L1104">                ci.setIndex(newCp.addConstant(c, oldCp));</span>
+            }
+        }
+<span class="nc" id="L1107">    }</span>
+
+    /**
+     * Sets positions with no sanity checks.
+     */
+    public void setPositions() { // TODO could be package-protected? (some test code would need to be repackaged)
+<span class="fc" id="L1113">        setPositions(false);</span>
+<span class="fc" id="L1114">    }</span>
+
+    /**
+     * Give all instructions their position number (offset in byte stream), that is, make the list ready to be dumped.
+     *
+     * @param check Perform sanity checks, for example if all targeted instructions really belong to this list.
+     */
+    public void setPositions(final boolean check) { // called by code in other packages
+<span class="fc" id="L1122">        int maxAdditionalBytes = 0;</span>
+<span class="fc" id="L1123">        int additionalBytes = 0;</span>
+<span class="fc" id="L1124">        int index = 0;</span>
+<span class="fc" id="L1125">        int count = 0;</span>
+<span class="fc" id="L1126">        final int[] pos = new int[length];</span>
+        /*
+         * Pass 0: Sanity checks
+         */
+<span class="fc bfc" id="L1130" title="All 2 branches covered.">        if (check) {</span>
+<span class="fc bfc" id="L1131" title="All 2 branches covered.">            for (InstructionHandle ih = start; ih != null; ih = ih.getNext()) {</span>
+<span class="fc" id="L1132">                final Instruction i = ih.getInstruction();</span>
+<span class="pc bpc" id="L1133" title="1 of 2 branches missed.">                if (i instanceof BranchInstruction) { // target instruction within list?</span>
+<span class="nc" id="L1134">                    Instruction inst = ((BranchInstruction) i).getTarget().getInstruction();</span>
+<span class="nc bnc" id="L1135" title="All 2 branches missed.">                    if (!contains(inst)) {</span>
+<span class="nc" id="L1136">                        throw new ClassGenException(&quot;Branch target of &quot; + Const.getOpcodeName(i.getOpcode()) + &quot;:&quot; + inst + &quot; not in instruction list&quot;);</span>
+                    }
+<span class="nc bnc" id="L1138" title="All 2 branches missed.">                    if (i instanceof Select) {</span>
+<span class="nc" id="L1139">                        final InstructionHandle[] targets = ((Select) i).getTargets();</span>
+<span class="nc bnc" id="L1140" title="All 2 branches missed.">                        for (final InstructionHandle target : targets) {</span>
+<span class="nc" id="L1141">                            inst = target.getInstruction();</span>
+<span class="nc bnc" id="L1142" title="All 2 branches missed.">                            if (!contains(inst)) {</span>
+<span class="nc" id="L1143">                                throw new ClassGenException(&quot;Branch target of &quot; + Const.getOpcodeName(i.getOpcode()) + &quot;:&quot; + inst + &quot; not in instruction list&quot;);</span>
+                            }
+                        }
+                    }
+<span class="nc bnc" id="L1147" title="All 2 branches missed.">                    if (!(ih instanceof BranchHandle)) {</span>
+<span class="nc" id="L1148">                        throw new ClassGenException(</span>
+<span class="nc" id="L1149">                            &quot;Branch instruction &quot; + Const.getOpcodeName(i.getOpcode()) + &quot;:&quot; + inst + &quot; not contained in BranchHandle.&quot;);</span>
+                    }
+                }
+            }
+        }
+        /*
+         * Pass 1: Set position numbers and sum up the maximum number of bytes an instruction may be shifted.
+         */
+<span class="fc bfc" id="L1157" title="All 2 branches covered.">        for (InstructionHandle ih = start; ih != null; ih = ih.getNext()) {</span>
+<span class="fc" id="L1158">            final Instruction i = ih.getInstruction();</span>
+<span class="fc" id="L1159">            ih.setPosition(index);</span>
+<span class="fc" id="L1160">            pos[count++] = index;</span>
+            /*
+             * Gets an estimate about how many additional bytes may be added, because BranchInstructions may have variable length
+             * depending on the target offset (short vs. int) or alignment issues (TABLESWITCH and LOOKUPSWITCH).
+             */
+<span class="pc bpc" id="L1165" title="1 of 3 branches missed.">            switch (i.getOpcode()) {</span>
+            case Const.JSR:
+            case Const.GOTO:
+<span class="fc" id="L1168">                maxAdditionalBytes += 2;</span>
+<span class="fc" id="L1169">                break;</span>
+            case Const.TABLESWITCH:
+            case Const.LOOKUPSWITCH:
+<span class="nc" id="L1172">                maxAdditionalBytes += 3;</span>
+<span class="nc" id="L1173">                break;</span>
+            default:
+                // TODO should this be an error?
+                break;
+            }
+<span class="fc" id="L1178">            index += i.getLength();</span>
+        }
+        /*
+         * Pass 2: Expand the variable-length (Branch) Instructions depending on the target offset (short or int) and ensure that
+         * branch targets are within this list.
+         */
+<span class="fc bfc" id="L1184" title="All 2 branches covered.">        for (InstructionHandle ih = start; ih != null; ih = ih.getNext()) {</span>
+<span class="fc" id="L1185">            additionalBytes += ih.updatePosition(additionalBytes, maxAdditionalBytes);</span>
+        }
+        /*
+         * Pass 3: Update position numbers (which may have changed due to the preceding expansions), like pass 1.
+         */
+<span class="fc" id="L1190">        index = count = 0;</span>
+<span class="fc bfc" id="L1191" title="All 2 branches covered.">        for (InstructionHandle ih = start; ih != null; ih = ih.getNext()) {</span>
+<span class="fc" id="L1192">            final Instruction i = ih.getInstruction();</span>
+<span class="fc" id="L1193">            ih.setPosition(index);</span>
+<span class="fc" id="L1194">            pos[count++] = index;</span>
+<span class="fc" id="L1195">            index += i.getLength();</span>
+        }
+<span class="fc" id="L1197">        bytePositions = Arrays.copyOfRange(pos, 0, count); // Trim to proper size</span>
+<span class="fc" id="L1198">    }</span>
+
+    /**
+     * Gets the length of list.
+     *
+     * @return length of list (Number of instructions, not bytes).
+     */
+    public int size() {
+<span class="fc" id="L1206">        return length;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="fc" id="L1211">        return toString(true);</span>
+    }
+
+    /**
+     * Gets string containing all instructions in this list.
+     *
+     * @param verbose toggle output format.
+     * @return String containing all instructions in this list.
+     */
+    public String toString(final boolean verbose) {
+<span class="fc" id="L1221">        final StringBuilder buf = new StringBuilder();</span>
+<span class="fc bfc" id="L1222" title="All 2 branches covered.">        for (InstructionHandle ih = start; ih != null; ih = ih.getNext()) {</span>
+<span class="fc" id="L1223">            buf.append(ih.toString(verbose)).append(&quot;\n&quot;);</span>
+        }
+<span class="fc" id="L1225">        return buf.toString();</span>
+    }
+
+    /**
+     * Call notify() method on all observers. This method is not called automatically whenever the state has changed, but
+     * has to be called by the user after he has finished editing the object.
+     */
+    public void update() {
+<span class="nc bnc" id="L1233" title="All 2 branches missed.">        if (observers != null) {</span>
+<span class="nc bnc" id="L1234" title="All 2 branches missed.">            for (final InstructionListObserver observer : observers) {</span>
+<span class="nc" id="L1235">                observer.notify(this);</span>
+<span class="nc" id="L1236">            }</span>
+        }
+<span class="nc" id="L1238">    }</span>
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

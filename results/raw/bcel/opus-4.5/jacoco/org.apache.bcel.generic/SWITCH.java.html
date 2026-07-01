@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SWITCH.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">SWITCH.java</span></div><h1>SWITCH.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import java.util.Arrays;
+
+/**
+ * SWITCH - Branch depending on int value, generates either LOOKUPSWITCH or TABLESWITCH instruction, depending on
+ * whether the match values (int[]) can be sorted with no gaps between the numbers.
+ */
+public final class SWITCH implements CompoundInstruction {
+
+    /**
+     * @return match is sorted in ascending order with no gap bigger than maxGap?
+     */
+    private static boolean matchIsOrdered(final int[] match, final int matchLength, final int maxGap) {
+<span class="nc bnc" id="L33" title="All 2 branches missed.">        for (int i = 1; i &lt; matchLength; i++) {</span>
+<span class="nc bnc" id="L34" title="All 2 branches missed.">            if (match[i] - match[i - 1] &gt; maxGap) {</span>
+<span class="nc" id="L35">                return false;</span>
+            }
+        }
+<span class="nc" id="L38">        return true;</span>
+    }
+
+    /**
+     * Sorts match and targets array with QuickSort.
+     */
+    private static void sort(final int l, final int r, final int[] match, final InstructionHandle[] targets) {
+<span class="nc" id="L45">        int i = l;</span>
+<span class="nc" id="L46">        int j = r;</span>
+        int h;
+<span class="nc" id="L48">        final int m = match[l + r &gt;&gt;&gt; 1];</span>
+        InstructionHandle h2;
+        do {
+<span class="nc bnc" id="L51" title="All 2 branches missed.">            while (match[i] &lt; m) {</span>
+<span class="nc" id="L52">                i++;</span>
+            }
+<span class="nc bnc" id="L54" title="All 2 branches missed.">            while (m &lt; match[j]) {</span>
+<span class="nc" id="L55">                j--;</span>
+            }
+<span class="nc bnc" id="L57" title="All 2 branches missed.">            if (i &lt;= j) {</span>
+<span class="nc" id="L58">                h = match[i];</span>
+<span class="nc" id="L59">                match[i] = match[j];</span>
+<span class="nc" id="L60">                match[j] = h; // Swap elements</span>
+<span class="nc" id="L61">                h2 = targets[i];</span>
+<span class="nc" id="L62">                targets[i] = targets[j];</span>
+<span class="nc" id="L63">                targets[j] = h2; // Swap instructions, too</span>
+<span class="nc" id="L64">                i++;</span>
+<span class="nc" id="L65">                j--;</span>
+            }
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        } while (i &lt;= j);</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">        if (l &lt; j) {</span>
+<span class="nc" id="L69">            sort(l, j, match, targets);</span>
+        }
+<span class="nc bnc" id="L71" title="All 2 branches missed.">        if (i &lt; r) {</span>
+<span class="nc" id="L72">            sort(i, r, match, targets);</span>
+        }
+<span class="nc" id="L74">    }</span>
+
+    private final Select instruction;
+
+    /**
+     * Constructs a SWITCH with default maxGap of 1.
+     *
+     * @param match array of match values.
+     * @param targets the instructions to be branched to for each case.
+     * @param target the default target.
+     */
+    public SWITCH(final int[] match, final InstructionHandle[] targets, final InstructionHandle target) {
+<span class="nc" id="L86">        this(match, targets, target, 1);</span>
+<span class="nc" id="L87">    }</span>
+
+    /**
+     * Template for switch() constructs. If the match array can be sorted in ascending order with gaps no larger than
+     * maxGap between the numbers, a TABLESWITCH instruction is generated, and a LOOKUPSWITCH otherwise. The former may be
+     * more efficient, but needs more space.
+     *
+     * Note, that the key array always will be sorted, though we leave the original arrays unaltered.
+     *
+     * @param match array of match values (case 2: ... case 7: ..., etc.).
+     * @param targets the instructions to be branched to for each case.
+     * @param target the default target.
+     * @param maxGap maximum gap that may between case branches.
+     */
+<span class="nc" id="L101">    public SWITCH(final int[] match, final InstructionHandle[] targets, final InstructionHandle target, final int maxGap) {</span>
+<span class="nc" id="L102">        final int[] matchClone = match.clone();</span>
+<span class="nc" id="L103">        final InstructionHandle[] targetsClone = targets.clone();</span>
+<span class="nc" id="L104">        final int matchLength = match.length;</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">        if (matchLength &lt; 2) {</span>
+<span class="nc" id="L106">            instruction = new TABLESWITCH(match, targets, target);</span>
+        } else {
+<span class="nc" id="L108">            sort(0, matchLength - 1, matchClone, targetsClone);</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">            if (matchIsOrdered(matchClone, matchLength, maxGap)) {</span>
+<span class="nc" id="L110">                final int maxSize = matchLength + matchLength * maxGap;</span>
+<span class="nc" id="L111">                final int[] mVec = new int[maxSize];</span>
+<span class="nc" id="L112">                final InstructionHandle[] tVec = new InstructionHandle[maxSize];</span>
+<span class="nc" id="L113">                int count = 1;</span>
+<span class="nc" id="L114">                mVec[0] = match[0];</span>
+<span class="nc" id="L115">                tVec[0] = targets[0];</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">                for (int i = 1; i &lt; matchLength; i++) {</span>
+<span class="nc" id="L117">                    final int prev = match[i - 1];</span>
+<span class="nc" id="L118">                    final int gap = match[i] - prev;</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">                    for (int j = 1; j &lt; gap; j++) {</span>
+<span class="nc" id="L120">                        mVec[count] = prev + j;</span>
+<span class="nc" id="L121">                        tVec[count] = target;</span>
+<span class="nc" id="L122">                        count++;</span>
+                    }
+<span class="nc" id="L124">                    mVec[count] = match[i];</span>
+<span class="nc" id="L125">                    tVec[count] = targets[i];</span>
+<span class="nc" id="L126">                    count++;</span>
+                }
+<span class="nc" id="L128">                instruction = new TABLESWITCH(Arrays.copyOf(mVec, count), Arrays.copyOf(tVec, count), target);</span>
+<span class="nc" id="L129">            } else {</span>
+<span class="nc" id="L130">                instruction = new LOOKUPSWITCH(matchClone, targetsClone, target);</span>
+            }
+        }
+<span class="nc" id="L133">    }</span>
+
+    /**
+     * Gets the instruction.
+     *
+     * @return the instruction.
+     */
+    public Instruction getInstruction() {
+<span class="nc" id="L141">        return instruction;</span>
+    }
+
+    @Override
+    public InstructionList getInstructionList() {
+<span class="nc" id="L146">        return new InstructionList(instruction);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

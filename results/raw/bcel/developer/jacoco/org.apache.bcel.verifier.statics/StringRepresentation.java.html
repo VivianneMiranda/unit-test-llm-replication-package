@@ -1,0 +1,459 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StringRepresentation.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.verifier.statics</a> &gt; <span class="el_source">StringRepresentation.java</span></div><h1>StringRepresentation.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.verifier.statics;
+
+import org.apache.bcel.classfile.AnnotationDefault;
+import org.apache.bcel.classfile.AnnotationEntry;
+import org.apache.bcel.classfile.Annotations;
+import org.apache.bcel.classfile.BootstrapMethods;
+import org.apache.bcel.classfile.Code;
+import org.apache.bcel.classfile.CodeException;
+import org.apache.bcel.classfile.ConstantClass;
+import org.apache.bcel.classfile.ConstantDouble;
+import org.apache.bcel.classfile.ConstantDynamic;
+import org.apache.bcel.classfile.ConstantFieldref;
+import org.apache.bcel.classfile.ConstantFloat;
+import org.apache.bcel.classfile.ConstantInteger;
+import org.apache.bcel.classfile.ConstantInterfaceMethodref;
+import org.apache.bcel.classfile.ConstantInvokeDynamic;
+import org.apache.bcel.classfile.ConstantLong;
+import org.apache.bcel.classfile.ConstantMethodHandle;
+import org.apache.bcel.classfile.ConstantMethodType;
+import org.apache.bcel.classfile.ConstantMethodref;
+import org.apache.bcel.classfile.ConstantModule;
+import org.apache.bcel.classfile.ConstantNameAndType;
+import org.apache.bcel.classfile.ConstantPackage;
+import org.apache.bcel.classfile.ConstantPool;
+import org.apache.bcel.classfile.ConstantString;
+import org.apache.bcel.classfile.ConstantUtf8;
+import org.apache.bcel.classfile.ConstantValue;
+import org.apache.bcel.classfile.Deprecated;
+import org.apache.bcel.classfile.EnclosingMethod;
+import org.apache.bcel.classfile.ExceptionTable;
+import org.apache.bcel.classfile.Field;
+import org.apache.bcel.classfile.InnerClass;
+import org.apache.bcel.classfile.InnerClasses;
+import org.apache.bcel.classfile.JavaClass;
+import org.apache.bcel.classfile.LineNumber;
+import org.apache.bcel.classfile.LineNumberTable;
+import org.apache.bcel.classfile.LocalVariable;
+import org.apache.bcel.classfile.LocalVariableTable;
+import org.apache.bcel.classfile.LocalVariableTypeTable;
+import org.apache.bcel.classfile.Method;
+import org.apache.bcel.classfile.MethodParameters;
+import org.apache.bcel.classfile.NestMembers;
+import org.apache.bcel.classfile.Node;
+import org.apache.bcel.classfile.ParameterAnnotationEntry;
+import org.apache.bcel.classfile.ParameterAnnotations;
+import org.apache.bcel.classfile.PermittedSubclasses;
+import org.apache.bcel.classfile.Record;
+import org.apache.bcel.classfile.RecordComponentInfo;
+import org.apache.bcel.classfile.Signature;
+import org.apache.bcel.classfile.SourceFile;
+import org.apache.bcel.classfile.StackMap;
+import org.apache.bcel.classfile.StackMapEntry;
+import org.apache.bcel.classfile.Synthetic;
+import org.apache.bcel.classfile.Unknown;
+import org.apache.bcel.verifier.exc.AssertionViolatedException;
+
+/**
+ * BCEL's Node classes (those from the classfile API that {@code accept()} Visitor instances) have {@code toString()}
+ * methods that were not designed to be robust, this gap is closed by this class. When performing class file
+ * verification, it may be useful to output which entity (for example a {@code Code} instance) is not satisfying the verifier's
+ * constraints, but in this case it could be possible for the {@code toString()} method to throw a RuntimeException. A
+ * (new StringRepresentation(Node n)).toString() never throws any exception. Note that this class also serves as a
+ * placeholder for more sophisticated message handling in future versions of JustIce.
+ */
+public class StringRepresentation extends org.apache.bcel.classfile.EmptyVisitor {
+
+    /** The string representation, created by a visitXXX() method, output by toString(). */
+    private String tostring;
+
+    /** The node we ask for its string representation. Not really needed; only for debug output. */
+    private final Node n;
+
+    /**
+     * Creates a new StringRepresentation object which is the representation of n.
+     *
+     * @param n The node to represent.
+     * @see #toString()
+     */
+<span class="fc" id="L97">    public StringRepresentation(final Node n) {</span>
+<span class="fc" id="L98">        this.n = n;</span>
+<span class="fc" id="L99">        n.accept(this); // assign a string representation to field 'tostring' if we know n's class.</span>
+<span class="fc" id="L100">    }</span>
+
+    /**
+     * Returns the String representation.
+     */
+    @Override
+    public String toString() {
+// The run-time check below is needed because we don't want to omit inheritance
+// of &quot;EmptyVisitor&quot; and provide a thousand empty methods.
+// However, in terms of performance this would be a better idea.
+// If some new &quot;Node&quot; is defined in BCEL (such as some concrete &quot;Attribute&quot;), we
+// want to know that this class has also to be adapted.
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        if (tostring == null) {</span>
+<span class="fc" id="L113">            throw new AssertionViolatedException(&quot;Please adapt '&quot; + getClass() + &quot;' to deal with objects of class '&quot; + n.getClass() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L115">        return tostring;</span>
+    }
+
+    /**
+     * Returns the String representation of the Node object obj; this is obj.toString() if it does not throw any
+     * RuntimeException, or else it is a string derived only from obj's class name.
+     */
+    private String toString(final Node obj) {
+        String ret;
+        try {
+<span class="fc" id="L125">            ret = obj.toString();</span>
+<span class="nc" id="L126">        } catch (final RuntimeException e) {</span>
+            // including ClassFormatException, trying to convert the &quot;signature&quot; of a ReturnaddressType LocalVariable
+            // (shouldn't occur, but people do crazy things)
+<span class="nc" id="L129">            String s = obj.getClass().getName();</span>
+<span class="nc" id="L130">            s = s.substring(s.lastIndexOf(&quot;.&quot;) + 1);</span>
+<span class="nc" id="L131">            ret = &quot;&lt;&lt;&quot; + s + &quot;&gt;&gt;&quot;;</span>
+<span class="fc" id="L132">        }</span>
+<span class="fc" id="L133">        return ret;</span>
+    }
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitAnnotation(final Annotations obj) {
+        // this is invoked whenever an annotation is found
+        // when verifier is passed over a class
+<span class="fc" id="L143">        tostring = toString(obj);</span>
+<span class="fc" id="L144">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitAnnotationDefault(final AnnotationDefault obj) {
+<span class="nc" id="L151">        tostring = toString(obj);</span>
+<span class="nc" id="L152">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitAnnotationEntry(final AnnotationEntry obj) {
+<span class="nc" id="L159">        tostring = toString(obj);</span>
+<span class="nc" id="L160">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitBootstrapMethods(final BootstrapMethods obj) {
+<span class="fc" id="L167">        tostring = toString(obj);</span>
+<span class="fc" id="L168">    }</span>
+
+    ////////////////////////////////
+    // Visitor methods start here //
+    ////////////////////////////////
+    // We don't of course need to call some default implementation:
+    // for example we could also simply output &quot;Code&quot; instead of a possibly
+    // lengthy Code attribute's toString().
+    @Override
+    public void visitCode(final Code obj) {
+        // tostring = toString(obj);
+<span class="fc" id="L179">        tostring = &quot;&lt;CODE&gt;&quot;; // We don't need real code outputs.</span>
+<span class="fc" id="L180">    }</span>
+
+    @Override
+    public void visitCodeException(final CodeException obj) {
+<span class="nc" id="L184">        tostring = toString(obj);</span>
+<span class="nc" id="L185">    }</span>
+
+    @Override
+    public void visitConstantClass(final ConstantClass obj) {
+<span class="nc" id="L189">        tostring = toString(obj);</span>
+<span class="nc" id="L190">    }</span>
+
+    @Override
+    public void visitConstantDouble(final ConstantDouble obj) {
+<span class="nc" id="L194">        tostring = toString(obj);</span>
+<span class="nc" id="L195">    }</span>
+
+    /**
+     * @since 6.6.0
+     */
+    @Override
+    public void visitConstantDynamic(final ConstantDynamic obj) {
+<span class="nc" id="L202">        tostring = toString(obj);</span>
+<span class="nc" id="L203">    }</span>
+
+    @Override
+    public void visitConstantFieldref(final ConstantFieldref obj) {
+<span class="nc" id="L207">        tostring = toString(obj);</span>
+<span class="nc" id="L208">    }</span>
+
+    @Override
+    public void visitConstantFloat(final ConstantFloat obj) {
+<span class="nc" id="L212">        tostring = toString(obj);</span>
+<span class="nc" id="L213">    }</span>
+
+    @Override
+    public void visitConstantInteger(final ConstantInteger obj) {
+<span class="nc" id="L217">        tostring = toString(obj);</span>
+<span class="nc" id="L218">    }</span>
+
+    @Override
+    public void visitConstantInterfaceMethodref(final ConstantInterfaceMethodref obj) {
+<span class="nc" id="L222">        tostring = toString(obj);</span>
+<span class="nc" id="L223">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitConstantInvokeDynamic(final ConstantInvokeDynamic obj) {
+<span class="nc" id="L230">        tostring = toString(obj);</span>
+<span class="nc" id="L231">    }</span>
+
+    @Override
+    public void visitConstantLong(final ConstantLong obj) {
+<span class="nc" id="L235">        tostring = toString(obj);</span>
+<span class="nc" id="L236">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitConstantMethodHandle(final ConstantMethodHandle obj) {
+<span class="nc" id="L243">        tostring = toString(obj);</span>
+<span class="nc" id="L244">    }</span>
+
+    @Override
+    public void visitConstantMethodref(final ConstantMethodref obj) {
+<span class="nc" id="L248">        tostring = toString(obj);</span>
+<span class="nc" id="L249">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitConstantMethodType(final ConstantMethodType obj) {
+<span class="nc" id="L256">        tostring = toString(obj);</span>
+<span class="nc" id="L257">    }</span>
+
+    /**
+     * @since 6.6.0
+     */
+    @Override
+    public void visitConstantModule(final ConstantModule obj) {
+<span class="nc" id="L264">        tostring = toString(obj);</span>
+<span class="nc" id="L265">    }</span>
+
+    @Override
+    public void visitConstantNameAndType(final ConstantNameAndType obj) {
+<span class="nc" id="L269">        tostring = toString(obj);</span>
+<span class="nc" id="L270">    }</span>
+
+    /**
+     * @since 6.6.0
+     */
+    @Override
+    public void visitConstantPackage(final ConstantPackage obj) {
+<span class="nc" id="L277">        tostring = toString(obj);</span>
+<span class="nc" id="L278">    }</span>
+
+    @Override
+    public void visitConstantPool(final ConstantPool obj) {
+<span class="nc" id="L282">        tostring = toString(obj);</span>
+<span class="nc" id="L283">    }</span>
+
+    @Override
+    public void visitConstantString(final ConstantString obj) {
+<span class="nc" id="L287">        tostring = toString(obj);</span>
+<span class="nc" id="L288">    }</span>
+
+    @Override
+    public void visitConstantUtf8(final ConstantUtf8 obj) {
+<span class="nc" id="L292">        tostring = toString(obj);</span>
+<span class="nc" id="L293">    }</span>
+
+    @Override
+    public void visitConstantValue(final ConstantValue obj) {
+<span class="nc" id="L297">        tostring = toString(obj);</span>
+<span class="nc" id="L298">    }</span>
+
+    @Override
+    public void visitDeprecated(final Deprecated obj) {
+<span class="fc" id="L302">        tostring = toString(obj);</span>
+<span class="fc" id="L303">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitEnclosingMethod(final EnclosingMethod obj) {
+<span class="nc" id="L310">        tostring = toString(obj);</span>
+<span class="nc" id="L311">    }</span>
+
+    @Override
+    public void visitExceptionTable(final ExceptionTable obj) {
+<span class="nc" id="L315">        tostring = toString(obj);</span>
+<span class="nc" id="L316">    }</span>
+
+    @Override
+    public void visitField(final Field obj) {
+<span class="fc" id="L320">        tostring = toString(obj);</span>
+<span class="fc" id="L321">    }</span>
+
+    @Override
+    public void visitInnerClass(final InnerClass obj) {
+<span class="fc" id="L325">        tostring = toString(obj);</span>
+<span class="fc" id="L326">    }</span>
+
+    @Override
+    public void visitInnerClasses(final InnerClasses obj) {
+<span class="fc" id="L330">        tostring = toString(obj);</span>
+<span class="fc" id="L331">    }</span>
+
+    @Override
+    public void visitJavaClass(final JavaClass obj) {
+<span class="fc" id="L335">        tostring = toString(obj);</span>
+<span class="fc" id="L336">    }</span>
+
+    @Override
+    public void visitLineNumber(final LineNumber obj) {
+<span class="nc" id="L340">        tostring = toString(obj);</span>
+<span class="nc" id="L341">    }</span>
+
+    @Override
+    public void visitLineNumberTable(final LineNumberTable obj) {
+<span class="fc" id="L345">        tostring = &quot;&lt;LineNumberTable: &quot; + toString(obj) + &quot;&gt;&quot;;</span>
+<span class="fc" id="L346">    }</span>
+
+    @Override
+    public void visitLocalVariable(final LocalVariable obj) {
+<span class="nc" id="L350">        tostring = toString(obj);</span>
+<span class="nc" id="L351">    }</span>
+
+    @Override
+    public void visitLocalVariableTable(final LocalVariableTable obj) {
+<span class="fc" id="L355">        tostring = &quot;&lt;LocalVariableTable: &quot; + toString(obj) + &quot;&gt;&quot;;</span>
+<span class="fc" id="L356">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitLocalVariableTypeTable(final LocalVariableTypeTable obj) {
+        // this is invoked whenever a local variable type is found
+        // when verifier is passed over a class
+<span class="fc" id="L365">        tostring = toString(obj);</span>
+<span class="fc" id="L366">    }</span>
+
+    @Override
+    public void visitMethod(final Method obj) {
+<span class="fc" id="L370">        tostring = toString(obj);</span>
+<span class="fc" id="L371">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitMethodParameters(final MethodParameters obj) {
+<span class="fc" id="L378">        tostring = toString(obj);</span>
+<span class="fc" id="L379">    }</span>
+
+    /**
+     * @since 6.4.0
+     */
+    @Override
+    public void visitNestMembers(final NestMembers obj) {
+<span class="fc" id="L386">        tostring = toString(obj);</span>
+<span class="fc" id="L387">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitParameterAnnotation(final ParameterAnnotations obj) {
+<span class="nc" id="L394">        tostring = toString(obj);</span>
+<span class="nc" id="L395">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitParameterAnnotationEntry(final ParameterAnnotationEntry obj) {
+<span class="nc" id="L402">        tostring = toString(obj);</span>
+<span class="nc" id="L403">    }</span>
+
+    /**
+     * Visits PermittedSubclasses attribute.
+     *
+     * @since 6.13.0
+     */
+    @Override
+    public void visitPermittedSubclasses(final PermittedSubclasses obj) {
+<span class="fc" id="L412">        tostring = toString(obj);</span>
+<span class="fc" id="L413">    }</span>
+
+    @Override
+    public void visitRecord(final Record obj) {
+<span class="nc" id="L417">        tostring = toString(obj);</span>
+<span class="nc" id="L418">    }</span>
+
+    @Override
+    public void visitRecordComponent(final RecordComponentInfo obj) {
+<span class="nc" id="L422">        tostring = toString(obj);</span>
+<span class="nc" id="L423">    }</span>
+
+    @Override
+    public void visitSignature(final Signature obj) {
+<span class="fc" id="L427">        tostring = toString(obj);</span>
+<span class="fc" id="L428">    }</span>
+
+    @Override
+    public void visitSourceFile(final SourceFile obj) {
+<span class="nc" id="L432">        tostring = toString(obj);</span>
+<span class="nc" id="L433">    }</span>
+
+    @Override
+    public void visitStackMap(final StackMap obj) {
+<span class="fc" id="L437">        tostring = toString(obj);</span>
+<span class="fc" id="L438">    }</span>
+
+    /**
+     * @since 6.0
+     */
+    @Override
+    public void visitStackMapEntry(final StackMapEntry obj) {
+<span class="nc" id="L445">        tostring = toString(obj);</span>
+<span class="nc" id="L446">    }</span>
+
+    @Override
+    public void visitSynthetic(final Synthetic obj) {
+<span class="fc" id="L450">        tostring = toString(obj);</span>
+<span class="fc" id="L451">    }</span>
+
+    @Override
+    public void visitUnknown(final Unknown obj) {
+<span class="nc" id="L455">        tostring = toString(obj);</span>
+<span class="nc" id="L456">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

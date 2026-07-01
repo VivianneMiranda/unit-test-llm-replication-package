@@ -1,0 +1,440 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ControlFlowGraph.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.verifier.structurals</a> &gt; <span class="el_source">ControlFlowGraph.java</span></div><h1>ControlFlowGraph.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.verifier.structurals;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.bcel.generic.ATHROW;
+import org.apache.bcel.generic.BranchInstruction;
+import org.apache.bcel.generic.GotoInstruction;
+import org.apache.bcel.generic.Instruction;
+import org.apache.bcel.generic.InstructionHandle;
+import org.apache.bcel.generic.JsrInstruction;
+import org.apache.bcel.generic.MethodGen;
+import org.apache.bcel.generic.RET;
+import org.apache.bcel.generic.ReturnInstruction;
+import org.apache.bcel.generic.Select;
+import org.apache.bcel.verifier.exc.AssertionViolatedException;
+import org.apache.bcel.verifier.exc.StructuralCodeConstraintException;
+
+/**
+ * This class represents a control flow graph of a method.
+ */
+public class ControlFlowGraph {
+
+    /**
+     * Objects of this class represent a node in a ControlFlowGraph. These nodes are instructions, not basic blocks.
+     */
+    private final class InstructionContextImpl implements InstructionContext {
+
+        /**
+         * The TAG field is here for external temporary flagging, such as graph coloring.
+         *
+         * @see #getTag()
+         * @see #setTag(int)
+         */
+        private int TAG;
+
+        /**
+         * The InstructionHandle this InstructionContext is wrapped around.
+         */
+        private final InstructionHandle instruction;
+
+        /**
+         * The 'incoming' execution Frames.
+         */
+        private final Map&lt;InstructionContext, Frame&gt; inFrames; // key: the last-executed JSR
+
+        /**
+         * The 'outgoing' execution Frames.
+         */
+        private final Map&lt;InstructionContext, Frame&gt; outFrames; // key: the last-executed JSR
+
+        /**
+         * The 'execution predecessors' - a list of type InstructionContext of those instances that have been execute()d before
+         * in that order.
+         */
+        private List&lt;InstructionContext&gt; executionPredecessors; // Type: InstructionContext
+
+        /**
+         * Creates an InstructionHandleImpl object from an InstructionHandle. Creation of one per InstructionHandle suffices.
+         * Don't create more.
+         */
+<span class="nc" id="L83">        InstructionContextImpl(final InstructionHandle inst) {</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">            if (inst == null) {</span>
+<span class="nc" id="L85">                throw new AssertionViolatedException(&quot;Cannot instantiate InstructionContextImpl from NULL.&quot;);</span>
+            }
+<span class="nc" id="L87">            instruction = inst;</span>
+<span class="nc" id="L88">            inFrames = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L89">            outFrames = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L90">        }</span>
+
+        /**
+         * A utility method that calculates the successors of a given InstructionHandle That means, a RET does have successors
+         * as defined here. A JsrInstruction has its target as its successor (opposed to its physical successor) as defined
+         * here.
+         */
+// TODO: implement caching!
+        private InstructionHandle[] _getSuccessors() {
+<span class="nc" id="L99">            final InstructionHandle[] single = new InstructionHandle[1];</span>
+
+<span class="nc" id="L101">            final Instruction inst = getInstruction().getInstruction();</span>
+
+<span class="nc bnc" id="L103" title="All 2 branches missed.">            if (inst instanceof RET) {</span>
+<span class="nc" id="L104">                final Subroutine s = subroutines.subroutineOf(getInstruction());</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">                if (s == null) { // return empty;</span>
+                    // RET in dead code. &quot;empty&quot; would be the correct answer, but we know something about the surrounding project...
+<span class="nc" id="L107">                    throw new AssertionViolatedException(&quot;Asking for successors of a RET in dead code?.&quot;);</span>
+                }
+
+//TODO: remove. Only JustIce must not use it, but foreign users of the ControlFlowGraph
+//      will want it. Thanks Johannes Wust.
+//throw new AssertionViolatedException(&quot;DID YOU REALLY WANT TO ASK FOR RET'S SUCCS?&quot;);
+
+<span class="nc" id="L114">                final InstructionHandle[] jsrs = s.getEnteringJsrInstructions();</span>
+<span class="nc" id="L115">                final InstructionHandle[] ret = new InstructionHandle[jsrs.length];</span>
+<span class="nc" id="L116">                Arrays.setAll(ret, i -&gt; jsrs[i].getNext());</span>
+<span class="nc" id="L117">                return ret;</span>
+            }
+
+            // Terminates method normally.
+            // Terminates method abnormally, because JustIce mandates
+            // subroutines not to be protected by exception handlers.
+<span class="nc bnc" id="L123" title="All 4 branches missed.">            if (inst instanceof ReturnInstruction || inst instanceof ATHROW) {</span>
+<span class="nc" id="L124">                return InstructionHandle.EMPTY_ARRAY;</span>
+            }
+
+            // See method comment.
+<span class="nc bnc" id="L128" title="All 2 branches missed.">            if (inst instanceof JsrInstruction) {</span>
+<span class="nc" id="L129">                single[0] = ((JsrInstruction) inst).getTarget();</span>
+<span class="nc" id="L130">                return single;</span>
+            }
+
+<span class="nc bnc" id="L133" title="All 2 branches missed.">            if (inst instanceof GotoInstruction) {</span>
+<span class="nc" id="L134">                single[0] = ((GotoInstruction) inst).getTarget();</span>
+<span class="nc" id="L135">                return single;</span>
+            }
+
+<span class="nc bnc" id="L138" title="All 2 branches missed.">            if (inst instanceof BranchInstruction) {</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">                if (inst instanceof Select) {</span>
+                    // BCEL's getTargets() returns only the non-default targets,
+                    // thanks to Eli Tilevich for reporting.
+<span class="nc" id="L142">                    final InstructionHandle[] matchTargets = ((Select) inst).getTargets();</span>
+<span class="nc" id="L143">                    final InstructionHandle[] ret = new InstructionHandle[matchTargets.length + 1];</span>
+<span class="nc" id="L144">                    ret[0] = ((Select) inst).getTarget();</span>
+<span class="nc" id="L145">                    System.arraycopy(matchTargets, 0, ret, 1, matchTargets.length);</span>
+<span class="nc" id="L146">                    return ret;</span>
+                }
+<span class="nc" id="L148">                final InstructionHandle[] pair = new InstructionHandle[2];</span>
+<span class="nc" id="L149">                pair[0] = getInstruction().getNext();</span>
+<span class="nc" id="L150">                pair[1] = ((BranchInstruction) inst).getTarget();</span>
+<span class="nc" id="L151">                return pair;</span>
+            }
+
+            // default case: Fall through.
+<span class="nc" id="L155">            single[0] = getInstruction().getNext();</span>
+<span class="nc" id="L156">            return single;</span>
+        }
+
+        /**
+         * &quot;Merges in&quot; (vmspec2, page 146) the &quot;incoming&quot; frame situation; executes the instructions symbolically and therefore
+         * calculates the &quot;outgoing&quot; frame situation. Returns: True iff the &quot;incoming&quot; frame situation changed after merging
+         * with &quot;inFrame&quot;. The execPreds ArrayList must contain the InstructionContext objects executed so far in the correct
+         * order. This is just one execution path [out of many]. This is needed to correctly &quot;merge&quot; in the special case of a
+         * RET's successor. &lt;strong&gt;The InstConstraintVisitor and ExecutionVisitor instances must be set up correctly.&lt;/strong&gt;
+         *
+         * @return true - if and only if the &quot;outgoing&quot; frame situation changed from the one before execute()ing.
+         */
+        @Override
+        public boolean execute(final Frame inFrame, final ArrayList&lt;InstructionContext&gt; execPreds, final InstConstraintVisitor icv, final ExecutionVisitor ev) {
+
+            @SuppressWarnings(&quot;unchecked&quot;) // OK because execPreds is compatible type
+<span class="nc" id="L172">            final List&lt;InstructionContext&gt; clone = (List&lt;InstructionContext&gt;) execPreds.clone();</span>
+<span class="nc" id="L173">            executionPredecessors = clone;</span>
+
+            // sanity check
+<span class="nc bnc" id="L176" title="All 4 branches missed.">            if (lastExecutionJSR() == null &amp;&amp; subroutines.subroutineOf(getInstruction()) != subroutines.getTopLevel()</span>
+<span class="nc bnc" id="L177" title="All 4 branches missed.">                || lastExecutionJSR() != null &amp;&amp; subroutines.subroutineOf(getInstruction()) == subroutines.getTopLevel()) {</span>
+<span class="nc" id="L178">                throw new AssertionViolatedException(&quot;Huh?! Am I '&quot; + this + &quot;' part of a subroutine or not?&quot;);</span>
+            }
+
+<span class="nc" id="L181">            Frame inF = inFrames.get(lastExecutionJSR());</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">            if (inF == null) { // no incoming frame was set, so set it.</span>
+<span class="nc" id="L183">                inFrames.put(lastExecutionJSR(), inFrame);</span>
+<span class="nc" id="L184">                inF = inFrame;</span>
+<span class="nc bnc" id="L185" title="All 4 branches missed.">            } else if (inF.equals(inFrame) || !mergeInFrames(inFrame)) { // if there was an &quot;old&quot; inFrame</span>
+<span class="nc" id="L186">                return false;</span>
+            }
+
+            // Now we're sure the inFrame has changed!
+
+            // new inFrame is already merged in, see above.
+<span class="nc" id="L192">            final Frame workingFrame = inF.getClone();</span>
+
+            try {
+                // This verifies the InstructionConstraint for the current
+                // instruction, but does not modify the workingFrame object.
+//InstConstraintVisitor icv = InstConstraintVisitor.getInstance(VerifierFactory.getVerifier(method_gen.getClassName()));
+<span class="nc" id="L198">                icv.setFrame(workingFrame);</span>
+<span class="nc" id="L199">                getInstruction().accept(icv);</span>
+<span class="nc" id="L200">            } catch (final StructuralCodeConstraintException ce) {</span>
+<span class="nc" id="L201">                ce.extendMessage(&quot;&quot;, &quot;\nInstructionHandle: &quot; + getInstruction() + &quot;\n&quot;);</span>
+<span class="nc" id="L202">                ce.extendMessage(&quot;&quot;, &quot;\nExecution Frame:\n&quot; + workingFrame);</span>
+<span class="nc" id="L203">                extendMessageWithFlow(ce);</span>
+<span class="nc" id="L204">                throw ce;</span>
+<span class="nc" id="L205">            }</span>
+
+            // This executes the Instruction.
+            // Therefore the workingFrame object is modified.
+//ExecutionVisitor ev = ExecutionVisitor.getInstance(VerifierFactory.getVerifier(method_gen.getClassName()));
+<span class="nc" id="L210">            ev.setFrame(workingFrame);</span>
+<span class="nc" id="L211">            getInstruction().accept(ev);</span>
+            // getInstruction().accept(ExecutionVisitor.withFrame(workingFrame));
+<span class="nc" id="L213">            outFrames.put(lastExecutionJSR(), workingFrame);</span>
+
+<span class="nc" id="L215">            return true; // new inFrame was different from old inFrame so merging them</span>
+                         // yielded a different this.inFrame.
+        }
+
+        /**
+         * Extends the StructuralCodeConstraintException (&quot;e&quot;) object with an at-the-end-extended message. This extended message
+         * will then reflect the execution flow needed to get to the constraint violation that triggered the throwing of the &quot;e&quot;
+         * object.
+         */
+        private void extendMessageWithFlow(final StructuralCodeConstraintException e) {
+<span class="nc" id="L225">            final String s = &quot;Execution flow:\n&quot;;</span>
+<span class="nc" id="L226">            e.extendMessage(&quot;&quot;, s + getExecutionChain());</span>
+<span class="nc" id="L227">        }</span>
+
+        /**
+         * Returns the exception handlers of this instruction.
+         */
+        @Override
+        public ExceptionHandler[] getExceptionHandlers() {
+<span class="nc" id="L234">            return exceptionhandlers.getExceptionHandlers(getInstruction());</span>
+        }
+
+        /**
+         * Returns the control flow execution chain. This is built while execute(Frame, ArrayList)-ing the code represented by
+         * the surrounding ControlFlowGraph.
+         */
+        private String getExecutionChain() {
+<span class="nc" id="L242">            final StringBuilder s = new StringBuilder(toString());</span>
+<span class="nc bnc" id="L243" title="All 2 branches missed.">            for (int i = executionPredecessors.size() - 1; i &gt;= 0; i--) {</span>
+<span class="nc" id="L244">                s.insert(0, executionPredecessors.get(i) + &quot;\n&quot;);</span>
+            }
+<span class="nc" id="L246">            return s.toString();</span>
+        }
+
+        @Override
+        public Frame getInFrame() {
+<span class="nc" id="L251">            final InstructionContext jsr = lastExecutionJSR();</span>
+<span class="nc" id="L252">            final Frame org = inFrames.get(jsr);</span>
+<span class="nc bnc" id="L253" title="All 2 branches missed.">            if (org == null) {</span>
+<span class="nc" id="L254">                throw new AssertionViolatedException(&quot;inFrame not set! This:\n&quot; + this + &quot;\nInFrames: '&quot; + inFrames + &quot;'.&quot;);</span>
+            }
+<span class="nc" id="L256">            return org.getClone();</span>
+        }
+
+        @Override
+        public InstructionHandle getInstruction() {
+<span class="nc" id="L261">            return instruction;</span>
+        }
+
+        /**
+         * Returns a clone of the &quot;outgoing&quot; frame situation with respect to the given ExecutionChain.
+         */
+        @Override
+        public Frame getOutFrame(final ArrayList&lt;InstructionContext&gt; execChain) {
+<span class="nc" id="L269">            executionPredecessors = execChain;</span>
+<span class="nc" id="L270">            final InstructionContext jsr = lastExecutionJSR();</span>
+<span class="nc" id="L271">            final Frame org = outFrames.get(jsr);</span>
+<span class="nc bnc" id="L272" title="All 2 branches missed.">            if (org == null) {</span>
+<span class="nc" id="L273">                throw new AssertionViolatedException(</span>
+<span class="nc" id="L274">                        &quot;outFrame not set! This:\n&quot; + this + &quot;\nExecutionChain: &quot; + getExecutionChain() + &quot;\nOutFrames: '&quot; + outFrames + &quot;'.&quot;);</span>
+            }
+<span class="nc" id="L276">            return org.getClone();</span>
+        }
+
+        @Override
+        public InstructionContext[] getSuccessors() {
+<span class="nc" id="L281">            return contextsOf(_getSuccessors());</span>
+        }
+
+        @Override
+        public int getTag() {
+<span class="nc" id="L286">            return TAG;</span>
+        }
+
+        /**
+         * Returns the InstructionContextImpl with an JSR/JSR_W that was last in the ExecutionChain, without a corresponding
+         * RET, for example we were called by this one. Returns null if we were called from the top level.
+         */
+        private InstructionContextImpl lastExecutionJSR() {
+
+<span class="nc" id="L295">            final int size = executionPredecessors.size();</span>
+<span class="nc" id="L296">            int retcount = 0;</span>
+
+<span class="nc bnc" id="L298" title="All 2 branches missed.">            for (int i = size - 1; i &gt;= 0; i--) {</span>
+<span class="nc" id="L299">                final InstructionContextImpl current = (InstructionContextImpl) executionPredecessors.get(i);</span>
+<span class="nc" id="L300">                final Instruction currentlast = current.getInstruction().getInstruction();</span>
+<span class="nc bnc" id="L301" title="All 2 branches missed.">                if (currentlast instanceof RET) {</span>
+<span class="nc" id="L302">                    retcount++;</span>
+                }
+<span class="nc bnc" id="L304" title="All 2 branches missed.">                if (currentlast instanceof JsrInstruction) {</span>
+<span class="nc" id="L305">                    retcount--;</span>
+<span class="nc bnc" id="L306" title="All 2 branches missed.">                    if (retcount == -1) {</span>
+<span class="nc" id="L307">                        return current;</span>
+                    }
+                }
+            }
+<span class="nc" id="L311">            return null;</span>
+        }
+
+        /**
+         * Does the actual merging (vmspec2, page 146). Returns true IFF this.inFrame was changed in course of merging with
+         * inFrame.
+         */
+        private boolean mergeInFrames(final Frame inFrame) {
+            // TODO: Can be performance-improved.
+<span class="nc" id="L320">            final Frame inF = inFrames.get(lastExecutionJSR());</span>
+<span class="nc" id="L321">            final OperandStack oldstack = inF.getStack().getClone();</span>
+<span class="nc" id="L322">            final LocalVariables oldlocals = inF.getLocals().getClone();</span>
+            try {
+<span class="nc" id="L324">                inF.getStack().merge(inFrame.getStack());</span>
+<span class="nc" id="L325">                inF.getLocals().merge(inFrame.getLocals());</span>
+<span class="nc" id="L326">            } catch (final StructuralCodeConstraintException sce) {</span>
+<span class="nc" id="L327">                extendMessageWithFlow(sce);</span>
+<span class="nc" id="L328">                throw sce;</span>
+<span class="nc" id="L329">            }</span>
+<span class="nc bnc" id="L330" title="All 4 branches missed.">            return !(oldstack.equals(inF.getStack()) &amp;&amp; oldlocals.equals(inF.getLocals()));</span>
+        }
+
+        /* Satisfies InstructionContext.setTag(int). */
+        @Override
+        public void setTag(final int tag) { // part of InstructionContext interface
+<span class="nc" id="L336">            TAG = tag;</span>
+<span class="nc" id="L337">        }</span>
+
+        /**
+         * Returns a simple String representation of this InstructionContext.
+         */
+        @Override
+        public String toString() {
+            // TODO: Put information in the brackets, for example
+            // Is this an ExceptionHandler? Is this a RET? Is this the start of
+            // a subroutine?
+<span class="nc" id="L347">            return getInstruction().toString(false) + &quot;\t[InstructionContext]&quot;;</span>
+        }
+
+    } // End Inner InstructionContextImpl Class.
+
+    /// ** The MethodGen object we're working on. */
+    // private final MethodGen method_gen;
+
+    /** The Subroutines object for the method whose control flow is represented by this ControlFlowGraph. */
+    private final Subroutines subroutines;
+
+    /** The ExceptionHandlers object for the method whose control flow is represented by this ControlFlowGraph. */
+    private final ExceptionHandlers exceptionhandlers;
+
+    /** All InstructionContext instances of this ControlFlowGraph. */
+<span class="nc" id="L362">    private final Map&lt;InstructionHandle, InstructionContext&gt; instructionContexts = new HashMap&lt;&gt;();</span>
+
+    /**
+     * A Control Flow Graph; with additional JustIce checks
+     *
+     * @param methodGen the method generator instance.
+     */
+    public ControlFlowGraph(final MethodGen methodGen) {
+<span class="nc" id="L370">        this(methodGen, true);</span>
+<span class="nc" id="L371">    }</span>
+
+    /**
+     * A Control Flow Graph.
+     *
+     * @param methodGen the method generator instance.
+     * @param enableJustIceCheck if true, additional JustIce checks are performed.
+     * @since 6.0
+     */
+<span class="nc" id="L380">    public ControlFlowGraph(final MethodGen methodGen, final boolean enableJustIceCheck) {</span>
+<span class="nc" id="L381">        subroutines = new Subroutines(methodGen, enableJustIceCheck);</span>
+<span class="nc" id="L382">        exceptionhandlers = new ExceptionHandlers(methodGen);</span>
+
+<span class="nc" id="L384">        final InstructionHandle[] instructionhandles = methodGen.getInstructionList().getInstructionHandles();</span>
+<span class="nc bnc" id="L385" title="All 2 branches missed.">        for (final InstructionHandle instructionhandle : instructionhandles) {</span>
+<span class="nc" id="L386">            instructionContexts.put(instructionhandle, new InstructionContextImpl(instructionhandle));</span>
+        }
+
+        // this.method_gen = method_gen;
+<span class="nc" id="L390">    }</span>
+
+    /**
+     * Returns the InstructionContext of a given instruction.
+     *
+     * @param inst the instruction handle.
+     * @return the InstructionContext of the given instruction.
+     */
+    public InstructionContext contextOf(final InstructionHandle inst) {
+<span class="nc" id="L399">        final InstructionContext ic = instructionContexts.get(inst);</span>
+<span class="nc bnc" id="L400" title="All 2 branches missed.">        if (ic == null) {</span>
+<span class="nc" id="L401">            throw new AssertionViolatedException(&quot;InstructionContext requested for an InstructionHandle that's not known.&quot;);</span>
+        }
+<span class="nc" id="L403">        return ic;</span>
+    }
+
+    /**
+     * Returns the InstructionContext[] of a given InstructionHandle[], in a naturally ordered manner.
+     *
+     * @param insts the instruction handles.
+     * @return the InstructionContext array of the given instruction handles.
+     */
+    public InstructionContext[] contextsOf(final InstructionHandle[] insts) {
+<span class="nc" id="L413">        final InstructionContext[] ret = new InstructionContext[insts.length];</span>
+<span class="nc" id="L414">        Arrays.setAll(ret, i -&gt; contextOf(insts[i]));</span>
+<span class="nc" id="L415">        return ret;</span>
+    }
+
+    /**
+     * Returns an InstructionContext[] with all the InstructionContext instances for the method whose control flow is
+     * represented by this ControlFlowGraph &lt;strong&gt;(NOT ORDERED!)&lt;/strong&gt;.
+     *
+     * @return array of InstructionContext instances.
+     */
+    public InstructionContext[] getInstructionContexts() {
+<span class="nc" id="L425">        final InstructionContext[] ret = new InstructionContext[instructionContexts.size()];</span>
+<span class="nc" id="L426">        return instructionContexts.values().toArray(ret);</span>
+    }
+
+    /**
+     * Returns true, if and only if the said instruction is not reachable; that means, if it is not part of this
+     * ControlFlowGraph.
+     *
+     * @param i the instruction handle.
+     * @return true if the instruction is not reachable, false otherwise.
+     */
+    public boolean isDead(final InstructionHandle i) {
+<span class="nc bnc" id="L437" title="All 2 branches missed.">        return subroutines.subroutineOf(i) == null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

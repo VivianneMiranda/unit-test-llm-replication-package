@@ -1,0 +1,1226 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Pass3aVerifier.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.verifier.statics</a> &gt; <span class="el_source">Pass3aVerifier.java</span></div><h1>Pass3aVerifier.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.verifier.statics;
+
+import java.util.Arrays;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.Repository;
+import org.apache.bcel.classfile.Attribute;
+import org.apache.bcel.classfile.ClassFormatException;
+import org.apache.bcel.classfile.Code;
+import org.apache.bcel.classfile.CodeException;
+import org.apache.bcel.classfile.Constant;
+import org.apache.bcel.classfile.ConstantCP;
+import org.apache.bcel.classfile.ConstantClass;
+import org.apache.bcel.classfile.ConstantDouble;
+import org.apache.bcel.classfile.ConstantDynamic;
+import org.apache.bcel.classfile.ConstantFieldref;
+import org.apache.bcel.classfile.ConstantFloat;
+import org.apache.bcel.classfile.ConstantInteger;
+import org.apache.bcel.classfile.ConstantInterfaceMethodref;
+import org.apache.bcel.classfile.ConstantInvokeDynamic;
+import org.apache.bcel.classfile.ConstantLong;
+import org.apache.bcel.classfile.ConstantMethodref;
+import org.apache.bcel.classfile.ConstantNameAndType;
+import org.apache.bcel.classfile.ConstantString;
+import org.apache.bcel.classfile.ConstantUtf8;
+import org.apache.bcel.classfile.Field;
+import org.apache.bcel.classfile.JavaClass;
+import org.apache.bcel.classfile.LineNumber;
+import org.apache.bcel.classfile.LineNumberTable;
+import org.apache.bcel.classfile.LocalVariableTable;
+import org.apache.bcel.classfile.Method;
+import org.apache.bcel.generic.ALOAD;
+import org.apache.bcel.generic.ANEWARRAY;
+import org.apache.bcel.generic.ASTORE;
+import org.apache.bcel.generic.ATHROW;
+import org.apache.bcel.generic.ArrayType;
+import org.apache.bcel.generic.BREAKPOINT;
+import org.apache.bcel.generic.CHECKCAST;
+import org.apache.bcel.generic.ConstantPoolGen;
+import org.apache.bcel.generic.DLOAD;
+import org.apache.bcel.generic.DSTORE;
+import org.apache.bcel.generic.FLOAD;
+import org.apache.bcel.generic.FSTORE;
+import org.apache.bcel.generic.FieldInstruction;
+import org.apache.bcel.generic.GETSTATIC;
+import org.apache.bcel.generic.GotoInstruction;
+import org.apache.bcel.generic.IINC;
+import org.apache.bcel.generic.ILOAD;
+import org.apache.bcel.generic.IMPDEP1;
+import org.apache.bcel.generic.IMPDEP2;
+import org.apache.bcel.generic.INSTANCEOF;
+import org.apache.bcel.generic.INVOKEDYNAMIC;
+import org.apache.bcel.generic.INVOKEINTERFACE;
+import org.apache.bcel.generic.INVOKESPECIAL;
+import org.apache.bcel.generic.INVOKESTATIC;
+import org.apache.bcel.generic.INVOKEVIRTUAL;
+import org.apache.bcel.generic.ISTORE;
+import org.apache.bcel.generic.Instruction;
+import org.apache.bcel.generic.InstructionHandle;
+import org.apache.bcel.generic.InstructionList;
+import org.apache.bcel.generic.InvokeInstruction;
+import org.apache.bcel.generic.JsrInstruction;
+import org.apache.bcel.generic.LDC;
+import org.apache.bcel.generic.LDC2_W;
+import org.apache.bcel.generic.LLOAD;
+import org.apache.bcel.generic.LOOKUPSWITCH;
+import org.apache.bcel.generic.LSTORE;
+import org.apache.bcel.generic.LoadClass;
+import org.apache.bcel.generic.MULTIANEWARRAY;
+import org.apache.bcel.generic.NEW;
+import org.apache.bcel.generic.NEWARRAY;
+import org.apache.bcel.generic.ObjectType;
+import org.apache.bcel.generic.PUTSTATIC;
+import org.apache.bcel.generic.RET;
+import org.apache.bcel.generic.ReferenceType;
+import org.apache.bcel.generic.ReturnInstruction;
+import org.apache.bcel.generic.TABLESWITCH;
+import org.apache.bcel.generic.Type;
+import org.apache.bcel.verifier.PassVerifier;
+import org.apache.bcel.verifier.VerificationResult;
+import org.apache.bcel.verifier.Verifier;
+import org.apache.bcel.verifier.VerifierFactory;
+import org.apache.bcel.verifier.exc.AssertionViolatedException;
+import org.apache.bcel.verifier.exc.ClassConstraintException;
+import org.apache.bcel.verifier.exc.InvalidMethodException;
+import org.apache.bcel.verifier.exc.StaticCodeConstraintException;
+import org.apache.bcel.verifier.exc.StaticCodeInstructionConstraintException;
+import org.apache.bcel.verifier.exc.StaticCodeInstructionOperandConstraintException;
+
+/**
+ * This PassVerifier verifies a class file according to pass 3, static part as described in The Java Virtual Machine
+ * Specification, 2nd edition. More detailed information is to be found at the do_verify() method's documentation.
+ *
+ * @see #do_verify()
+ */
+public final class Pass3aVerifier extends PassVerifier {
+
+    /**
+     * This visitor class does the actual checking for the instruction operand's constraints.
+     */
+    private final class InstOperandConstraintVisitor extends org.apache.bcel.generic.EmptyVisitor {
+
+        /** The ConstantPoolGen instance this Visitor operates on. */
+        private final ConstantPoolGen constantPoolGen;
+
+        /**
+         * Constructs a new instance.
+         */
+<span class="nc" id="L127">        InstOperandConstraintVisitor(final ConstantPoolGen constantPoolGen) {</span>
+<span class="nc" id="L128">            this.constantPoolGen = constantPoolGen;</span>
+<span class="nc" id="L129">        }</span>
+
+        /**
+         * A utility method to always raise an exception.
+         */
+        private void constraintViolated(final Instruction i, final String message) {
+<span class="nc" id="L135">            throw new StaticCodeInstructionOperandConstraintException(&quot;Instruction &quot; + tostring(i) + &quot; constraint violated: &quot; + message);</span>
+        }
+
+        /**
+         * Looks for the method referenced by the given invoke instruction in the given class.
+         *
+         * @param jc the class that defines the referenced method.
+         * @param invoke the instruction that references the method.
+         * @return the referenced method or null if not found.
+         */
+        private Method getMethod(final JavaClass jc, final InvokeInstruction invoke) {
+<span class="nc" id="L146">            final Method[] ms = jc.getMethods();</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">            for (final Method element : ms) {</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">                if (element.getName().equals(invoke.getMethodName(constantPoolGen))</span>
+<span class="nc bnc" id="L149" title="All 2 branches missed.">                    &amp;&amp; Type.getReturnType(element.getSignature()).equals(invoke.getReturnType(constantPoolGen))</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">                    &amp;&amp; Arrays.equals(Type.getArgumentTypes(element.getSignature()), invoke.getArgumentTypes(constantPoolGen))) {</span>
+<span class="nc" id="L151">                    return element;</span>
+                }
+            }
+
+<span class="nc" id="L155">            return null;</span>
+        }
+
+        /**
+         * Looks for the method referenced by the given invoke instruction in the given class or its super classes and super
+         * interfaces.
+         *
+         * @param jc the class that defines the referenced method.
+         * @param invoke the instruction that references the method.
+         * @return the referenced method or null if not found.
+         */
+        private Method getMethodRecursive(final JavaClass jc, final InvokeInstruction invoke) throws ClassNotFoundException {
+            Method m;
+            // look in the given class
+<span class="nc" id="L169">            m = getMethod(jc, invoke);</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">            if (m != null) {</span>
+                // method found in given class
+<span class="nc" id="L172">                return m;</span>
+            }
+            // method not found, look in super classes
+<span class="nc bnc" id="L175" title="All 2 branches missed.">            for (final JavaClass superclass : jc.getSuperClasses()) {</span>
+<span class="nc" id="L176">                m = getMethod(superclass, invoke);</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">                if (m != null) {</span>
+                    // method found in super class
+<span class="nc" id="L179">                    return m;</span>
+                }
+            }
+            // method not found, look in super interfaces
+<span class="nc bnc" id="L183" title="All 2 branches missed.">            for (final JavaClass superclass : jc.getInterfaces()) {</span>
+<span class="nc" id="L184">                m = getMethod(superclass, invoke);</span>
+<span class="nc bnc" id="L185" title="All 2 branches missed.">                if (m != null) {</span>
+                    // method found in super interface
+<span class="nc" id="L187">                    return m;</span>
+                }
+            }
+            // method not found in the hierarchy
+<span class="nc" id="L191">            return null;</span>
+        }
+
+        private ObjectType getObjectType(final FieldInstruction o) {
+<span class="nc" id="L195">            final ReferenceType rt = o.getReferenceType(constantPoolGen);</span>
+<span class="nc bnc" id="L196" title="All 2 branches missed.">            if (rt instanceof ObjectType) {</span>
+<span class="nc" id="L197">                return (ObjectType) rt;</span>
+            }
+<span class="nc" id="L199">            constraintViolated(o, &quot;expecting ObjectType but got &quot; + rt);</span>
+<span class="nc" id="L200">            return null;</span>
+        }
+
+        // The target of each jump and branch instruction [...] must be the opcode [...]
+        // BCEL _DOES_ handle this.
+
+        // tableswitch: BCEL will do it, supposedly.
+
+        // lookupswitch: BCEL will do it, supposedly.
+
+        /**
+         * A utility method to raise an exception if the index is not a valid constant pool index.
+         */
+        private void indexValid(final Instruction i, final int idx) {
+<span class="nc bnc" id="L214" title="All 4 branches missed.">            if (idx &lt; 0 || idx &gt;= constantPoolGen.getSize()) {</span>
+<span class="nc" id="L215">                constraintViolated(i, &quot;Illegal constant pool index '&quot; + idx + &quot;'.&quot;);</span>
+            }
+<span class="nc" id="L217">        }</span>
+
+        /**
+         * Utility method to return the max_locals value of the method verified by the surrounding Pass3aVerifier instance.
+         */
+        private int maxLocals() {
+            try {
+<span class="nc" id="L224">                return Repository.lookupClass(verifier.getClassName()).getMethods()[methodNo].getCode().getMaxLocals();</span>
+<span class="nc" id="L225">            } catch (final ClassNotFoundException e) {</span>
+                // FIXME: maybe not the best way to handle this
+<span class="nc" id="L227">                throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+            }
+        }
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitALOAD(final ALOAD o) {
+<span class="nc" id="L234">            final int idx = o.getIndex();</span>
+<span class="nc bnc" id="L235" title="All 2 branches missed.">            if (idx &lt; 0) {</span>
+<span class="nc" id="L236">                constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must be non-negative.&quot;);</span>
+            } else {
+<span class="nc" id="L238">                final int maxminus1 = maxLocals() - 1;</span>
+<span class="nc bnc" id="L239" title="All 2 branches missed.">                if (idx &gt; maxminus1) {</span>
+<span class="nc" id="L240">                    constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must not be greater than max_locals-1 '&quot; + maxminus1 + &quot;'.&quot;);</span>
+                }
+            }
+<span class="nc" id="L243">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitANEWARRAY(final ANEWARRAY o) {
+<span class="nc" id="L248">            indexValid(o, o.getIndex());</span>
+<span class="nc" id="L249">            final Constant c = constantPoolGen.getConstant(o.getIndex());</span>
+<span class="nc bnc" id="L250" title="All 2 branches missed.">            if (!(c instanceof ConstantClass)) {</span>
+<span class="nc" id="L251">                constraintViolated(o, &quot;Expecting a CONSTANT_Class operand, but found a '&quot; + tostring(c) + &quot;'.&quot;);</span>
+            }
+<span class="nc" id="L253">            final Type t = o.getType(constantPoolGen);</span>
+<span class="nc bnc" id="L254" title="All 2 branches missed.">            if (t instanceof ArrayType) {</span>
+<span class="nc" id="L255">                final int dimensions = ((ArrayType) t).getDimensions();</span>
+<span class="nc bnc" id="L256" title="All 2 branches missed.">                if (dimensions &gt; Const.MAX_ARRAY_DIMENSIONS) {</span>
+<span class="nc" id="L257">                    constraintViolated(o,</span>
+                        &quot;Not allowed to create an array with more than &quot; + Const.MAX_ARRAY_DIMENSIONS + &quot; dimensions; actual: &quot; + dimensions);
+                }
+            }
+<span class="nc" id="L261">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitASTORE(final ASTORE o) {
+<span class="nc" id="L266">            final int idx = o.getIndex();</span>
+<span class="nc bnc" id="L267" title="All 2 branches missed.">            if (idx &lt; 0) {</span>
+<span class="nc" id="L268">                constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must be non-negative.&quot;);</span>
+            } else {
+<span class="nc" id="L270">                final int maxminus1 = maxLocals() - 1;</span>
+<span class="nc bnc" id="L271" title="All 2 branches missed.">                if (idx &gt; maxminus1) {</span>
+<span class="nc" id="L272">                    constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must not be greater than max_locals-1 '&quot; + maxminus1 + &quot;'.&quot;);</span>
+                }
+            }
+<span class="nc" id="L275">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitCHECKCAST(final CHECKCAST o) {
+<span class="nc" id="L280">            indexValid(o, o.getIndex());</span>
+<span class="nc" id="L281">            final Constant c = constantPoolGen.getConstant(o.getIndex());</span>
+<span class="nc bnc" id="L282" title="All 2 branches missed.">            if (!(c instanceof ConstantClass)) {</span>
+<span class="nc" id="L283">                constraintViolated(o, &quot;Expecting a CONSTANT_Class operand, but found a '&quot; + tostring(c) + &quot;'.&quot;);</span>
+            }
+<span class="nc" id="L285">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitDLOAD(final DLOAD o) {
+<span class="nc" id="L290">            final int idx = o.getIndex();</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">            if (idx &lt; 0) {</span>
+<span class="nc" id="L292">                constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must be non-negative.&quot;</span>
+                    + &quot; [Constraint by JustIce as an analogon to the single-slot xLOAD/xSTORE instructions; may not happen anyway.]&quot;);
+            } else {
+<span class="nc" id="L295">                final int maxminus2 = maxLocals() - 2;</span>
+<span class="nc bnc" id="L296" title="All 2 branches missed.">                if (idx &gt; maxminus2) {</span>
+<span class="nc" id="L297">                    constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must not be greater than max_locals-2 '&quot; + maxminus2 + &quot;'.&quot;);</span>
+                }
+            }
+<span class="nc" id="L300">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitDSTORE(final DSTORE o) {
+<span class="nc" id="L305">            final int idx = o.getIndex();</span>
+<span class="nc bnc" id="L306" title="All 2 branches missed.">            if (idx &lt; 0) {</span>
+<span class="nc" id="L307">                constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must be non-negative.&quot;</span>
+                    + &quot; [Constraint by JustIce as an analogon to the single-slot xLOAD/xSTORE instructions; may not happen anyway.]&quot;);
+            } else {
+<span class="nc" id="L310">                final int maxminus2 = maxLocals() - 2;</span>
+<span class="nc bnc" id="L311" title="All 2 branches missed.">                if (idx &gt; maxminus2) {</span>
+<span class="nc" id="L312">                    constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must not be greater than max_locals-2 '&quot; + maxminus2 + &quot;'.&quot;);</span>
+                }
+            }
+<span class="nc" id="L315">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        // getfield, putfield, getstatic, putstatic
+        @Override
+        public void visitFieldInstruction(final FieldInstruction o) {
+            try {
+<span class="nc" id="L322">                indexValid(o, o.getIndex());</span>
+<span class="nc" id="L323">                final Constant c = constantPoolGen.getConstant(o.getIndex());</span>
+<span class="nc bnc" id="L324" title="All 2 branches missed.">                if (!(c instanceof ConstantFieldref)) {</span>
+<span class="nc" id="L325">                    constraintViolated(o, &quot;Indexing a constant that's not a CONSTANT_Fieldref but a '&quot; + tostring(c) + &quot;'.&quot;);</span>
+                }
+
+<span class="nc" id="L328">                final String fieldName = o.getFieldName(constantPoolGen);</span>
+
+<span class="nc" id="L330">                final JavaClass jc = Repository.lookupClass(getObjectType(o).getClassName());</span>
+<span class="nc" id="L331">                final Field f = jc.findField(fieldName, o.getType(constantPoolGen));</span>
+<span class="nc bnc" id="L332" title="All 2 branches missed.">                if (f == null) {</span>
+<span class="nc" id="L333">                    constraintViolated(o, &quot;Referenced field '&quot; + fieldName + &quot;' does not exist in class '&quot; + jc.getClassName() + &quot;'.&quot;);</span>
+                }
+<span class="nc" id="L335">            } catch (final ClassNotFoundException e) {</span>
+                // FIXME: maybe not the best way to handle this
+<span class="nc" id="L337">                throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="nc" id="L338">            }</span>
+<span class="nc" id="L339">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitFLOAD(final FLOAD o) {
+<span class="nc" id="L344">            final int idx = o.getIndex();</span>
+<span class="nc bnc" id="L345" title="All 2 branches missed.">            if (idx &lt; 0) {</span>
+<span class="nc" id="L346">                constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must be non-negative.&quot;);</span>
+            } else {
+<span class="nc" id="L348">                final int maxminus1 = maxLocals() - 1;</span>
+<span class="nc bnc" id="L349" title="All 2 branches missed.">                if (idx &gt; maxminus1) {</span>
+<span class="nc" id="L350">                    constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must not be greater than max_locals-1 '&quot; + maxminus1 + &quot;'.&quot;);</span>
+                }
+            }
+<span class="nc" id="L353">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitFSTORE(final FSTORE o) {
+<span class="nc" id="L358">            final int idx = o.getIndex();</span>
+<span class="nc bnc" id="L359" title="All 2 branches missed.">            if (idx &lt; 0) {</span>
+<span class="nc" id="L360">                constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must be non-negative.&quot;);</span>
+            } else {
+<span class="nc" id="L362">                final int maxminus1 = maxLocals() - 1;</span>
+<span class="nc bnc" id="L363" title="All 2 branches missed.">                if (idx &gt; maxminus1) {</span>
+<span class="nc" id="L364">                    constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must not be greater than max_locals-1 '&quot; + maxminus1 + &quot;'.&quot;);</span>
+                }
+            }
+<span class="nc" id="L367">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitGETSTATIC(final GETSTATIC o) {
+            try {
+<span class="nc" id="L373">                final String fieldName = o.getFieldName(constantPoolGen);</span>
+<span class="nc" id="L374">                final JavaClass jc = Repository.lookupClass(getObjectType(o).getClassName());</span>
+<span class="nc" id="L375">                final Field f = jc.findField(fieldName, o.getType(constantPoolGen));</span>
+<span class="nc bnc" id="L376" title="All 2 branches missed.">                if (f == null) {</span>
+<span class="nc" id="L377">                    throw new AssertionViolatedException(&quot;Field '&quot; + fieldName + &quot;' not found in &quot; + jc.getClassName());</span>
+                }
+
+<span class="nc bnc" id="L380" title="All 2 branches missed.">                if (!f.isStatic()) {</span>
+<span class="nc" id="L381">                    constraintViolated(o, &quot;Referenced field '&quot; + f + &quot;' is not static which it should be.&quot;);</span>
+                }
+<span class="nc" id="L383">            } catch (final ClassNotFoundException e) {</span>
+                // FIXME: maybe not the best way to handle this
+<span class="nc" id="L385">                throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="nc" id="L386">            }</span>
+<span class="nc" id="L387">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitIINC(final IINC o) {
+<span class="nc" id="L392">            final int idx = o.getIndex();</span>
+<span class="nc bnc" id="L393" title="All 2 branches missed.">            if (idx &lt; 0) {</span>
+<span class="nc" id="L394">                constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must be non-negative.&quot;);</span>
+            } else {
+<span class="nc" id="L396">                final int maxminus1 = maxLocals() - 1;</span>
+<span class="nc bnc" id="L397" title="All 2 branches missed.">                if (idx &gt; maxminus1) {</span>
+<span class="nc" id="L398">                    constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must not be greater than max_locals-1 '&quot; + maxminus1 + &quot;'.&quot;);</span>
+                }
+            }
+<span class="nc" id="L401">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitILOAD(final ILOAD o) {
+<span class="nc" id="L406">            final int idx = o.getIndex();</span>
+<span class="nc bnc" id="L407" title="All 2 branches missed.">            if (idx &lt; 0) {</span>
+<span class="nc" id="L408">                constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must be non-negative.&quot;);</span>
+            } else {
+<span class="nc" id="L410">                final int maxminus1 = maxLocals() - 1;</span>
+<span class="nc bnc" id="L411" title="All 2 branches missed.">                if (idx &gt; maxminus1) {</span>
+<span class="nc" id="L412">                    constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must not be greater than max_locals-1 '&quot; + maxminus1 + &quot;'.&quot;);</span>
+                }
+            }
+<span class="nc" id="L415">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitINSTANCEOF(final INSTANCEOF o) {
+<span class="nc" id="L420">            indexValid(o, o.getIndex());</span>
+<span class="nc" id="L421">            final Constant c = constantPoolGen.getConstant(o.getIndex());</span>
+<span class="nc bnc" id="L422" title="All 2 branches missed.">            if (!(c instanceof ConstantClass)) {</span>
+<span class="nc" id="L423">                constraintViolated(o, &quot;Expecting a CONSTANT_Class operand, but found a '&quot; + tostring(c) + &quot;'.&quot;);</span>
+            }
+<span class="nc" id="L425">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitINVOKEDYNAMIC(final INVOKEDYNAMIC o) {
+<span class="nc" id="L430">            throw new UnsupportedOperationException(&quot;INVOKEDYNAMIC instruction is not supported at this time&quot;);</span>
+        }
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitInvokeInstruction(final InvokeInstruction o) {
+<span class="nc" id="L436">            indexValid(o, o.getIndex());</span>
+<span class="nc bnc" id="L437" title="All 6 branches missed.">            if (o instanceof INVOKEVIRTUAL || o instanceof INVOKESPECIAL || o instanceof INVOKESTATIC) {</span>
+<span class="nc" id="L438">                final Constant c = constantPoolGen.getConstant(o.getIndex());</span>
+<span class="nc bnc" id="L439" title="All 2 branches missed.">                if (!(c instanceof ConstantMethodref)) {</span>
+<span class="nc" id="L440">                    constraintViolated(o, &quot;Indexing a constant that's not a CONSTANT_Methodref but a '&quot; + tostring(c) + &quot;'.&quot;);</span>
+                } else {
+                    // Constants are okay due to pass2.
+<span class="nc" id="L443">                    final ConstantNameAndType cnat = (ConstantNameAndType) constantPoolGen.getConstant(((ConstantMethodref) c).getNameAndTypeIndex());</span>
+<span class="nc" id="L444">                    final ConstantUtf8 cutf8 = (ConstantUtf8) constantPoolGen.getConstant(cnat.getNameIndex());</span>
+<span class="nc bnc" id="L445" title="All 4 branches missed.">                    if (cutf8.getBytes().equals(Const.CONSTRUCTOR_NAME) &amp;&amp; !(o instanceof INVOKESPECIAL)) {</span>
+<span class="nc" id="L446">                        constraintViolated(o, &quot;Only INVOKESPECIAL is allowed to invoke instance initialization methods.&quot;);</span>
+                    }
+<span class="nc bnc" id="L448" title="All 4 branches missed.">                    if (!cutf8.getBytes().equals(Const.CONSTRUCTOR_NAME) &amp;&amp; cutf8.getBytes().startsWith(&quot;&lt;&quot;)) {</span>
+<span class="nc" id="L449">                        constraintViolated(o, &quot;No method with a name beginning with '&lt;' other than the instance initialization methods&quot;</span>
+                            + &quot; may be called by the method invocation instructions.&quot;);
+                    }
+                }
+<span class="nc" id="L453">            } else {</span>
+<span class="nc" id="L454">                final Constant c = constantPoolGen.getConstant(o.getIndex());</span>
+<span class="nc bnc" id="L455" title="All 4 branches missed.">                if (!(c instanceof ConstantInterfaceMethodref) &amp;&amp; !(c instanceof ConstantInvokeDynamic)) {</span>
+<span class="nc" id="L456">                    constraintViolated(o, &quot;Indexing a constant that's not a CONSTANT_InterfaceMethodref/InvokeDynamic but a '&quot; + tostring(c) + &quot;'.&quot;);</span>
+                }
+                // TODO: From time to time check if BCEL allows to detect if the
+                // 'count' operand is consistent with the information in the
+                // CONSTANT_InterfaceMethodref and if the last operand is zero.
+                // By now, BCEL hides those two operands because they're superfluous.
+
+                // Invoked method must not be &lt;init&gt; or &lt;clinit&gt;
+<span class="nc" id="L464">                final ConstantNameAndType cnat = (ConstantNameAndType) constantPoolGen.getConstant(((ConstantCP) c).getNameAndTypeIndex());</span>
+<span class="nc" id="L465">                final String name = ((ConstantUtf8) constantPoolGen.getConstant(cnat.getNameIndex())).getBytes();</span>
+<span class="nc bnc" id="L466" title="All 2 branches missed.">                if (name.equals(Const.CONSTRUCTOR_NAME)) {</span>
+<span class="nc" id="L467">                    constraintViolated(o, &quot;Method to invoke must not be '&quot; + Const.CONSTRUCTOR_NAME + &quot;'.&quot;);</span>
+                }
+<span class="nc bnc" id="L469" title="All 2 branches missed.">                if (name.equals(Const.STATIC_INITIALIZER_NAME)) {</span>
+<span class="nc" id="L470">                    constraintViolated(o, &quot;Method to invoke must not be '&quot; + Const.STATIC_INITIALIZER_NAME + &quot;'.&quot;);</span>
+                }
+            }
+
+            // The LoadClassType is the method-declaring class, so we have to check the other types.
+
+<span class="nc" id="L476">            Type t = o.getReturnType(constantPoolGen);</span>
+<span class="nc bnc" id="L477" title="All 2 branches missed.">            if (t instanceof ArrayType) {</span>
+<span class="nc" id="L478">                t = ((ArrayType) t).getBasicType();</span>
+            }
+<span class="nc bnc" id="L480" title="All 2 branches missed.">            if (t instanceof ObjectType) {</span>
+<span class="nc" id="L481">                final Verifier v = VerifierFactory.getVerifier(((ObjectType) t).getClassName());</span>
+<span class="nc" id="L482">                final VerificationResult vr = v.doPass2();</span>
+<span class="nc bnc" id="L483" title="All 2 branches missed.">                if (vr.getStatus() != VerificationResult.VERIFIED_OK) {</span>
+<span class="nc" id="L484">                    constraintViolated(o, &quot;Return type class/interface could not be verified successfully: '&quot; + vr.getMessage() + &quot;'.&quot;);</span>
+                }
+            }
+
+<span class="nc" id="L488">            final Type[] ts = o.getArgumentTypes(constantPoolGen);</span>
+<span class="nc bnc" id="L489" title="All 2 branches missed.">            for (final Type element : ts) {</span>
+<span class="nc" id="L490">                t = element;</span>
+<span class="nc bnc" id="L491" title="All 2 branches missed.">                if (t instanceof ArrayType) {</span>
+<span class="nc" id="L492">                    t = ((ArrayType) t).getBasicType();</span>
+                }
+<span class="nc bnc" id="L494" title="All 2 branches missed.">                if (t instanceof ObjectType) {</span>
+<span class="nc" id="L495">                    final Verifier v = VerifierFactory.getVerifier(((ObjectType) t).getClassName());</span>
+<span class="nc" id="L496">                    final VerificationResult vr = v.doPass2();</span>
+<span class="nc bnc" id="L497" title="All 2 branches missed.">                    if (vr.getStatus() != VerificationResult.VERIFIED_OK) {</span>
+<span class="nc" id="L498">                        constraintViolated(o, &quot;Argument type class/interface could not be verified successfully: '&quot; + vr.getMessage() + &quot;'.&quot;);</span>
+                    }
+                }
+            }
+
+<span class="nc" id="L503">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitINVOKEINTERFACE(final INVOKEINTERFACE o) {
+            try {
+                // INVOKEINTERFACE is a LoadClass; the Class where the referenced method is declared in,
+                // is therefore resolved/verified.
+                // INVOKEINTERFACE is an InvokeInstruction, the argument and return types are resolved/verified,
+                // too. So are the allowed method names.
+<span class="nc" id="L513">                final String className = o.getClassName(constantPoolGen);</span>
+<span class="nc" id="L514">                final JavaClass jc = Repository.lookupClass(className);</span>
+<span class="nc" id="L515">                final Method m = getMethodRecursive(jc, o);</span>
+<span class="nc bnc" id="L516" title="All 2 branches missed.">                if (m == null) {</span>
+<span class="nc" id="L517">                    constraintViolated(o, &quot;Referenced method '&quot; + o.getMethodName(constantPoolGen) + &quot;' with expected signature '&quot;</span>
+<span class="nc" id="L518">                        + o.getSignature(constantPoolGen) + &quot;' not found in class '&quot; + jc.getClassName() + &quot;'.&quot;);</span>
+                }
+<span class="nc bnc" id="L520" title="All 2 branches missed.">                if (jc.isClass()) {</span>
+<span class="nc" id="L521">                    constraintViolated(o, &quot;Referenced class '&quot; + jc.getClassName() + &quot;' is a class, but not an interface as expected.&quot;);</span>
+                }
+<span class="nc" id="L523">            } catch (final ClassNotFoundException e) {</span>
+                // FIXME: maybe not the best way to handle this
+<span class="nc" id="L525">                throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="nc" id="L526">            }</span>
+<span class="nc" id="L527">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitINVOKESPECIAL(final INVOKESPECIAL o) {
+            try {
+                // INVOKESPECIAL is a LoadClass; the Class where the referenced method is declared in,
+                // is therefore resolved/verified.
+                // INVOKESPECIAL is an InvokeInstruction, the argument and return types are resolved/verified,
+                // too. So are the allowed method names.
+<span class="nc" id="L537">                final String className = o.getClassName(constantPoolGen);</span>
+<span class="nc" id="L538">                final JavaClass jc = Repository.lookupClass(className);</span>
+<span class="nc" id="L539">                final Method m = getMethodRecursive(jc, o);</span>
+<span class="nc bnc" id="L540" title="All 2 branches missed.">                if (m == null) {</span>
+<span class="nc" id="L541">                    constraintViolated(o, &quot;Referenced method '&quot; + o.getMethodName(constantPoolGen) + &quot;' with expected signature '&quot;</span>
+<span class="nc" id="L542">                        + o.getSignature(constantPoolGen) + &quot;' not found in class '&quot; + jc.getClassName() + &quot;'.&quot;);</span>
+                }
+
+<span class="nc" id="L545">                JavaClass current = Repository.lookupClass(verifier.getClassName());</span>
+<span class="nc bnc" id="L546" title="All 6 branches missed.">                if (current.isSuper() &amp;&amp; Repository.instanceOf(current, jc) &amp;&amp; !current.equals(jc)</span>
+<span class="nc bnc" id="L547" title="All 2 branches missed.">                    &amp;&amp; !o.getMethodName(constantPoolGen).equals(Const.CONSTRUCTOR_NAME)) {</span>
+                    // Special lookup procedure for ACC_SUPER classes.
+
+<span class="nc" id="L550">                    int supidx = -1;</span>
+
+<span class="nc" id="L552">                    Method meth = null;</span>
+<span class="nc bnc" id="L553" title="All 2 branches missed.">                    while (supidx != 0) {</span>
+<span class="nc" id="L554">                        supidx = current.getSuperclassNameIndex();</span>
+<span class="nc" id="L555">                        current = Repository.lookupClass(current.getSuperclassName());</span>
+
+<span class="nc" id="L557">                        final Method[] meths = current.getMethods();</span>
+<span class="nc bnc" id="L558" title="All 2 branches missed.">                        for (final Method meth2 : meths) {</span>
+<span class="nc bnc" id="L559" title="All 2 branches missed.">                            if (meth2.getName().equals(o.getMethodName(constantPoolGen))</span>
+<span class="nc bnc" id="L560" title="All 2 branches missed.">                                &amp;&amp; Type.getReturnType(meth2.getSignature()).equals(o.getReturnType(constantPoolGen))</span>
+<span class="nc bnc" id="L561" title="All 2 branches missed.">                                &amp;&amp; Arrays.equals(Type.getArgumentTypes(meth2.getSignature()), o.getArgumentTypes(constantPoolGen))) {</span>
+<span class="nc" id="L562">                                meth = meth2;</span>
+<span class="nc" id="L563">                                break;</span>
+                            }
+                        }
+<span class="nc bnc" id="L566" title="All 2 branches missed.">                        if (meth != null) {</span>
+<span class="nc" id="L567">                            break;</span>
+                        }
+<span class="nc" id="L569">                    }</span>
+<span class="nc bnc" id="L570" title="All 2 branches missed.">                    if (meth == null) {</span>
+<span class="nc" id="L571">                        constraintViolated(o, &quot;ACC_SUPER special lookup procedure not successful: method '&quot; + o.getMethodName(constantPoolGen)</span>
+                            + &quot;' with proper signature not declared in superclass hierarchy.&quot;);
+                    }
+                }
+
+<span class="nc" id="L576">            } catch (final ClassNotFoundException e) {</span>
+                // FIXME: maybe not the best way to handle this
+<span class="nc" id="L578">                throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="nc" id="L579">            }</span>
+
+<span class="nc" id="L581">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitINVOKESTATIC(final INVOKESTATIC o) {
+            try {
+                // INVOKESTATIC is a LoadClass; the Class where the referenced method is declared in,
+                // is therefore resolved/verified.
+                // INVOKESTATIC is an InvokeInstruction, the argument and return types are resolved/verified,
+                // too. So are the allowed method names.
+<span class="nc" id="L591">                final String className = o.getClassName(constantPoolGen);</span>
+<span class="nc" id="L592">                final JavaClass jc = Repository.lookupClass(className);</span>
+<span class="nc" id="L593">                final Method m = getMethodRecursive(jc, o);</span>
+<span class="nc bnc" id="L594" title="All 2 branches missed.">                if (m == null) {</span>
+<span class="nc" id="L595">                    constraintViolated(o, &quot;Referenced method '&quot; + o.getMethodName(constantPoolGen) + &quot;' with expected signature '&quot;</span>
+<span class="nc" id="L596">                        + o.getSignature(constantPoolGen) + &quot;' not found in class '&quot; + jc.getClassName() + &quot;'.&quot;);</span>
+<span class="nc bnc" id="L597" title="All 2 branches missed.">                } else if (!m.isStatic()) { // implies it's not abstract, verified in pass 2.</span>
+<span class="nc" id="L598">                    constraintViolated(o, &quot;Referenced method '&quot; + o.getMethodName(constantPoolGen) + &quot;' has ACC_STATIC unset.&quot;);</span>
+                }
+
+<span class="nc" id="L601">            } catch (final ClassNotFoundException e) {</span>
+                // FIXME: maybe not the best way to handle this
+<span class="nc" id="L603">                throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="nc" id="L604">            }</span>
+<span class="nc" id="L605">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitINVOKEVIRTUAL(final INVOKEVIRTUAL o) {
+            try {
+                // INVOKEVIRTUAL is a LoadClass; the Class where the referenced method is declared in,
+                // is therefore resolved/verified.
+                // INVOKEVIRTUAL is an InvokeInstruction, the argument and return types are resolved/verified,
+                // too. So are the allowed method names.
+<span class="nc" id="L615">                final String className = o.getClassName(constantPoolGen);</span>
+                final JavaClass jc;
+<span class="nc bnc" id="L617" title="All 2 branches missed.">                if (className.charAt(0) == '[') { // array type, for example invoke can be someArray.clone()</span>
+<span class="nc" id="L618">                    jc = Repository.lookupClass(&quot;java.lang.Object&quot;);</span>
+                } else {
+<span class="nc" id="L620">                    jc = Repository.lookupClass(className);</span>
+                }
+<span class="nc" id="L622">                final Method m = getMethodRecursive(jc, o);</span>
+<span class="nc bnc" id="L623" title="All 2 branches missed.">                if (m == null) {</span>
+<span class="nc" id="L624">                    constraintViolated(o, &quot;Referenced method '&quot; + o.getMethodName(constantPoolGen) + &quot;' with expected signature '&quot;</span>
+<span class="nc" id="L625">                        + o.getSignature(constantPoolGen) + &quot;' not found in class '&quot; + jc.getClassName() + &quot;'.&quot;);</span>
+                }
+<span class="nc bnc" id="L627" title="All 2 branches missed.">                if (!jc.isClass()) {</span>
+<span class="nc" id="L628">                    constraintViolated(o, &quot;Referenced class '&quot; + jc.getClassName() + &quot;' is an interface, but not a class as expected.&quot;);</span>
+                }
+
+<span class="nc" id="L631">            } catch (final ClassNotFoundException e) {</span>
+                // FIXME: maybe not the best way to handle this
+                // throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);
+<span class="nc" id="L634">                addMessage(&quot;Unable to verify INVOKEVITUAL as cannot load target class: &quot; + e.getCause());</span>
+<span class="nc" id="L635">            }</span>
+<span class="nc" id="L636">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitISTORE(final ISTORE o) {
+<span class="nc" id="L641">            final int idx = o.getIndex();</span>
+<span class="nc bnc" id="L642" title="All 2 branches missed.">            if (idx &lt; 0) {</span>
+<span class="nc" id="L643">                constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must be non-negative.&quot;);</span>
+            } else {
+<span class="nc" id="L645">                final int maxminus1 = maxLocals() - 1;</span>
+<span class="nc bnc" id="L646" title="All 2 branches missed.">                if (idx &gt; maxminus1) {</span>
+<span class="nc" id="L647">                    constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must not be greater than max_locals-1 '&quot; + maxminus1 + &quot;'.&quot;);</span>
+                }
+            }
+<span class="nc" id="L650">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        // LDC and LDC_W (LDC_W is a subclass of LDC in BCEL's model)
+        @Override
+        public void visitLDC(final LDC ldc) {
+<span class="nc" id="L656">            indexValid(ldc, ldc.getIndex());</span>
+<span class="nc" id="L657">            final Constant c = constantPoolGen.getConstant(ldc.getIndex());</span>
+<span class="nc bnc" id="L658" title="All 2 branches missed.">            if (c instanceof ConstantClass) {</span>
+<span class="nc" id="L659">                addMessage(&quot;Operand of LDC or LDC_W is CONSTANT_Class '&quot; + tostring(c) + &quot;' - this is only supported in JDK 1.5 and higher.&quot;);</span>
+<span class="nc bnc" id="L660" title="All 8 branches missed.">            } else if (!(c instanceof ConstantInteger || c instanceof ConstantFloat || c instanceof ConstantString || c instanceof ConstantDynamic)) {</span>
+<span class="nc" id="L661">                constraintViolated(ldc,</span>
+                    &quot;Operand of LDC or LDC_W must be one of CONSTANT_Integer, CONSTANT_Float, CONSTANT_String or CONSTANT_Dynamic but is '&quot;
+<span class="nc" id="L663">                            + tostring(c) + &quot;'.&quot;);</span>
+            }
+<span class="nc" id="L665">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        // LDC2_W
+        @Override
+        public void visitLDC2_W(final LDC2_W o) {
+<span class="nc" id="L671">            indexValid(o, o.getIndex());</span>
+<span class="nc" id="L672">            final Constant c = constantPoolGen.getConstant(o.getIndex());</span>
+<span class="nc bnc" id="L673" title="All 4 branches missed.">            if (!(c instanceof ConstantLong || c instanceof ConstantDouble)) {</span>
+<span class="nc" id="L674">                constraintViolated(o, &quot;Operand of LDC2_W must be CONSTANT_Long or CONSTANT_Double, but is '&quot; + tostring(c) + &quot;'.&quot;);</span>
+            }
+            try {
+<span class="nc" id="L677">                indexValid(o, o.getIndex() + 1);</span>
+<span class="nc" id="L678">            } catch (final StaticCodeInstructionOperandConstraintException e) {</span>
+<span class="nc" id="L679">                throw new AssertionViolatedException(&quot;Does not BCEL handle that? LDC2_W operand has a problem.&quot;, e);</span>
+<span class="nc" id="L680">            }</span>
+<span class="nc" id="L681">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitLLOAD(final LLOAD o) {
+<span class="nc" id="L686">            final int idx = o.getIndex();</span>
+<span class="nc bnc" id="L687" title="All 2 branches missed.">            if (idx &lt; 0) {</span>
+<span class="nc" id="L688">                constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must be non-negative.&quot;</span>
+                    + &quot; [Constraint by JustIce as an analogon to the single-slot xLOAD/xSTORE instructions; may not happen anyway.]&quot;);
+            } else {
+<span class="nc" id="L691">                final int maxminus2 = maxLocals() - 2;</span>
+<span class="nc bnc" id="L692" title="All 2 branches missed.">                if (idx &gt; maxminus2) {</span>
+<span class="nc" id="L693">                    constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must not be greater than max_locals-2 '&quot; + maxminus2 + &quot;'.&quot;);</span>
+                }
+            }
+<span class="nc" id="L696">        }</span>
+
+        ///////////////////////////////////////////////////////////
+        // The Java Virtual Machine Specification, pages 134-137 //
+        ///////////////////////////////////////////////////////////
+
+        /**
+         * Assures the generic preconditions of a LoadClass instance. The referenced class is loaded and pass2-verified.
+         */
+        @Override
+        public void visitLoadClass(final LoadClass loadClass) {
+<span class="nc" id="L707">            final ObjectType t = loadClass.getLoadClassType(constantPoolGen);</span>
+<span class="nc bnc" id="L708" title="All 2 branches missed.">            if (t != null) { // null means &quot;no class is loaded&quot;</span>
+<span class="nc" id="L709">                final Verifier v = VerifierFactory.getVerifier(t.getClassName());</span>
+<span class="nc" id="L710">                final VerificationResult vr = v.doPass1();</span>
+<span class="nc bnc" id="L711" title="All 2 branches missed.">                if (vr.getStatus() != VerificationResult.VERIFIED_OK) {</span>
+<span class="nc" id="L712">                    constraintViolated((Instruction) loadClass,</span>
+<span class="nc" id="L713">                            &quot;Class '&quot; + loadClass.getLoadClassType(constantPoolGen).getClassName() + &quot;' is referenced, but cannot be loaded: '&quot; + vr + &quot;'.&quot;);</span>
+                }
+            }
+<span class="nc" id="L716">        }</span>
+
+        /* Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        // public void visitPUTFIELD(PUTFIELD o) {
+        // for performance reasons done in Pass 3b
+        // }
+
+        /* Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        // public void visitGETFIELD(GETFIELD o) {
+        // for performance reasons done in Pass 3b
+        // }
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitLOOKUPSWITCH(final LOOKUPSWITCH o) {
+<span class="nc" id="L731">            final int[] matchs = o.getMatchs();</span>
+<span class="nc" id="L732">            int max = Integer.MIN_VALUE;</span>
+<span class="nc bnc" id="L733" title="All 2 branches missed.">            for (int i = 0; i &lt; matchs.length; i++) {</span>
+<span class="nc bnc" id="L734" title="All 4 branches missed.">                if (matchs[i] == max &amp;&amp; i != 0) {</span>
+<span class="nc" id="L735">                    constraintViolated(o, &quot;Match '&quot; + matchs[i] + &quot;' occurs more than once.&quot;);</span>
+                }
+<span class="nc bnc" id="L737" title="All 2 branches missed.">                if (matchs[i] &lt; max) {</span>
+<span class="nc" id="L738">                    constraintViolated(o, &quot;Lookup table must be sorted but isn't.&quot;);</span>
+                } else {
+<span class="nc" id="L740">                    max = matchs[i];</span>
+                }
+            }
+<span class="nc" id="L743">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitLSTORE(final LSTORE o) {
+<span class="nc" id="L748">            final int idx = o.getIndex();</span>
+<span class="nc bnc" id="L749" title="All 2 branches missed.">            if (idx &lt; 0) {</span>
+<span class="nc" id="L750">                constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must be non-negative.&quot;</span>
+                    + &quot; [Constraint by JustIce as an analogon to the single-slot xLOAD/xSTORE instructions; may not happen anyway.]&quot;);
+            } else {
+<span class="nc" id="L753">                final int maxminus2 = maxLocals() - 2;</span>
+<span class="nc bnc" id="L754" title="All 2 branches missed.">                if (idx &gt; maxminus2) {</span>
+<span class="nc" id="L755">                    constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must not be greater than max_locals-2 '&quot; + maxminus2 + &quot;'.&quot;);</span>
+                }
+            }
+<span class="nc" id="L758">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitMULTIANEWARRAY(final MULTIANEWARRAY o) {
+<span class="nc" id="L763">            indexValid(o, o.getIndex());</span>
+<span class="nc" id="L764">            final Constant c = constantPoolGen.getConstant(o.getIndex());</span>
+<span class="nc bnc" id="L765" title="All 2 branches missed.">            if (!(c instanceof ConstantClass)) {</span>
+<span class="nc" id="L766">                constraintViolated(o, &quot;Expecting a CONSTANT_Class operand, but found a '&quot; + tostring(c) + &quot;'.&quot;);</span>
+            }
+<span class="nc" id="L768">            final int dimensions2create = o.getDimensions();</span>
+<span class="nc bnc" id="L769" title="All 2 branches missed.">            if (dimensions2create &lt; 1) {</span>
+<span class="nc" id="L770">                constraintViolated(o, &quot;Number of dimensions to create must be greater than zero.&quot;);</span>
+            }
+<span class="nc" id="L772">            final Type t = o.getType(constantPoolGen);</span>
+<span class="nc bnc" id="L773" title="All 2 branches missed.">            if (t instanceof ArrayType) {</span>
+<span class="nc" id="L774">                final int dimensions = ((ArrayType) t).getDimensions();</span>
+<span class="nc bnc" id="L775" title="All 2 branches missed.">                if (dimensions &lt; dimensions2create) {</span>
+<span class="nc" id="L776">                    constraintViolated(o, &quot;Not allowed to create array with more dimensions ('&quot; + dimensions2create</span>
+                        + &quot;') than the one referenced by the CONSTANT_Class '&quot; + t + &quot;'.&quot;);
+                }
+<span class="nc" id="L779">            } else {</span>
+<span class="nc" id="L780">                constraintViolated(o, &quot;Expecting a CONSTANT_Class referencing an array type.&quot;</span>
+                    + &quot; [Constraint not found in The Java Virtual Machine Specification, Second Edition, 4.8.1]&quot;);
+            }
+<span class="nc" id="L783">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitNEW(final NEW o) {
+<span class="nc" id="L788">            indexValid(o, o.getIndex());</span>
+<span class="nc" id="L789">            final Constant c = constantPoolGen.getConstant(o.getIndex());</span>
+<span class="nc bnc" id="L790" title="All 2 branches missed.">            if (!(c instanceof ConstantClass)) {</span>
+<span class="nc" id="L791">                constraintViolated(o, &quot;Expecting a CONSTANT_Class operand, but found a '&quot; + tostring(c) + &quot;'.&quot;);</span>
+            } else {
+<span class="nc" id="L793">                final ConstantUtf8 cutf8 = (ConstantUtf8) constantPoolGen.getConstant(((ConstantClass) c).getNameIndex());</span>
+<span class="nc" id="L794">                final Type t = Type.getType(&quot;L&quot; + cutf8.getBytes() + &quot;;&quot;);</span>
+<span class="nc bnc" id="L795" title="All 2 branches missed.">                if (t instanceof ArrayType) {</span>
+<span class="nc" id="L796">                    constraintViolated(o, &quot;NEW must not be used to create an array.&quot;);</span>
+                }
+            }
+
+<span class="nc" id="L800">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitNEWARRAY(final NEWARRAY o) {
+<span class="nc" id="L805">            final byte t = o.getTypecode();</span>
+<span class="nc bnc" id="L806" title="All 16 branches missed.">            if (!(t == Const.T_BOOLEAN || t == Const.T_CHAR || t == Const.T_FLOAT || t == Const.T_DOUBLE || t == Const.T_BYTE || t == Const.T_SHORT</span>
+                || t == Const.T_INT || t == Const.T_LONG)) {
+<span class="nc" id="L808">                constraintViolated(o, &quot;Illegal type code '&quot; + tostring(t) + &quot;' for 'atype' operand.&quot;);</span>
+            }
+<span class="nc" id="L810">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitPUTSTATIC(final PUTSTATIC o) {
+            try {
+<span class="nc" id="L816">                final String fieldName = o.getFieldName(constantPoolGen);</span>
+<span class="nc" id="L817">                final JavaClass jc = Repository.lookupClass(getObjectType(o).getClassName());</span>
+<span class="nc" id="L818">                final Field f = jc.findField(fieldName, o.getType(constantPoolGen));</span>
+<span class="nc bnc" id="L819" title="All 2 branches missed.">                if (f == null) {</span>
+<span class="nc" id="L820">                    throw new AssertionViolatedException(&quot;Field '&quot; + fieldName + &quot;' not found in &quot; + jc.getClassName());</span>
+                }
+
+<span class="nc bnc" id="L823" title="All 4 branches missed.">                if (f.isFinal() &amp;&amp; !verifier.getClassName().equals(getObjectType(o).getClassName())) {</span>
+<span class="nc" id="L824">                    constraintViolated(o, &quot;Referenced field '&quot; + f + &quot;' is final and must therefore be declared in the current class '&quot;</span>
+<span class="nc" id="L825">                            + verifier.getClassName() + &quot;' which is not the case: it is declared in '&quot; + o.getReferenceType(constantPoolGen) + &quot;'.&quot;);</span>
+                }
+
+<span class="nc bnc" id="L828" title="All 2 branches missed.">                if (!f.isStatic()) {</span>
+<span class="nc" id="L829">                    constraintViolated(o, &quot;Referenced field '&quot; + f + &quot;' is not static which it should be.&quot;);</span>
+                }
+
+<span class="nc" id="L832">                final String methName = Repository.lookupClass(verifier.getClassName()).getMethods()[methodNo].getName();</span>
+
+                // If it's an interface, it can be set only in &lt;clinit&gt;.
+<span class="nc bnc" id="L835" title="All 4 branches missed.">                if (!jc.isClass() &amp;&amp; !methName.equals(Const.STATIC_INITIALIZER_NAME)) {</span>
+<span class="nc" id="L836">                    constraintViolated(o, &quot;Interface field '&quot; + f + &quot;' must be set in a '&quot; + Const.STATIC_INITIALIZER_NAME + &quot;' method.&quot;);</span>
+                }
+<span class="nc" id="L838">            } catch (final ClassNotFoundException e) {</span>
+                // FIXME: maybe not the best way to handle this
+<span class="nc" id="L840">                throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="nc" id="L841">            }</span>
+<span class="nc" id="L842">        }</span>
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitRET(final RET o) {
+<span class="nc" id="L847">            final int idx = o.getIndex();</span>
+<span class="nc bnc" id="L848" title="All 2 branches missed.">            if (idx &lt; 0) {</span>
+<span class="nc" id="L849">                constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must be non-negative.&quot;);</span>
+            } else {
+<span class="nc" id="L851">                final int maxminus1 = maxLocals() - 1;</span>
+<span class="nc bnc" id="L852" title="All 2 branches missed.">                if (idx &gt; maxminus1) {</span>
+<span class="nc" id="L853">                    constraintViolated(o, &quot;Index '&quot; + idx + &quot;' must not be greater than max_locals-1 '&quot; + maxminus1 + &quot;'.&quot;);</span>
+                }
+            }
+<span class="nc" id="L856">        }</span>
+
+        // WIDE stuff is BCEL-internal and cannot be checked here.
+
+        /** Checks if the constraints of operands of the said instruction(s) are satisfied. */
+        @Override
+        public void visitTABLESWITCH(final TABLESWITCH o) {
+            // &quot;high&quot; must be &gt;= &quot;low&quot;. We cannot check this, as BCEL hides
+            // it from us.
+<span class="nc" id="L865">        }</span>
+    }
+
+    /** A small utility method returning if a given int i is in the given int[] ints. */
+    private static boolean contains(final int[] ints, final int i) {
+<span class="nc bnc" id="L870" title="All 2 branches missed.">        for (final int k : ints) {</span>
+<span class="nc bnc" id="L871" title="All 2 branches missed.">            if (k == i) {</span>
+<span class="nc" id="L872">                return true;</span>
+            }
+        }
+<span class="nc" id="L875">        return false;</span>
+    }
+
+    /** The Verifier that created this. */
+    private final Verifier verifier;
+
+    /**
+     * The method number to verify. This is the index in the array returned by JavaClass.getMethods().
+     */
+    private final int methodNo;
+
+    /**
+     * The one and only InstructionList object used by an instance of this class. It's here for performance reasons by
+     * do_verify() and its callees.
+     */
+    private InstructionList instructionList;
+
+    /**
+     * The one and only Code object used by an instance of this class. It's here for performance reasons by do_verify() and
+     * its callees.
+     */
+    private Code code;
+
+    /**
+     * Should only be instantiated by a Verifier.
+     *
+     * @param verifier the verifier.
+     * @param methodNo the method number.
+     */
+<span class="nc" id="L904">    public Pass3aVerifier(final Verifier verifier, final int methodNo) {</span>
+<span class="nc" id="L905">        this.verifier = verifier;</span>
+<span class="nc" id="L906">        this.methodNo = methodNo;</span>
+<span class="nc" id="L907">    }</span>
+
+    /**
+     * These are the checks that could be done in pass 2 but are delayed to pass 3 for performance reasons. Also, these
+     * checks need access to the code array of the Code attribute of a Method so it's okay to perform them here. Also see
+     * the description of the do_verify() method.
+     *
+     * @throws ClassConstraintException if the verification fails.
+     * @see #do_verify()
+     */
+    private void delayedPass2Checks() {
+
+<span class="nc" id="L919">        final int[] instructionPositions = instructionList.getInstructionPositions();</span>
+<span class="nc" id="L920">        final int codeLength = code.getCode().length;</span>
+
+        /////////////////////
+        // LineNumberTable //
+        /////////////////////
+<span class="nc" id="L925">        final LineNumberTable lnt = code.getLineNumberTable();</span>
+<span class="nc bnc" id="L926" title="All 2 branches missed.">        if (lnt != null) {</span>
+<span class="nc" id="L927">            final LineNumber[] lineNumbers = lnt.getLineNumberTable();</span>
+<span class="nc" id="L928">            final IntList offsets = new IntList();</span>
+<span class="nc bnc" id="L929" title="All 2 branches missed.">            lineNumberLoop: for (final LineNumber lineNumber : lineNumbers) { // may appear in any order.</span>
+<span class="nc bnc" id="L930" title="All 2 branches missed.">                for (final int instructionPosition : instructionPositions) {</span>
+                    // TODO: Make this a binary search! The instructionPositions array is naturally ordered!
+<span class="nc" id="L932">                    final int offset = lineNumber.getStartPC();</span>
+<span class="nc bnc" id="L933" title="All 2 branches missed.">                    if (instructionPosition == offset) {</span>
+<span class="nc bnc" id="L934" title="All 2 branches missed.">                        if (offsets.contains(offset)) {</span>
+<span class="nc" id="L935">                            addMessage(&quot;LineNumberTable attribute '&quot; + code.getLineNumberTable() + &quot;' refers to the same code offset ('&quot; + offset</span>
+                                + &quot;') more than once which is violating the semantics [but is sometimes produced by IBM's 'jikes' compiler].&quot;);
+                        } else {
+<span class="nc" id="L938">                            offsets.add(offset);</span>
+                        }
+<span class="nc" id="L940">                        continue lineNumberLoop;</span>
+                    }
+                }
+<span class="nc" id="L943">                throw new ClassConstraintException(&quot;Code attribute '&quot; + tostring(code) + &quot;' has a LineNumberTable attribute '&quot; + code.getLineNumberTable()</span>
+<span class="nc" id="L944">                    + &quot;' referring to a code offset ('&quot; + lineNumber.getStartPC() + &quot;') that does not exist.&quot;);</span>
+            }
+        }
+
+        ///////////////////////////
+        // LocalVariableTable(s) //
+        ///////////////////////////
+        /*
+         * We cannot use code.getLocalVariableTable() because there could be more than only one. This is a bug in BCEL.
+         */
+<span class="nc" id="L954">        final Attribute[] atts = code.getAttributes();</span>
+<span class="nc bnc" id="L955" title="All 2 branches missed.">        for (final Attribute att : atts) {</span>
+<span class="nc bnc" id="L956" title="All 2 branches missed.">            if (att instanceof LocalVariableTable) {</span>
+<span class="nc" id="L957">                ((LocalVariableTable) att).forEach(localVariable -&gt; {</span>
+<span class="nc" id="L958">                    final int startpc = localVariable.getStartPC();</span>
+<span class="nc" id="L959">                    final int length = localVariable.getLength();</span>
+
+<span class="nc bnc" id="L961" title="All 2 branches missed.">                    if (!contains(instructionPositions, startpc)) {</span>
+<span class="nc" id="L962">                        throw new ClassConstraintException(&quot;Code attribute '&quot; + tostring(code) + &quot;' has a LocalVariableTable attribute '&quot;</span>
+<span class="nc" id="L963">                            + code.getLocalVariableTable() + &quot;' referring to a code offset ('&quot; + startpc + &quot;') that does not exist.&quot;);</span>
+                    }
+<span class="nc bnc" id="L965" title="All 4 branches missed.">                    if (!contains(instructionPositions, startpc + length) &amp;&amp; startpc + length != codeLength) {</span>
+<span class="nc" id="L966">                        throw new ClassConstraintException(</span>
+<span class="nc" id="L967">                            &quot;Code attribute '&quot; + tostring(code) + &quot;' has a LocalVariableTable attribute '&quot; + code.getLocalVariableTable()</span>
+                                + &quot;' referring to a code offset start_pc+length ('&quot; + (startpc + length) + &quot;') that does not exist.&quot;);
+                    }
+<span class="nc" id="L970">                });</span>
+            }
+        }
+
+        ////////////////////
+        // ExceptionTable //
+        ////////////////////
+        // In BCEL's &quot;classfile&quot; API, the startPC/endPC-notation is
+        // inclusive/exclusive as in the Java Virtual Machine Specification.
+        // WARNING: This is not true for BCEL's &quot;generic&quot; API.
+<span class="nc" id="L980">        final CodeException[] exceptionTable = code.getExceptionTable();</span>
+<span class="nc bnc" id="L981" title="All 2 branches missed.">        for (final CodeException element : exceptionTable) {</span>
+<span class="nc" id="L982">            final int startpc = element.getStartPC();</span>
+<span class="nc" id="L983">            final int endpc = element.getEndPC();</span>
+<span class="nc" id="L984">            final int handlerpc = element.getHandlerPC();</span>
+<span class="nc bnc" id="L985" title="All 2 branches missed.">            if (startpc &gt;= endpc) {</span>
+<span class="nc" id="L986">                throw new ClassConstraintException(&quot;Code attribute '&quot; + tostring(code) + &quot;' has an exception_table entry '&quot; + element</span>
+                    + &quot;' that has its start_pc ('&quot; + startpc + &quot;') not smaller than its end_pc ('&quot; + endpc + &quot;').&quot;);
+            }
+<span class="nc bnc" id="L989" title="All 2 branches missed.">            if (!contains(instructionPositions, startpc)) {</span>
+<span class="nc" id="L990">                throw new ClassConstraintException(&quot;Code attribute '&quot; + tostring(code) + &quot;' has an exception_table entry '&quot; + element</span>
+                    + &quot;' that has a non-existant bytecode offset as its start_pc ('&quot; + startpc + &quot;').&quot;);
+            }
+<span class="nc bnc" id="L993" title="All 4 branches missed.">            if (!contains(instructionPositions, endpc) &amp;&amp; endpc != codeLength) {</span>
+<span class="nc" id="L994">                throw new ClassConstraintException(&quot;Code attribute '&quot; + tostring(code) + &quot;' has an exception_table entry '&quot; + element</span>
+                    + &quot;' that has a non-existant bytecode offset as its end_pc ('&quot; + startpc + &quot;') [that is also not equal to code_length ('&quot; + codeLength
+                    + &quot;')].&quot;);
+            }
+<span class="nc bnc" id="L998" title="All 2 branches missed.">            if (!contains(instructionPositions, handlerpc)) {</span>
+<span class="nc" id="L999">                throw new ClassConstraintException(&quot;Code attribute '&quot; + tostring(code) + &quot;' has an exception_table entry '&quot; + element</span>
+                    + &quot;' that has a non-existant bytecode offset as its handler_pc ('&quot; + handlerpc + &quot;').&quot;);
+            }
+        }
+<span class="nc" id="L1003">    }</span>
+
+    /**
+     * Pass 3a is the verification of static constraints of JVM code (such as legal targets of branch instructions). This is
+     * the part of pass 3 where you do not need data flow analysis. JustIce also delays the checks for a correct exception
+     * table of a Code attribute and correct line number entries in a LineNumberTable attribute of a Code attribute (which
+     * conceptually belong to pass 2) to this pass. Also, most of the check for valid local variable entries in a
+     * LocalVariableTable attribute of a Code attribute is delayed until this pass. All these checks need access to the code
+     * array of the Code attribute.
+     *
+     * @throws InvalidMethodException if the method to verify does not exist.
+     */
+    @Override
+    public VerificationResult do_verify() {
+        try {
+<span class="nc bnc" id="L1018" title="All 2 branches missed.">            if (verifier.doPass2().equals(VerificationResult.VR_OK)) {</span>
+                // Okay, class file was loaded correctly by Pass 1
+                // and satisfies static constraints of Pass 2.
+<span class="nc" id="L1021">                final JavaClass jc = Repository.lookupClass(verifier.getClassName());</span>
+<span class="nc" id="L1022">                final Method[] methods = jc.getMethods();</span>
+<span class="nc bnc" id="L1023" title="All 2 branches missed.">                if (methodNo &gt;= methods.length) {</span>
+<span class="nc" id="L1024">                    throw new InvalidMethodException(&quot;METHOD DOES NOT EXIST.&quot;);</span>
+                }
+<span class="nc" id="L1026">                final Method method = methods[methodNo];</span>
+<span class="nc" id="L1027">                code = method.getCode();</span>
+
+                // No Code? Nothing to verify!
+<span class="nc bnc" id="L1030" title="All 4 branches missed.">                if (method.isAbstract() || method.isNative()) { // IF mg HAS NO CODE (static constraint of Pass 2)</span>
+<span class="nc" id="L1031">                    return VerificationResult.VR_OK;</span>
+                }
+
+                // TODO:
+                // We want a very sophisticated code examination here with good explanations
+                // on where to look for an illegal instruction or such.
+                // Only after that we should try to build an InstructionList and throw an
+                // AssertionViolatedException if after our examination InstructionList building
+                // still fails.
+                // That examination should be implemented in a byte-oriented way, for example look for
+                // an instruction, make sure its validity, count its length, find the next
+                // instruction and so on.
+                try {
+<span class="nc" id="L1044">                    instructionList = new InstructionList(method.getCode().getCode());</span>
+<span class="nc" id="L1045">                } catch (final RuntimeException re) {</span>
+<span class="nc" id="L1046">                    return new VerificationResult(VerificationResult.VERIFIED_REJECTED,</span>
+<span class="nc" id="L1047">                        &quot;Bad bytecode in the code array of the Code attribute of method '&quot; + tostring(method) + &quot;'.&quot;);</span>
+<span class="nc" id="L1048">                }</span>
+
+<span class="nc" id="L1050">                instructionList.setPositions(true);</span>
+
+                // Start verification.
+<span class="nc" id="L1053">                VerificationResult vr = VerificationResult.VR_OK; // default</span>
+                try {
+<span class="nc" id="L1055">                    delayedPass2Checks();</span>
+<span class="nc" id="L1056">                } catch (final ClassConstraintException | ClassFormatException cce) {</span>
+<span class="nc" id="L1057">                    return new VerificationResult(VerificationResult.VERIFIED_REJECTED, cce.getMessage());</span>
+<span class="nc" id="L1058">                }</span>
+                try {
+<span class="nc" id="L1060">                    pass3StaticInstructionChecks();</span>
+<span class="nc" id="L1061">                    pass3StaticInstructionOperandsChecks();</span>
+<span class="nc" id="L1062">                } catch (final StaticCodeConstraintException | ClassFormatException scce) {</span>
+<span class="nc" id="L1063">                    vr = new VerificationResult(VerificationResult.VERIFIED_REJECTED, scce.getMessage());</span>
+<span class="nc" id="L1064">                } catch (final ClassCastException cce) {</span>
+<span class="nc" id="L1065">                    vr = new VerificationResult(VerificationResult.VERIFIED_REJECTED, &quot;Class Cast Exception: &quot; + cce.getMessage());</span>
+<span class="nc" id="L1066">                }</span>
+<span class="nc" id="L1067">                return vr;</span>
+            }
+            // did not pass Pass 2.
+<span class="nc" id="L1070">            return VerificationResult.VR_NOTYET;</span>
+<span class="nc" id="L1071">        } catch (final ClassNotFoundException e) {</span>
+            // FIXME: maybe not the best way to handle this
+<span class="nc" id="L1073">            throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+        }
+    }
+
+    /**
+     * Returns the method number as supplied when instantiating.
+     *
+     * @return the method number.
+     */
+    public int getMethodNo() {
+<span class="nc" id="L1083">        return methodNo;</span>
+    }
+
+    /**
+     * These are the checks if constraints are satisfied which are described in the Java Virtual Machine Specification,
+     * Second Edition as Static Constraints on the instructions of Java Virtual Machine Code (chapter 4.8.1).
+     *
+     * @throws StaticCodeConstraintException if the verification fails.
+     */
+    private void pass3StaticInstructionChecks() {
+
+        // Code array must not be empty:
+        // Enforced in pass 2 (also stated in the static constraints of the Code
+        // array in vmspec2), together with pass 1 (reading code_length bytes and
+        // interpreting them as code[]). So this must not be checked again here.
+
+<span class="nc bnc" id="L1099" title="All 2 branches missed.">        if (code.getCode().length &gt;= Const.MAX_CODE_SIZE) { // length must be LESS than the max</span>
+<span class="nc" id="L1100">            throw new StaticCodeInstructionConstraintException(</span>
+<span class="nc" id="L1101">                &quot;Code array in code attribute '&quot; + tostring(code) + &quot;' too big: must be smaller than &quot; + Const.MAX_CODE_SIZE + &quot;65536 bytes.&quot;);</span>
+        }
+
+        // First opcode at offset 0: okay, that's clear. Nothing to do.
+
+        // Only instances of the instructions documented in Section 6.4 may appear in
+        // the code array.
+
+        // For BCEL's sake, we cannot handle WIDE stuff, but hopefully BCEL does its job right :)
+
+        // The last byte of the last instruction in the code array must be the byte at index
+        // code_length-1 : See the do_verify() comments. We actually don't iterate through the
+        // byte array, but use an InstructionList so we cannot check for this. But BCEL does
+        // things right, so it's implicitly okay.
+
+        // TODO: Check how BCEL handles (and will handle) instructions like IMPDEP1, IMPDEP2,
+        // BREAKPOINT... that BCEL knows about but which are illegal anyway.
+        // We currently go the safe way here.
+<span class="nc" id="L1119">        InstructionHandle ih = instructionList.getStart();</span>
+<span class="nc bnc" id="L1120" title="All 2 branches missed.">        while (ih != null) {</span>
+<span class="nc" id="L1121">            final Instruction i = ih.getInstruction();</span>
+<span class="nc bnc" id="L1122" title="All 2 branches missed.">            if (i instanceof IMPDEP1) {</span>
+<span class="nc" id="L1123">                throw new StaticCodeInstructionConstraintException(&quot;IMPDEP1 must not be in the code, it is an illegal instruction for _internal_ JVM use.&quot;);</span>
+            }
+<span class="nc bnc" id="L1125" title="All 2 branches missed.">            if (i instanceof IMPDEP2) {</span>
+<span class="nc" id="L1126">                throw new StaticCodeInstructionConstraintException(&quot;IMPDEP2 must not be in the code, it is an illegal instruction for _internal_ JVM use.&quot;);</span>
+            }
+<span class="nc bnc" id="L1128" title="All 2 branches missed.">            if (i instanceof BREAKPOINT) {</span>
+<span class="nc" id="L1129">                throw new StaticCodeInstructionConstraintException(&quot;BREAKPOINT must not be in the code, it is an illegal instruction for _internal_ JVM use.&quot;);</span>
+            }
+<span class="nc" id="L1131">            ih = ih.getNext();</span>
+<span class="nc" id="L1132">        }</span>
+
+        // The original verifier seems to do this check here, too.
+        // An unreachable last instruction may also not fall through the
+        // end of the code, which is stupid -- but with the original
+        // verifier's subroutine semantics one cannot predict reachability.
+<span class="nc" id="L1138">        final Instruction last = instructionList.getEnd().getInstruction();</span>
+<span class="nc bnc" id="L1139" title="All 8 branches missed.">        if (!(last instanceof ReturnInstruction || last instanceof RET || last instanceof GotoInstruction || last instanceof ATHROW)) {</span>
+<span class="nc" id="L1140">            throw new StaticCodeInstructionConstraintException(</span>
+                &quot;Execution must not fall off the bottom of the code array. This constraint is enforced statically as some existing verifiers do&quot;
+                    + &quot; - so it may be a false alarm if the last instruction is not reachable.&quot;);
+        }
+<span class="nc" id="L1144">    }</span>
+
+    /**
+     * These are the checks for the satisfaction of constraints which are described in the Java Virtual Machine
+     * Specification, Second Edition as Static Constraints on the operands of instructions of Java Virtual Machine Code
+     * (chapter 4.8.1). BCEL parses the code array to create an InstructionList and therefore has to check some of these
+     * constraints. Additional checks are also implemented here.
+     *
+     * @throws StaticCodeConstraintException if the verification fails.
+     */
+    private void pass3StaticInstructionOperandsChecks() {
+        try {
+            // When building up the InstructionList, BCEL has already done all those checks
+            // mentioned in The Java Virtual Machine Specification, Second Edition, as
+            // &quot;static constraints on the operands of instructions in the code array&quot;.
+            // TODO: see the do_verify() comments. Maybe we should really work on the
+            // byte array first to give more comprehensive messages.
+            // TODO: Review Exception API, possibly build in some &quot;offending instruction&quot; thing
+            // when we're ready to insulate the offending instruction by doing the
+            // above thing.
+
+            // TODO: Implement as much as possible here. BCEL does _not_ check everything.
+
+<span class="nc" id="L1167">            final ConstantPoolGen cpg = new ConstantPoolGen(Repository.lookupClass(verifier.getClassName()).getConstantPool());</span>
+<span class="nc" id="L1168">            final InstOperandConstraintVisitor v = new InstOperandConstraintVisitor(cpg);</span>
+
+            // Checks for the things BCEL does _not_ handle itself.
+<span class="nc" id="L1171">            InstructionHandle ih = instructionList.getStart();</span>
+<span class="nc bnc" id="L1172" title="All 2 branches missed.">            while (ih != null) {</span>
+<span class="nc" id="L1173">                final Instruction i = ih.getInstruction();</span>
+
+                // An &quot;own&quot; constraint, due to JustIce's new definition of what &quot;subroutine&quot; means.
+<span class="nc bnc" id="L1176" title="All 2 branches missed.">                if (i instanceof JsrInstruction) {</span>
+<span class="nc" id="L1177">                    final InstructionHandle target = ((JsrInstruction) i).getTarget();</span>
+<span class="nc bnc" id="L1178" title="All 2 branches missed.">                    if (target == instructionList.getStart()) {</span>
+<span class="nc" id="L1179">                        throw new StaticCodeInstructionOperandConstraintException(</span>
+                            &quot;Due to JustIce's clear definition of subroutines, no JSR or JSR_W may have a top-level instruction&quot;
+<span class="nc" id="L1181">                                + &quot; (such as the very first instruction, which is targeted by instruction '&quot; + tostring(ih) + &quot;' as its target.&quot;);</span>
+                    }
+<span class="nc bnc" id="L1183" title="All 2 branches missed.">                    if (!(target.getInstruction() instanceof ASTORE)) {</span>
+<span class="nc" id="L1184">                        throw new StaticCodeInstructionOperandConstraintException(</span>
+                            &quot;Due to JustIce's clear definition of subroutines, no JSR or JSR_W may target anything else&quot;
+<span class="nc" id="L1186">                                + &quot; than an ASTORE instruction. Instruction '&quot; + tostring(ih) + &quot;' targets '&quot; + tostring(target) + &quot;'.&quot;);</span>
+                    }
+                }
+
+                // vmspec2, page 134-137
+<span class="nc" id="L1191">                ih.accept(v);</span>
+
+<span class="nc" id="L1193">                ih = ih.getNext();</span>
+<span class="nc" id="L1194">            }</span>
+
+<span class="nc" id="L1196">        } catch (final ClassNotFoundException e) {</span>
+            // FIXME: maybe not the best way to handle this
+<span class="nc" id="L1198">            throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="nc" id="L1199">        }</span>
+<span class="nc" id="L1200">    }</span>
+
+    /**
+     * This method is a slightly modified version of verifier.statics.StringRepresentation.toString(final Node obj) that
+     * accepts any Object, not just a Node.
+     *
+     * Returns the String representation of the Object obj; this is obj.toString() if it does not throw any
+     * RuntimeException, or else it is a string derived only from obj's class name.
+     *
+     * @param obj the object to convert to string.
+     * @return the string representation.
+     */
+    protected String tostring(final Object obj) {
+        String ret;
+        try {
+<span class="nc" id="L1215">            ret = obj.toString();</span>
+<span class="nc" id="L1216">        } catch (final RuntimeException e) {</span>
+            // including ClassFormatException, trying to convert the &quot;signature&quot; of a ReturnaddressType LocalVariable
+            // (shouldn't occur, but people do crazy things)
+<span class="nc" id="L1219">            String s = obj.getClass().getName();</span>
+<span class="nc" id="L1220">            s = s.substring(s.lastIndexOf(&quot;.&quot;) + 1);</span>
+<span class="nc" id="L1221">            ret = &quot;&lt;&lt;&quot; + s + &quot;&gt;&gt;&quot;;</span>
+<span class="nc" id="L1222">        }</span>
+<span class="nc" id="L1223">        return ret;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Constant.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">Constant.java</span></div><h1>Constant.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.classfile;
+
+import java.io.DataInput;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Objects;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.util.BCELComparator;
+
+/**
+ * Abstract superclass for classes to represent the different constant types in the constant pool of a class file. The
+ * classes keep closely to the JVM specification.
+ */
+public abstract class Constant implements Cloneable, Node {
+
+<span class="fc" id="L35">    static final Constant[] EMPTY_ARRAY = {};</span>
+
+<span class="fc" id="L37">    private static BCELComparator&lt;Constant&gt; bcelComparator = new BCELComparator&lt;Constant&gt;() {</span>
+
+        @Override
+        public boolean equals(final Constant a, final Constant b) {
+<span class="nc bnc" id="L41" title="All 8 branches missed.">            return a == b || a != null &amp;&amp; b != null &amp;&amp; Objects.equals(a.toString(), b.toString());</span>
+        }
+
+        @Override
+        public int hashCode(final Constant o) {
+<span class="nc bnc" id="L46" title="All 2 branches missed.">            return o != null ? Objects.hashCode(o.toString()) : 0;</span>
+        }
+    };
+
+    /**
+     * Gets the comparison strategy object.
+     *
+     * @return Comparison strategy object.
+     */
+    public static BCELComparator&lt;Constant&gt; getComparator() {
+<span class="nc" id="L56">        return bcelComparator;</span>
+    }
+
+    /**
+     * Reads one constant from the given input, the type depends on a tag byte.
+     *
+     * @param dataInput Input stream.
+     * @return Constant object.
+     * @throws IOException if an I/O error occurs reading from the given {@code dataInput}.
+     * @throws ClassFormatException if the next byte is not recognized
+     * @since 6.0 made public
+     */
+    public static Constant readConstant(final DataInput dataInput) throws IOException, ClassFormatException {
+<span class="nc" id="L69">        final byte b = dataInput.readByte(); // Read tag byte</span>
+<span class="nc bnc" id="L70" title="All 18 branches missed.">        switch (b) {</span>
+        case Const.CONSTANT_Class:
+<span class="nc" id="L72">            return new ConstantClass(dataInput);</span>
+        case Const.CONSTANT_Fieldref:
+<span class="nc" id="L74">            return new ConstantFieldref(dataInput);</span>
+        case Const.CONSTANT_Methodref:
+<span class="nc" id="L76">            return new ConstantMethodref(dataInput);</span>
+        case Const.CONSTANT_InterfaceMethodref:
+<span class="nc" id="L78">            return new ConstantInterfaceMethodref(dataInput);</span>
+        case Const.CONSTANT_String:
+<span class="nc" id="L80">            return new ConstantString(dataInput);</span>
+        case Const.CONSTANT_Integer:
+<span class="nc" id="L82">            return new ConstantInteger(dataInput);</span>
+        case Const.CONSTANT_Float:
+<span class="nc" id="L84">            return new ConstantFloat(dataInput);</span>
+        case Const.CONSTANT_Long:
+<span class="nc" id="L86">            return new ConstantLong(dataInput);</span>
+        case Const.CONSTANT_Double:
+<span class="nc" id="L88">            return new ConstantDouble(dataInput);</span>
+        case Const.CONSTANT_NameAndType:
+<span class="nc" id="L90">            return new ConstantNameAndType(dataInput);</span>
+        case Const.CONSTANT_Utf8:
+<span class="nc" id="L92">            return ConstantUtf8.getInstance(dataInput);</span>
+        case Const.CONSTANT_MethodHandle:
+<span class="nc" id="L94">            return new ConstantMethodHandle(dataInput);</span>
+        case Const.CONSTANT_MethodType:
+<span class="nc" id="L96">            return new ConstantMethodType(dataInput);</span>
+        case Const.CONSTANT_Dynamic:
+<span class="nc" id="L98">            return new ConstantDynamic(dataInput);</span>
+        case Const.CONSTANT_InvokeDynamic:
+<span class="nc" id="L100">            return new ConstantInvokeDynamic(dataInput);</span>
+        case Const.CONSTANT_Module:
+<span class="nc" id="L102">            return new ConstantModule(dataInput);</span>
+        case Const.CONSTANT_Package:
+<span class="nc" id="L104">            return new ConstantPackage(dataInput);</span>
+        default:
+<span class="nc" id="L106">            throw new ClassFormatException(&quot;Invalid byte tag in constant pool: &quot; + b);</span>
+        }
+    }
+
+    /**
+     * Sets the comparison strategy object.
+     *
+     * @param comparator Comparison strategy object.
+     */
+    public static void setComparator(final BCELComparator&lt;Constant&gt; comparator) {
+<span class="nc" id="L116">        bcelComparator = comparator;</span>
+<span class="nc" id="L117">    }</span>
+
+    /*
+     * In fact this tag is redundant since we can distinguish different 'Constant' objects by their type, that is, via
+     * 'instanceof'. In some places we will use the tag for switch()es anyway.
+     *
+     * First, we want match the specification as closely as possible. Second we need the tag as an index to select the
+     * corresponding class name from the 'CONSTANT_NAMES' array.
+     */
+
+    /**
+     * @deprecated (since 6.0) will be made private; do not access directly, use getter/setter.
+     */
+    @java.lang.Deprecated
+    protected byte tag; // TODO should be private &amp; final
+
+<span class="fc" id="L133">    Constant(final byte tag) {</span>
+<span class="fc" id="L134">        this.tag = tag;</span>
+<span class="fc" id="L135">    }</span>
+
+    /**
+     * Called by objects that are traversing the nodes of the tree implicitly defined by the contents of a Java class.
+     * I.e., the hierarchy of methods, fields, attributes, etc. spawns a tree of objects.
+     *
+     * @param v Visitor object.
+     */
+    @Override
+    public abstract void accept(Visitor v);
+
+    @Override
+    public Object clone() {
+        try {
+<span class="nc" id="L149">            return super.clone();</span>
+<span class="nc" id="L150">        } catch (final CloneNotSupportedException e) {</span>
+<span class="nc" id="L151">            throw new UnsupportedOperationException(&quot;Clone Not Supported&quot;, e); // never happens</span>
+        }
+    }
+
+    /**
+     * Creates a deep copy of this constant.
+     *
+     * @return deep copy of this constant.
+     */
+    public Constant copy() {
+        try {
+<span class="nc" id="L162">            return (Constant) super.clone();</span>
+<span class="nc" id="L163">        } catch (final CloneNotSupportedException e) {</span>
+            // TODO should this throw?
+        }
+<span class="nc" id="L166">        return null;</span>
+    }
+
+    /**
+     * Dumps constant to file stream in binary format.
+     *
+     * @param file the output stream.
+     * @throws IOException if an I/O error occurs.
+     */
+    public abstract void dump(DataOutputStream file) throws IOException;
+
+    /**
+     * Returns value as defined by given BCELComparator strategy. By default two Constant objects are said to be equal when
+     * the result of toString() is equal.
+     *
+     * @see Object#equals(Object)
+     */
+    @Override
+    public boolean equals(final Object obj) {
+<span class="nc bnc" id="L185" title="All 4 branches missed.">        return obj instanceof Constant &amp;&amp; bcelComparator.equals(this, (Constant) obj);</span>
+    }
+
+    /**
+     * Gets the tag of constant.
+     *
+     * @return Tag of constant, that is, its type. No setTag() method to avoid confusion.
+     */
+    public final byte getTag() {
+<span class="nc" id="L194">        return tag;</span>
+    }
+
+    /**
+     * Returns value as defined by given BCELComparator strategy. By default return the hash code of the result of
+     * toString().
+     *
+     * @see Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+<span class="nc" id="L205">        return bcelComparator.hashCode(this);</span>
+    }
+
+    /**
+     * @return String representation.
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L213">        return Const.getConstantName(tag) + &quot;[&quot; + tag + &quot;]&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

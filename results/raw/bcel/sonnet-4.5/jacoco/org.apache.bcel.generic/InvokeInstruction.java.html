@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InvokeInstruction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">InvokeInstruction.java</span></div><h1>InvokeInstruction.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import java.util.StringTokenizer;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.classfile.Constant;
+import org.apache.bcel.classfile.ConstantCP;
+import org.apache.bcel.classfile.ConstantPool;
+import org.apache.bcel.classfile.Utility;
+
+/**
+ * Super class for the INVOKExxx family of instructions.
+ */
+public abstract class InvokeInstruction extends FieldOrMethod implements ExceptionThrower, StackConsumer, StackProducer {
+
+    /**
+     * Empty constructor needed for Instruction.readInstruction. Not to be used otherwise.
+     */
+<span class="nc" id="L37">    InvokeInstruction() {</span>
+<span class="nc" id="L38">    }</span>
+
+    /**
+     * Constructs an InvokeInstruction.
+     *
+     * @param opcode the opcode.
+     * @param index to constant pool.
+     */
+    protected InvokeInstruction(final short opcode, final int index) {
+<span class="nc" id="L47">        super(opcode, index);</span>
+<span class="nc" id="L48">    }</span>
+
+    /**
+     * Also works for instructions whose stack effect depends on the constant pool entry they reference.
+     *
+     * @return Number of words consumed from stack by this instruction.
+     */
+    @Override
+    public int consumeStack(final ConstantPoolGen cpg) {
+        int sum;
+<span class="nc bnc" id="L58" title="All 4 branches missed.">        if (super.getOpcode() == Const.INVOKESTATIC || super.getOpcode() == Const.INVOKEDYNAMIC) {</span>
+<span class="nc" id="L59">            sum = 0;</span>
+        } else {
+<span class="nc" id="L61">            sum = 1; // this reference</span>
+        }
+
+<span class="nc" id="L64">        final String signature = getSignature(cpg);</span>
+<span class="nc" id="L65">        sum += Type.getArgumentTypesSize(signature);</span>
+<span class="nc" id="L66">        return sum;</span>
+    }
+
+    /**
+     * Gets the argument types of referenced method.
+     *
+     * @param cpg the constant pool generator.
+     * @return argument types of referenced method.
+     */
+    public Type[] getArgumentTypes(final ConstantPoolGen cpg) {
+<span class="nc" id="L76">        return Type.getArgumentTypes(getSignature(cpg));</span>
+    }
+
+    /**
+     * This overrides the deprecated version as we know here that the referenced class may legally be an array.
+     *
+     * @return name of the referenced class/interface.
+     * @throws IllegalArgumentException if the referenced class is an array (this should not happen)
+     */
+    @Override
+    public String getClassName(final ConstantPoolGen cpg) {
+<span class="nc" id="L87">        final ConstantPool cp = cpg.getConstantPool();</span>
+<span class="nc" id="L88">        final ConstantCP cmr = (ConstantCP) cp.getConstant(super.getIndex());</span>
+<span class="nc" id="L89">        final String className = cp.getConstantString(cmr.getClassIndex(), Const.CONSTANT_Class);</span>
+<span class="nc" id="L90">        return Utility.pathToPackage(className);</span>
+    }
+
+    /**
+     * Gets the name of referenced method.
+     *
+     * @param cpg the constant pool generator.
+     * @return name of referenced method.
+     */
+    public String getMethodName(final ConstantPoolGen cpg) {
+<span class="nc" id="L100">        return getName(cpg);</span>
+    }
+
+    /**
+     * Gets the return type of referenced method.
+     *
+     * @param cpg the constant pool generator.
+     * @return return type of referenced method.
+     */
+    public Type getReturnType(final ConstantPoolGen cpg) {
+<span class="nc" id="L110">        return Type.getReturnType(getSignature(cpg));</span>
+    }
+
+    /**
+     * Gets the return type of referenced method.
+     *
+     * @param cpg the constant pool generator.
+     * @return return type of referenced method.
+     */
+    @Override
+    public Type getType(final ConstantPoolGen cpg) {
+<span class="nc" id="L121">        return getReturnType(cpg);</span>
+    }
+
+    /**
+     * Also works for instructions whose stack effect depends on the constant pool entry they reference.
+     *
+     * @return Number of words produced onto stack by this instruction.
+     */
+    @Override
+    public int produceStack(final ConstantPoolGen cpg) {
+<span class="nc" id="L131">        final String signature = getSignature(cpg);</span>
+<span class="nc" id="L132">        return Type.getReturnTypeSize(signature);</span>
+    }
+
+    /**
+     * @return mnemonic for instruction with symbolic references resolved.
+     */
+    @Override
+    public String toString(final ConstantPool cp) {
+<span class="nc" id="L140">        final Constant c = cp.getConstant(super.getIndex());</span>
+<span class="nc" id="L141">        final StringTokenizer tok = new StringTokenizer(cp.constantToString(c));</span>
+
+<span class="nc" id="L143">        final String opcodeName = Const.getOpcodeName(super.getOpcode());</span>
+
+<span class="nc" id="L145">        final StringBuilder sb = new StringBuilder(opcodeName);</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">        if (tok.hasMoreTokens()) {</span>
+<span class="nc" id="L147">            sb.append(&quot; &quot;);</span>
+<span class="nc" id="L148">            sb.append(Utility.packageToPath(tok.nextToken()));</span>
+<span class="nc bnc" id="L149" title="All 2 branches missed.">            if (tok.hasMoreTokens()) {</span>
+<span class="nc" id="L150">                sb.append(tok.nextToken());</span>
+            }
+        }
+
+<span class="nc" id="L154">        return sb.toString();</span>
+    }
+
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

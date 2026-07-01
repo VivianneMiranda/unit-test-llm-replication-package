@@ -1,0 +1,93 @@
+{
+  "description": "Apache Commons projects in the SAST 2026 empirical study.",
+  "table_reference": "Paper Table 1",
+  "artifact_scope": "See config/package-scope.json — this package ships BCEL and CLI only.",
+  "projects": [
+    {
+      "id": "collections",
+      "name": "Apache Commons Collections",
+      "artifact_id": "commons-collections4",
+      "version": "4.6.0",
+      "classes": 429,
+      "loc": 29954,
+      "included_in_artifact": false,
+      "git_url": "https://github.com/apache/commons-collections.git",
+      "git_tag": "rel/commons-collections-4.6.0",
+      "directory": "projects/commons-collections"
+    },
+    {
+      "id": "compress",
+      "name": "Apache Commons Compress",
+      "artifact_id": "commons-compress",
+      "version": "1.29.0",
+      "classes": 501,
+      "loc": 23475,
+      "included_in_artifact": false,
+      "git_url": "https://github.com/apache/commons-compress.git",
+      "git_tag": "rel/commons-compress-1.29.0",
+      "directory": "projects/commons-compress"
+    },
+    {
+      "id": "lang",
+      "name": "Apache Commons Lang",
+      "artifact_id": "commons-lang3",
+      "version": "3.20.1",
+      "classes": 278,
+      "loc": 53835,
+      "included_in_artifact": false,
+      "git_url": "https://github.com/apache/commons-lang.git",
+      "git_tag": "rel/commons-lang-3.20.1",
+      "directory": "projects/commons-lang"
+    },
+    {
+      "id": "cli",
+      "name": "Apache Commons CLI",
+      "artifact_id": "commons-cli",
+      "version": "1.11.0",
+      "classes": 87,
+      "loc": 11243,
+      "included_in_artifact": true,
+      "artifact_directory": "commons-cli",
+      "git_url": "https://github.com/apache/commons-cli.git",
+      "git_tag": "rel/commons-cli-1.11.0",
+      "directory": "projects/commons-cli"
+    },
+    {
+      "id": "bcel",
+      "name": "Apache Commons BCEL",
+      "artifact_id": "commons-bcel",
+      "version": "6.13.0",
+      "classes": 672,
+      "loc": 48150,
+      "included_in_artifact": true,
+      "artifact_directory": "commons-bcel",
+      "git_url": "https://github.com/apache/commons-bcel.git",
+      "git_tag": "rel/commons-bcel-6.13.0",
+      "directory": "projects/commons-bcel"
+    }
+  ],
+  "totals": {
+    "classes": 1967,
+    "loc": 166657
+  },
+  "llm_models": [
+    {
+      "id": "opus-4.5",
+      "paper_name": "Claude Opus 4.5"
+    },
+    {
+      "id": "gpt-5.1-codex-max",
+      "paper_name": "GPT-5.1 Codex Max"
+    },
+    {
+      "id": "sonnet-4.5",
+      "paper_name": "Claude Sonnet 4.5"
+    }
+  ],
+  "test_suite_origins": [
+    "developer",
+    "opus-4.5",
+    "gpt-5.1-codex-max",
+    "sonnet-4.5"
+  ]
+}

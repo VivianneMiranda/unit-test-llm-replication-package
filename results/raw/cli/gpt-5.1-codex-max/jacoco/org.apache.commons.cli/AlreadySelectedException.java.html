@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AlreadySelectedException.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons CLI</a> &gt; <a href="index.source.html" class="el_package">org.apache.commons.cli</a> &gt; <span class="el_source">AlreadySelectedException.java</span></div><h1>AlreadySelectedException.java</h1><pre class="source lang-java linenums">/*
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the &quot;License&quot;); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+ */
+
+package org.apache.commons.cli;
+
+/**
+ * Thrown when more than one option in an option group has been provided.
+ */
+public class AlreadySelectedException extends ParseException {
+
+    /**
+     * This exception {@code serialVersionUID}.
+     */
+    private static final long serialVersionUID = 3674381532418544760L;
+
+    /** The option group selected. */
+    private final OptionGroup optionGroup;
+
+    /** The option that triggered the exception. */
+    private final Option option;
+
+    /**
+     * Constructs a new {@code AlreadySelectedException} for the specified option group.
+     *
+     * @param optionGroup the option group already selected.
+     * @param option the option that triggered the exception.
+     * @since 1.2
+     */
+    public AlreadySelectedException(final OptionGroup optionGroup, final Option option) {
+<span class="fc" id="L44">        this(String.format(&quot;The option '%s' was specified but an option from this group has already been selected: '%s'&quot;, option.getKey(),</span>
+<span class="fc" id="L45">                optionGroup.getSelected()), optionGroup, option);</span>
+<span class="fc" id="L46">    }</span>
+
+    /**
+     * Constructs a new {@code AlreadySelectedException} with the specified detail message.
+     *
+     * @param message the detail message.
+     */
+    public AlreadySelectedException(final String message) {
+<span class="nc" id="L54">        this(message, null, null);</span>
+<span class="nc" id="L55">    }</span>
+
+    private AlreadySelectedException(final String message, final OptionGroup optionGroup, final Option option) {
+<span class="fc" id="L58">        super(message);</span>
+<span class="fc" id="L59">        this.optionGroup = optionGroup;</span>
+<span class="fc" id="L60">        this.option = option;</span>
+<span class="fc" id="L61">    }</span>
+
+    /**
+     * Gets the option that was added to the group and triggered the exception.
+     *
+     * @return the related option.
+     * @since 1.2
+     */
+    public Option getOption() {
+<span class="fc" id="L70">        return option;</span>
+    }
+
+    /**
+     * Gets the option group where another option has been selected.
+     *
+     * @return the related option group.
+     * @since 1.2
+     */
+    public OptionGroup getOptionGroup() {
+<span class="fc" id="L80">        return optionGroup;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

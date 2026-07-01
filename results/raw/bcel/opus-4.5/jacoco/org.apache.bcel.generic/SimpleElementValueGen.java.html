@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SimpleElementValueGen.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">SimpleElementValueGen.java</span></div><h1>SimpleElementValueGen.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import java.io.DataOutputStream;
+import java.io.IOException;
+
+import org.apache.bcel.classfile.ConstantDouble;
+import org.apache.bcel.classfile.ConstantFloat;
+import org.apache.bcel.classfile.ConstantInteger;
+import org.apache.bcel.classfile.ConstantLong;
+import org.apache.bcel.classfile.ConstantUtf8;
+import org.apache.bcel.classfile.ElementValue;
+import org.apache.bcel.classfile.SimpleElementValue;
+
+/**
+ * Generates simple element values in annotations.
+ *
+ * @since 6.0
+ */
+public class SimpleElementValueGen extends ElementValueGen {
+    // For primitive types and string type, this points to the value entry in
+    // the cpGen
+    // For 'class' this points to the class entry in the cpGen
+    private final int idx;
+
+    /**
+     * Constructs a SimpleElementValueGen for a boolean value.
+     *
+     * @param type the element value type.
+     * @param cpGen the constant pool generator.
+     * @param value the boolean value.
+     */
+    public SimpleElementValueGen(final int type, final ConstantPoolGen cpGen, final boolean value) {
+<span class="fc" id="L51">        super(type, cpGen);</span>
+<span class="fc bfc" id="L52" title="All 2 branches covered.">        if (value) {</span>
+<span class="fc" id="L53">            idx = getConstantPool().addInteger(1);</span>
+        } else {
+<span class="fc" id="L55">            idx = getConstantPool().addInteger(0);</span>
+        }
+<span class="fc" id="L57">    }</span>
+
+    /**
+     * Constructs a SimpleElementValueGen for a byte value.
+     *
+     * @param type the element value type.
+     * @param cpGen the constant pool generator.
+     * @param value the byte value.
+     */
+    public SimpleElementValueGen(final int type, final ConstantPoolGen cpGen, final byte value) {
+<span class="fc" id="L67">        super(type, cpGen);</span>
+<span class="fc" id="L68">        idx = getConstantPool().addInteger(value);</span>
+<span class="fc" id="L69">    }</span>
+
+    /**
+     * Constructs a SimpleElementValueGen for a char value.
+     *
+     * @param type the element value type.
+     * @param cpGen the constant pool generator.
+     * @param value the char value.
+     */
+    public SimpleElementValueGen(final int type, final ConstantPoolGen cpGen, final char value) {
+<span class="fc" id="L79">        super(type, cpGen);</span>
+<span class="fc" id="L80">        idx = getConstantPool().addInteger(value);</span>
+<span class="fc" id="L81">    }</span>
+
+    /**
+     * Constructs a SimpleElementValueGen for a double value.
+     *
+     * @param type the element value type.
+     * @param cpGen the constant pool generator.
+     * @param value the double value.
+     */
+    public SimpleElementValueGen(final int type, final ConstantPoolGen cpGen, final double value) {
+<span class="fc" id="L91">        super(type, cpGen);</span>
+<span class="fc" id="L92">        idx = getConstantPool().addDouble(value);</span>
+<span class="fc" id="L93">    }</span>
+
+    /**
+     * Constructs a SimpleElementValueGen for a float value.
+     *
+     * @param type the element value type.
+     * @param cpGen the constant pool generator.
+     * @param value the float value.
+     */
+    public SimpleElementValueGen(final int type, final ConstantPoolGen cpGen, final float value) {
+<span class="fc" id="L103">        super(type, cpGen);</span>
+<span class="fc" id="L104">        idx = getConstantPool().addFloat(value);</span>
+<span class="fc" id="L105">    }</span>
+
+    /**
+     * Constructs a SimpleElementValueGen for an int value.
+     *
+     * @param type the element value type.
+     * @param cpGen the constant pool generator.
+     * @param value the int value.
+     */
+    public SimpleElementValueGen(final int type, final ConstantPoolGen cpGen, final int value) {
+<span class="fc" id="L115">        super(type, cpGen);</span>
+<span class="fc" id="L116">        idx = getConstantPool().addInteger(value);</span>
+<span class="fc" id="L117">    }</span>
+
+    /**
+     * Constructs a SimpleElementValueGen for a long value.
+     *
+     * @param type the element value type.
+     * @param cpGen the constant pool generator.
+     * @param value the long value.
+     */
+    public SimpleElementValueGen(final int type, final ConstantPoolGen cpGen, final long value) {
+<span class="fc" id="L127">        super(type, cpGen);</span>
+<span class="fc" id="L128">        idx = getConstantPool().addLong(value);</span>
+<span class="fc" id="L129">    }</span>
+
+    /**
+     * Constructs a SimpleElementValueGen for a short value.
+     *
+     * @param type the element value type.
+     * @param cpGen the constant pool generator.
+     * @param value the short value.
+     */
+    public SimpleElementValueGen(final int type, final ConstantPoolGen cpGen, final short value) {
+<span class="fc" id="L139">        super(type, cpGen);</span>
+<span class="fc" id="L140">        idx = getConstantPool().addInteger(value);</span>
+<span class="fc" id="L141">    }</span>
+
+    /**
+     * Constructs a SimpleElementValueGen for a String value.
+     *
+     * @param type the element value type.
+     * @param cpGen the constant pool generator.
+     * @param value the string value.
+     */
+    public SimpleElementValueGen(final int type, final ConstantPoolGen cpGen, final String value) {
+<span class="fc" id="L151">        super(type, cpGen);</span>
+<span class="fc" id="L152">        idx = getConstantPool().addUtf8(value);</span>
+<span class="fc" id="L153">    }</span>
+
+    // ctors for each supported type... type could be inferred but for now lets
+    // force it to be passed
+
+    /**
+     * Protected ctor used for deserialization, doesn't *put* an entry in the constant pool, assumes the one at the supplied
+     * index is correct.
+     *
+     * @param type the element value type.
+     * @param idx the constant pool index.
+     * @param cpGen the constant pool generator.
+     */
+    protected SimpleElementValueGen(final int type, final int idx, final ConstantPoolGen cpGen) {
+<span class="nc" id="L167">        super(type, cpGen);</span>
+<span class="nc" id="L168">        this.idx = idx;</span>
+<span class="nc" id="L169">    }</span>
+
+    /**
+     * The boolean controls whether we copy info from the 'old' constant pool to the 'new'. You need to use this ctor if the
+     * annotation is being copied from one file to another.
+     *
+     * @param value the simple element value to copy.
+     * @param cpool the constant pool generator.
+     * @param copyPoolEntries whether to copy pool entries.
+     */
+    public SimpleElementValueGen(final SimpleElementValue value, final ConstantPoolGen cpool, final boolean copyPoolEntries) {
+<span class="fc" id="L180">        super(value.getElementValueType(), cpool);</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">        if (!copyPoolEntries) {</span>
+            // J5ASSERT: Could assert value.stringifyValue() is the same as
+            // cpool.getConstant(SimpleElementValuevalue.getIndex())
+<span class="fc" id="L184">            idx = value.getIndex();</span>
+        } else {
+<span class="pc bpc" id="L186" title="7 of 10 branches missed.">            switch (value.getElementValueType()) {</span>
+            case STRING:
+<span class="fc" id="L188">                idx = cpool.addUtf8(value.getValueString());</span>
+<span class="fc" id="L189">                break;</span>
+            case PRIMITIVE_INT:
+<span class="fc" id="L191">                idx = cpool.addInteger(value.getValueInt());</span>
+<span class="fc" id="L192">                break;</span>
+            case PRIMITIVE_BYTE:
+<span class="nc" id="L194">                idx = cpool.addInteger(value.getValueByte());</span>
+<span class="nc" id="L195">                break;</span>
+            case PRIMITIVE_CHAR:
+<span class="nc" id="L197">                idx = cpool.addInteger(value.getValueChar());</span>
+<span class="nc" id="L198">                break;</span>
+            case PRIMITIVE_LONG:
+<span class="nc" id="L200">                idx = cpool.addLong(value.getValueLong());</span>
+<span class="nc" id="L201">                break;</span>
+            case PRIMITIVE_FLOAT:
+<span class="nc" id="L203">                idx = cpool.addFloat(value.getValueFloat());</span>
+<span class="nc" id="L204">                break;</span>
+            case PRIMITIVE_DOUBLE:
+<span class="nc" id="L206">                idx = cpool.addDouble(value.getValueDouble());</span>
+<span class="nc" id="L207">                break;</span>
+            case PRIMITIVE_BOOLEAN:
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">                if (value.getValueBoolean()) {</span>
+<span class="fc" id="L210">                    idx = cpool.addInteger(1);</span>
+                } else {
+<span class="nc" id="L212">                    idx = cpool.addInteger(0);</span>
+                }
+<span class="nc" id="L214">                break;</span>
+            case PRIMITIVE_SHORT:
+<span class="nc" id="L216">                idx = cpool.addInteger(value.getValueShort());</span>
+<span class="nc" id="L217">                break;</span>
+            default:
+<span class="nc" id="L219">                throw new IllegalArgumentException(&quot;SimpleElementValueGen class does not know how to copy this type &quot; + super.getElementValueType());</span>
+            }
+        }
+<span class="fc" id="L222">    }</span>
+
+    @Override
+    public void dump(final DataOutputStream dos) throws IOException {
+<span class="fc" id="L226">        dos.writeByte(super.getElementValueType()); // u1 kind of value</span>
+<span class="pc bpc" id="L227" title="1 of 2 branches missed.">        switch (super.getElementValueType()) {</span>
+        case PRIMITIVE_INT:
+        case PRIMITIVE_BYTE:
+        case PRIMITIVE_CHAR:
+        case PRIMITIVE_FLOAT:
+        case PRIMITIVE_LONG:
+        case PRIMITIVE_BOOLEAN:
+        case PRIMITIVE_SHORT:
+        case PRIMITIVE_DOUBLE:
+        case STRING:
+<span class="fc" id="L237">            dos.writeShort(idx);</span>
+<span class="fc" id="L238">            break;</span>
+        default:
+<span class="nc" id="L240">            throw new IllegalStateException(&quot;SimpleElementValueGen doesn't know how to write out type &quot; + super.getElementValueType());</span>
+        }
+<span class="fc" id="L242">    }</span>
+
+    /**
+     * Gets the immutable variant.
+     *
+     * @return the immutable variant.
+     */
+    @Override
+    public ElementValue getElementValue() {
+<span class="fc" id="L251">        return new SimpleElementValue(super.getElementValueType(), idx, getConstantPool().getConstantPool());</span>
+    }
+
+    /**
+     * Gets the constant pool index.
+     *
+     * @return the index.
+     */
+    public int getIndex() {
+<span class="fc" id="L260">        return idx;</span>
+    }
+
+    /**
+     * Gets the int value.
+     *
+     * @return the int value.
+     */
+    public int getValueInt() {
+<span class="fc bfc" id="L269" title="All 2 branches covered.">        if (super.getElementValueType() != PRIMITIVE_INT) {</span>
+<span class="fc" id="L270">            throw new IllegalStateException(&quot;Don't call getValueString() on a non STRING ElementValue&quot;);</span>
+        }
+<span class="fc" id="L272">        final ConstantInteger c = (ConstantInteger) getConstantPool().getConstant(idx);</span>
+<span class="fc" id="L273">        return c.getBytes();</span>
+    }
+
+    /**
+     * Gets the string value.
+     *
+     * @return the string value.
+     */
+    public String getValueString() {
+<span class="fc bfc" id="L282" title="All 2 branches covered.">        if (super.getElementValueType() != STRING) {</span>
+<span class="fc" id="L283">            throw new IllegalStateException(&quot;Don't call getValueString() on a non STRING ElementValue&quot;);</span>
+        }
+<span class="fc" id="L285">        final ConstantUtf8 c = (ConstantUtf8) getConstantPool().getConstant(idx);</span>
+<span class="fc" id="L286">        return c.getBytes();</span>
+    }
+
+    // Whatever kind of value it is, return it as a string
+    @Override
+    public String stringifyValue() {
+<span class="pc bpc" id="L292" title="1 of 10 branches missed.">        switch (super.getElementValueType()) {</span>
+        case PRIMITIVE_INT:
+<span class="fc" id="L294">            final ConstantInteger c = (ConstantInteger) getConstantPool().getConstant(idx);</span>
+<span class="fc" id="L295">            return Integer.toString(c.getBytes());</span>
+        case PRIMITIVE_LONG:
+<span class="fc" id="L297">            final ConstantLong j = (ConstantLong) getConstantPool().getConstant(idx);</span>
+<span class="fc" id="L298">            return Long.toString(j.getBytes());</span>
+        case PRIMITIVE_DOUBLE:
+<span class="fc" id="L300">            final ConstantDouble d = (ConstantDouble) getConstantPool().getConstant(idx);</span>
+<span class="fc" id="L301">            return Double.toString(d.getBytes());</span>
+        case PRIMITIVE_FLOAT:
+<span class="fc" id="L303">            final ConstantFloat f = (ConstantFloat) getConstantPool().getConstant(idx);</span>
+<span class="fc" id="L304">            return Float.toString(f.getBytes());</span>
+        case PRIMITIVE_SHORT:
+<span class="fc" id="L306">            final ConstantInteger s = (ConstantInteger) getConstantPool().getConstant(idx);</span>
+<span class="fc" id="L307">            return Integer.toString(s.getBytes());</span>
+        case PRIMITIVE_BYTE:
+<span class="fc" id="L309">            final ConstantInteger b = (ConstantInteger) getConstantPool().getConstant(idx);</span>
+<span class="fc" id="L310">            return Integer.toString(b.getBytes());</span>
+        case PRIMITIVE_CHAR:
+<span class="fc" id="L312">            final ConstantInteger ch = (ConstantInteger) getConstantPool().getConstant(idx);</span>
+<span class="fc" id="L313">            return Integer.toString(ch.getBytes());</span>
+        case PRIMITIVE_BOOLEAN:
+<span class="fc" id="L315">            final ConstantInteger bo = (ConstantInteger) getConstantPool().getConstant(idx);</span>
+<span class="fc bfc" id="L316" title="All 2 branches covered.">            if (bo.getBytes() == 0) {</span>
+<span class="fc" id="L317">                return &quot;false&quot;;</span>
+            }
+<span class="fc" id="L319">            return &quot;true&quot;;</span>
+        case STRING:
+<span class="fc" id="L321">            final ConstantUtf8 cu8 = (ConstantUtf8) getConstantPool().getConstant(idx);</span>
+<span class="fc" id="L322">            return cu8.getBytes();</span>
+        default:
+<span class="nc" id="L324">            throw new IllegalStateException(&quot;SimpleElementValueGen class does not know how to stringify type &quot; + super.getElementValueType());</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

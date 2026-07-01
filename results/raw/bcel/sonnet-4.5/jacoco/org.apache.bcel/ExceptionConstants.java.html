@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExceptionConstants.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel</a> &gt; <span class="el_source">ExceptionConstants.java</span></div><h1>ExceptionConstants.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel;
+
+/**
+ * Exception constants.
+ *
+ * @deprecated (since 6.0) DO NOT USE - use ExceptionConst instead
+ */
+@Deprecated
+public interface ExceptionConstants {
+
+    /**
+     * The mother of all exceptions
+     */
+<span class="nc" id="L32">    Class&lt;Throwable&gt; THROWABLE = Throwable.class;</span>
+
+    /**
+     * Super class of any run-time exception
+     */
+<span class="nc" id="L37">    Class&lt;RuntimeException&gt; RUNTIME_EXCEPTION = RuntimeException.class;</span>
+
+    /**
+     * Super class of any linking exception (aka Linkage Error)
+     */
+<span class="nc" id="L42">    Class&lt;LinkageError&gt; LINKING_EXCEPTION = LinkageError.class;</span>
+
+    /**
+     * Linking Exceptions.
+     */
+
+    /** Exception class: ClassCircularityError. */
+<span class="nc" id="L49">    Class&lt;ClassCircularityError&gt; CLASS_CIRCULARITY_ERROR = ClassCircularityError.class;</span>
+
+    /** Exception class: ClassFormatError. */
+<span class="nc" id="L52">    Class&lt;ClassFormatError&gt; CLASS_FORMAT_ERROR = ClassFormatError.class;</span>
+
+    /** Exception class: ExceptionInInitializerError. */
+<span class="nc" id="L55">    Class&lt;ExceptionInInitializerError&gt; EXCEPTION_IN_INITIALIZER_ERROR = ExceptionInInitializerError.class;</span>
+
+    /** Exception class: IncompatibleClassChangeError. */
+<span class="nc" id="L58">    Class&lt;IncompatibleClassChangeError&gt; INCOMPATIBLE_CLASS_CHANGE_ERROR = IncompatibleClassChangeError.class;</span>
+
+    /** Exception class: AbstractMethodError. */
+<span class="nc" id="L61">    Class&lt;AbstractMethodError&gt; ABSTRACT_METHOD_ERROR = AbstractMethodError.class;</span>
+
+    /** Exception class: IllegalAccessError. */
+<span class="nc" id="L64">    Class&lt;IllegalAccessError&gt; ILLEGAL_ACCESS_ERROR = IllegalAccessError.class;</span>
+
+    /** Exception class: InstantiationError. */
+<span class="nc" id="L67">    Class&lt;InstantiationError&gt; INSTANTIATION_ERROR = InstantiationError.class;</span>
+
+    /** Exception class: NoSuchFieldError. */
+<span class="nc" id="L70">    Class&lt;NoSuchFieldError&gt; NO_SUCH_FIELD_ERROR = NoSuchFieldError.class;</span>
+
+    /** Exception class: NoSuchMethodError. */
+<span class="nc" id="L73">    Class&lt;NoSuchMethodError&gt; NO_SUCH_METHOD_ERROR = NoSuchMethodError.class;</span>
+
+    /** Exception class: NoClassDefFoundError. */
+<span class="nc" id="L76">    Class&lt;NoClassDefFoundError&gt; NO_CLASS_DEF_FOUND_ERROR = NoClassDefFoundError.class;</span>
+
+    /** Exception class: UnsatisfiedLinkError. */
+<span class="nc" id="L79">    Class&lt;UnsatisfiedLinkError&gt; UNSATISFIED_LINK_ERROR = UnsatisfiedLinkError.class;</span>
+
+    /** Exception class: VerifyError. */
+<span class="nc" id="L82">    Class&lt;VerifyError&gt; VERIFY_ERROR = VerifyError.class;</span>
+    /* UnsupportedClassVersionError is new in JDK 1.2 */
+//    Class UnsupportedClassVersionError = UnsupportedClassVersionError.class;
+
+    /**
+     * Run-Time Exceptions.
+     */
+
+    /** Exception class: NullPointerException. */
+<span class="nc" id="L91">    Class&lt;NullPointerException&gt; NULL_POINTER_EXCEPTION = NullPointerException.class;</span>
+
+    /** Exception class: ArrayIndexOutOfBoundsException. */
+<span class="nc" id="L94">    Class&lt;ArrayIndexOutOfBoundsException&gt; ARRAY_INDEX_OUT_OF_BOUNDS_EXCEPTION = ArrayIndexOutOfBoundsException.class;</span>
+
+    /** Exception class: ArithmeticException. */
+<span class="nc" id="L97">    Class&lt;ArithmeticException&gt; ARITHMETIC_EXCEPTION = ArithmeticException.class;</span>
+
+    /** Exception class: NegativeArraySizeException. */
+<span class="nc" id="L100">    Class&lt;NegativeArraySizeException&gt; NEGATIVE_ARRAY_SIZE_EXCEPTION = NegativeArraySizeException.class;</span>
+
+    /** Exception class: ClassCastException. */
+<span class="nc" id="L103">    Class&lt;ClassCastException&gt; CLASS_CAST_EXCEPTION = ClassCastException.class;</span>
+
+    /** Exception class: IllegalMonitorStateException. */
+<span class="nc" id="L106">    Class&lt;IllegalMonitorStateException&gt; ILLEGAL_MONITOR_STATE = IllegalMonitorStateException.class;</span>
+
+    /**
+     * Pre-defined exception arrays according to chapters 5.1-5.4 of the Java Virtual Machine Specification.
+     *
+     * @deprecated Do not use these arrays, use the static methods in the ExceptionConst implementation class instead.
+     */
+    @Deprecated
+<span class="nc" id="L114">    Class&lt;?&gt;[] EXCS_CLASS_AND_INTERFACE_RESOLUTION = {NO_CLASS_DEF_FOUND_ERROR, CLASS_FORMAT_ERROR, VERIFY_ERROR, ABSTRACT_METHOD_ERROR,</span>
+        EXCEPTION_IN_INITIALIZER_ERROR, ILLEGAL_ACCESS_ERROR}; // Chapter 5.1
+
+    /** Exception array for field and method resolution. @deprecated Do not use. */
+    @Deprecated
+<span class="nc" id="L119">    Class&lt;?&gt;[] EXCS_FIELD_AND_METHOD_RESOLUTION = {NO_SUCH_FIELD_ERROR, ILLEGAL_ACCESS_ERROR, NO_SUCH_METHOD_ERROR}; // Chapter 5.2</span>
+
+    /**
+     * Empty array.
+     */
+    @Deprecated
+<span class="nc" id="L125">    Class&lt;?&gt;[] EXCS_INTERFACE_METHOD_RESOLUTION = new Class[0]; // Chapter 5.3 (as below)</span>
+
+    /**
+     * Empty array.
+     */
+    @Deprecated
+<span class="nc" id="L131">    Class&lt;?&gt;[] EXCS_STRING_RESOLUTION = new Class[0];</span>
+
+    /** Exception array. @deprecated Do not use. */
+    @Deprecated
+<span class="nc" id="L135">    Class&lt;?&gt;[] EXCS_ARRAY_EXCEPTION = {NULL_POINTER_EXCEPTION, ARRAY_INDEX_OUT_OF_BOUNDS_EXCEPTION};</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

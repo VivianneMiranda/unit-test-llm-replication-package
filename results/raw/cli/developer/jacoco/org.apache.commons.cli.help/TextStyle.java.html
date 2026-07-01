@@ -1,0 +1,397 @@
+<?xml version="1.0" encoding="utf-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TextStyle.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons CLI</a> &gt; <a href="index.source.html" class="el_package">org.apache.commons.cli.help</a> &gt; <span class="el_source">TextStyle.java</span></div><h1>TextStyle.java</h1><pre class="source lang-java linenums">/*
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the &quot;License&quot;); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+ */
+package org.apache.commons.cli.help;
+
+import java.util.function.Supplier;
+
+/**
+ * The definition for styling recommendations blocks of text. Most common usage is to style columns in a table, but may also be used to specify default styling
+ * for a {@link HelpAppendable}. HelpWriters are free to ignore the TextStyle recommendations particularly where they are not supported or contradict common
+ * usage.
+ *
+ * @since 1.10.0
+ */
+public final class TextStyle {
+
+    /**
+     * Enumerates alignment options.
+      */
+<span class="fc" id="L33">    public enum Alignment {</span>
+
+        /**
+         * Left justifies the text.
+         */
+<span class="fc" id="L38">        LEFT,</span>
+
+        /**
+         * Centers the text.
+         */
+<span class="fc" id="L43">        CENTER,</span>
+
+        /**
+         * Right justifies the text.
+         */
+<span class="fc" id="L48">        RIGHT</span>
+    }
+
+    /**
+     * The builder for the TextStyle. The default values are:
+     * &lt;ul&gt;
+     * &lt;li&gt;alignment = LEFT&lt;/li&gt;
+     * &lt;li&gt;leftPad = 0&lt;/li&gt;
+     * &lt;li&gt;scaling = VARIABLE&lt;/li&gt;
+     * &lt;li&gt;minWidth = 0&lt;/li&gt;
+     * &lt;li&gt;maxWidth = UNSET_MAX_WIDTH&lt;/li&gt;
+     * &lt;/ul&gt;
+     */
+    public static final class Builder implements Supplier&lt;TextStyle&gt; {
+
+        /** The alignment. */
+<span class="fc" id="L64">        private Alignment alignment = Alignment.LEFT;</span>
+
+        /** The left padding. */
+        private int leftPad;
+
+        /** The subsequent line indentation. */
+        private int indent;
+
+        /** The scalable flag. Identifies text blocks that can be made narrower or wider as needed by the HelpAppendable. */
+<span class="fc" id="L73">        private boolean scalable = true;</span>
+
+        /** The minimum width. */
+        private int minWidth;
+
+        /** The maximum width. */
+<span class="fc" id="L79">        private int maxWidth = UNSET_MAX_WIDTH;</span>
+
+        /**
+         * Constructs a new instance. The default values are:
+         * &lt;ul&gt;
+         * &lt;li&gt;alignment = LEFT&lt;/li&gt;
+         * &lt;li&gt;leftPad = 0&lt;/li&gt;
+         * &lt;li&gt;scaling = VARIABLE&lt;/li&gt;
+         * &lt;li&gt;minWidth = 0&lt;/li&gt;
+         * &lt;li&gt;maxWidth = UNSET_MAX_WIDTH&lt;/li&gt;
+         * &lt;/ul&gt;
+         */
+<span class="fc" id="L91">        private Builder() {</span>
+<span class="fc" id="L92">        }</span>
+
+        @Override
+        public TextStyle get() {
+<span class="fc" id="L96">            return new TextStyle(this);</span>
+        }
+
+        /**
+         * Gets the currently specified indent value.
+         *
+         * @return The currently specified indent value.
+         */
+        public int getIndent() {
+<span class="fc" id="L105">            return indent;</span>
+        }
+
+        /**
+         * Gets the currently specified leftPad.
+         *
+         * @return The currently specified leftPad.
+         */
+        public int getLeftPad() {
+<span class="fc" id="L114">            return leftPad;</span>
+        }
+
+        /**
+         * Gets the currently specified maximum width value.
+         *
+         * @return The currently specified maximum width value.
+         */
+        public int getMaxWidth() {
+<span class="fc" id="L123">            return maxWidth;</span>
+        }
+
+        /**
+         * Gets the currently specified minimum width value.
+         *
+         * @return The currently specified minimum width value.
+         */
+        public int getMinWidth() {
+<span class="fc" id="L132">            return minWidth;</span>
+        }
+
+        /**
+         * Specifies if the column can be made wider or to narrower width to fit constraints of the HelpAppendable and formatting.
+         *
+         * @return The currently specified scaling value.
+         */
+        public boolean isScalable() {
+<span class="fc" id="L141">            return scalable;</span>
+        }
+
+        /**
+         * Sets the alignment.
+         *
+         * @param alignment the desired alignment.
+         * @return {@code this} instance.
+         */
+        public Builder setAlignment(final Alignment alignment) {
+<span class="fc" id="L151">            this.alignment = alignment;</span>
+<span class="fc" id="L152">            return this;</span>
+        }
+
+        /**
+         * Sets the indent value.
+         *
+         * @param indent the new indent value.
+         * @return {@code this} instance.
+         */
+        public Builder setIndent(final int indent) {
+<span class="fc" id="L162">            this.indent = indent;</span>
+<span class="fc" id="L163">            return this;</span>
+        }
+
+        /**
+         * Sets the left padding.
+         *
+         * @param leftPad the new left padding.
+         * @return {@code this} instance.
+         */
+        public Builder setLeftPad(final int leftPad) {
+<span class="fc" id="L173">            this.leftPad = leftPad;</span>
+<span class="fc" id="L174">            return this;</span>
+        }
+
+        /**
+         * Sets the currently specified minimum width.
+         *
+         * @param maxWidth The currently specified maximum width.
+         * @return {@code this} instance.
+         */
+        public Builder setMaxWidth(final int maxWidth) {
+<span class="fc" id="L184">            this.maxWidth = maxWidth;</span>
+<span class="fc" id="L185">            return this;</span>
+        }
+
+        /**
+         * Sets the currently specified minimum width.
+         *
+         * @param minWidth The currently specified minimum width.
+         * @return {@code this} instance.
+         */
+        public Builder setMinWidth(final int minWidth) {
+<span class="fc" id="L195">            this.minWidth = minWidth;</span>
+<span class="fc" id="L196">            return this;</span>
+        }
+
+        /**
+         * Sets whether the column can be made wider or to narrower width to fit constraints of the HelpAppendable and formatting.
+         *
+         * @param scalable Whether the text width can be adjusted.
+         * @return {@code this} instance.
+         */
+        public Builder setScalable(final boolean scalable) {
+<span class="fc" id="L206">            this.scalable = scalable;</span>
+<span class="fc" id="L207">            return this;</span>
+        }
+
+        /**
+         * Sets all properties from the given text style.
+         *
+         * @param style the source text style.
+         * @return {@code this} instance.
+         */
+        public Builder setTextStyle(final TextStyle style) {
+<span class="fc" id="L217">            this.alignment = style.alignment;</span>
+<span class="fc" id="L218">            this.leftPad = style.leftPad;</span>
+<span class="fc" id="L219">            this.indent = style.indent;</span>
+<span class="fc" id="L220">            this.scalable = style.scalable;</span>
+<span class="fc" id="L221">            this.minWidth = style.minWidth;</span>
+<span class="fc" id="L222">            this.maxWidth = style.maxWidth;</span>
+<span class="fc" id="L223">            return this;</span>
+        }
+
+    }
+
+    /**
+     * The unset value for maxWidth: {@value}.
+     */
+    public static final int UNSET_MAX_WIDTH = Integer.MAX_VALUE;
+
+    /**
+     * The default style as generated by the default Builder.
+     */
+<span class="fc" id="L236">    public static final TextStyle DEFAULT = builder().get();</span>
+
+    /**
+     * Creates a new builder.
+     *
+     * @return a new builder.
+     */
+    public static Builder builder() {
+<span class="fc" id="L244">        return new Builder();</span>
+    }
+
+    /** The alignment. */
+    private final Alignment alignment;
+
+    /** The size of the left pad. This is placed before each line of text. */
+    private final int leftPad;
+
+    /** The size of the indent on the second and any subsequent lines of text. */
+    private final int indent;
+
+    /** The scaling allowed for the block. */
+    private final boolean scalable;
+
+    /** The minimum size of the text. */
+    private final int minWidth;
+
+    /** The maximum size of the text. */
+    private final int maxWidth;
+
+    /**
+     * Constructs a new instance.
+     *
+     * @param builder the builder to build the text style from.
+     */
+<span class="fc" id="L270">    private TextStyle(final Builder builder) {</span>
+<span class="fc" id="L271">        this.alignment = builder.alignment;</span>
+<span class="fc" id="L272">        this.leftPad = builder.leftPad;</span>
+<span class="fc" id="L273">        this.indent = builder.indent;</span>
+<span class="fc" id="L274">        this.scalable = builder.scalable;</span>
+<span class="fc" id="L275">        this.minWidth = builder.minWidth;</span>
+<span class="fc" id="L276">        this.maxWidth = builder.maxWidth;</span>
+<span class="fc" id="L277">    }</span>
+
+    /**
+     * Gets the alignment.
+     *
+     * @return the alignment.
+     */
+    public Alignment getAlignment() {
+<span class="fc" id="L285">        return alignment;</span>
+    }
+
+    /**
+     * Gets the indent value.
+     *
+     * @return the indent value.
+     */
+    public int getIndent() {
+<span class="fc" id="L294">        return indent;</span>
+    }
+
+    /**
+     * Gets the left padding.
+     *
+     * @return the left padding.
+     */
+    public int getLeftPad() {
+<span class="fc" id="L303">        return leftPad;</span>
+    }
+
+    /**
+     * gets the maximum width.
+     *
+     * @return The maximum width.
+     */
+    public int getMaxWidth() {
+<span class="fc" id="L312">        return maxWidth;</span>
+    }
+
+    /**
+     * gets the minimum width.
+     *
+     * @return The minimum width.
+     */
+    public int getMinWidth() {
+<span class="fc" id="L321">        return minWidth;</span>
+    }
+
+    /**
+     * Specifies if the column can be made wider or to narrower width to fit constraints of the HelpAppendable and formatting.
+     *
+     * @return the scaling value.
+     */
+    public boolean isScalable() {
+<span class="fc" id="L330">        return scalable;</span>
+    }
+
+    /**
+     * Pads a string to the maximum width or optionally to the maximum width - indent.
+     * &lt;ul&gt;
+     * &lt;li&gt;Returns the string unchanged if it is longer than the specified length.&lt;/li&gt;
+     * &lt;li&gt;Will add the padding based on the alignment.&lt;/li&gt;
+     * &lt;/ul&gt;
+     *
+     * @param addIndent if {@code true} account for the indent when padding the string.
+     * @param text      the text to pad.
+     * @return the padded string.
+     */
+    public CharSequence pad(final boolean addIndent, final CharSequence text) {
+<span class="fc bfc" id="L345" title="All 2 branches covered.">        if (text.length() &gt;= maxWidth) {</span>
+<span class="fc" id="L346">            return text;</span>
+        }
+        String indentPad;
+        String rest;
+<span class="fc" id="L350">        final StringBuilder sb = new StringBuilder();</span>
+<span class="fc bfc" id="L351" title="All 2 branches covered.">        switch (alignment) {</span>
+        case CENTER:
+            int padLen;
+<span class="fc bfc" id="L354" title="All 2 branches covered.">            if (maxWidth == UNSET_MAX_WIDTH) {</span>
+<span class="fc bfc" id="L355" title="All 2 branches covered.">                padLen = addIndent ? indent : 0;</span>
+            } else {
+<span class="fc" id="L357">                padLen = maxWidth - text.length();</span>
+            }
+<span class="fc" id="L359">            final int left = padLen / 2;</span>
+<span class="fc" id="L360">            indentPad = Util.repeatSpace(left);</span>
+<span class="fc" id="L361">            rest = Util.repeatSpace(padLen - left);</span>
+<span class="fc" id="L362">            sb.append(indentPad).append(text).append(rest);</span>
+<span class="fc" id="L363">            break;</span>
+        case LEFT:
+        case RIGHT:
+        default: // default should never happen. It is here to keep code coverage happy.
+<span class="fc bfc" id="L367" title="All 2 branches covered.">            if (maxWidth == UNSET_MAX_WIDTH) {</span>
+<span class="fc bfc" id="L368" title="All 2 branches covered.">                indentPad = addIndent ? Util.repeatSpace(indent) : &quot;&quot;;</span>
+<span class="fc" id="L369">                rest = &quot;&quot;;</span>
+            } else {
+<span class="fc" id="L371">                int restLen = maxWidth - text.length();</span>
+<span class="fc bfc" id="L372" title="All 4 branches covered.">                if (addIndent &amp;&amp; restLen &gt; indent) {</span>
+<span class="fc" id="L373">                    indentPad = Util.repeatSpace(indent);</span>
+<span class="fc" id="L374">                    restLen -= indent;</span>
+                } else {
+<span class="fc" id="L376">                    indentPad = &quot;&quot;;</span>
+                }
+<span class="fc" id="L378">                rest = Util.repeatSpace(restLen);</span>
+            }
+
+<span class="fc bfc" id="L381" title="All 2 branches covered.">            if (alignment == Alignment.LEFT) {</span>
+<span class="fc" id="L382">                sb.append(indentPad).append(text).append(rest);</span>
+            } else {
+<span class="fc" id="L384">                sb.append(indentPad).append(rest).append(text);</span>
+            }
+            break;
+        }
+<span class="fc" id="L388">        return sb.toString();</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="fc" id="L393">        return String.format(&quot;TextStyle{%s, l:%s, i:%s, %s, min:%s, max:%s}&quot;, alignment, leftPad, indent, scalable, minWidth,</span>
+<span class="fc bfc" id="L394" title="All 2 branches covered.">                maxWidth == UNSET_MAX_WIDTH ? &quot;unset&quot; : maxWidth);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

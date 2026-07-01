@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SimpleElementValue.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">SimpleElementValue.java</span></div><h1>SimpleElementValue.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.classfile;
+
+import java.io.DataOutputStream;
+import java.io.IOException;
+
+import org.apache.bcel.Const;
+
+/**
+ * Represents a simple element value in an annotation.
+ *
+ * @since 6.0
+ */
+public class SimpleElementValue extends ElementValue {
+    private int index;
+
+    /**
+     * Constructs a SimpleElementValue.
+     *
+     * @param type the element value type.
+     * @param index the index into the constant pool.
+     * @param cpool the constant pool.
+     */
+    public SimpleElementValue(final int type, final int index, final ConstantPool cpool) {
+<span class="fc" id="L42">        super(type, cpool);</span>
+<span class="fc" id="L43">        this.index = index;</span>
+<span class="fc" id="L44">    }</span>
+
+    @Override
+    public void dump(final DataOutputStream dos) throws IOException {
+<span class="nc" id="L48">        final int type = super.getType();</span>
+<span class="nc" id="L49">        dos.writeByte(type); // u1 kind of value</span>
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        switch (type) {</span>
+        case PRIMITIVE_INT:
+        case PRIMITIVE_BYTE:
+        case PRIMITIVE_CHAR:
+        case PRIMITIVE_FLOAT:
+        case PRIMITIVE_LONG:
+        case PRIMITIVE_BOOLEAN:
+        case PRIMITIVE_SHORT:
+        case PRIMITIVE_DOUBLE:
+        case STRING:
+<span class="nc" id="L60">            dos.writeShort(getIndex());</span>
+<span class="nc" id="L61">            break;</span>
+        default:
+<span class="nc" id="L63">            throw new ClassFormatException(&quot;SimpleElementValue doesn't know how to write out type &quot; + type);</span>
+        }
+<span class="nc" id="L65">    }</span>
+
+    /**
+     * Gets the value entry index in the constant pool.
+     *
+     * @return Value entry index in the constant pool.
+     */
+    public int getIndex() {
+<span class="nc" id="L73">        return index;</span>
+    }
+
+    /**
+     * Gets the boolean value.
+     *
+     * @return the boolean value.
+     */
+    public boolean getValueBoolean() {
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        if (super.getType() != PRIMITIVE_BOOLEAN) {</span>
+<span class="nc" id="L83">            throw new IllegalStateException(&quot;Don't call getValueBoolean() on a non BOOLEAN ElementValue&quot;);</span>
+        }
+<span class="nc" id="L85">        final ConstantInteger bo = (ConstantInteger) super.getConstantPool().getConstant(getIndex());</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">        return bo.getBytes() != 0;</span>
+    }
+
+    /**
+     * Gets the byte value.
+     *
+     * @return the byte value.
+     */
+    public byte getValueByte() {
+<span class="nc bnc" id="L95" title="All 2 branches missed.">        if (super.getType() != PRIMITIVE_BYTE) {</span>
+<span class="nc" id="L96">            throw new IllegalStateException(&quot;Don't call getValueByte() on a non BYTE ElementValue&quot;);</span>
+        }
+<span class="nc" id="L98">        return (byte) super.getConstantPool().getConstantInteger(getIndex()).getBytes();</span>
+    }
+
+    /**
+     * Gets the char value.
+     *
+     * @return the char value.
+     */
+    public char getValueChar() {
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        if (super.getType() != PRIMITIVE_CHAR) {</span>
+<span class="nc" id="L108">            throw new IllegalStateException(&quot;Don't call getValueChar() on a non CHAR ElementValue&quot;);</span>
+        }
+<span class="nc" id="L110">        return (char) super.getConstantPool().getConstantInteger(getIndex()).getBytes();</span>
+    }
+
+    /**
+     * Gets the double value.
+     *
+     * @return the double value.
+     */
+    public double getValueDouble() {
+<span class="nc bnc" id="L119" title="All 2 branches missed.">        if (super.getType() != PRIMITIVE_DOUBLE) {</span>
+<span class="nc" id="L120">            throw new IllegalStateException(&quot;Don't call getValueDouble() on a non DOUBLE ElementValue&quot;);</span>
+        }
+<span class="nc" id="L122">        final ConstantDouble d = (ConstantDouble) super.getConstantPool().getConstant(getIndex());</span>
+<span class="nc" id="L123">        return d.getBytes();</span>
+    }
+
+    /**
+     * Gets the float value.
+     *
+     * @return the float value.
+     */
+    public float getValueFloat() {
+<span class="nc bnc" id="L132" title="All 2 branches missed.">        if (super.getType() != PRIMITIVE_FLOAT) {</span>
+<span class="nc" id="L133">            throw new IllegalStateException(&quot;Don't call getValueFloat() on a non FLOAT ElementValue&quot;);</span>
+        }
+<span class="nc" id="L135">        final ConstantFloat f = (ConstantFloat) super.getConstantPool().getConstant(getIndex());</span>
+<span class="nc" id="L136">        return f.getBytes();</span>
+    }
+
+    /**
+     * Gets the int value.
+     *
+     * @return the int value.
+     */
+    public int getValueInt() {
+<span class="nc bnc" id="L145" title="All 2 branches missed.">        if (super.getType() != PRIMITIVE_INT) {</span>
+<span class="nc" id="L146">            throw new IllegalStateException(&quot;Don't call getValueInt() on a non INT ElementValue&quot;);</span>
+        }
+<span class="nc" id="L148">        return super.getConstantPool().getConstantInteger(getIndex()).getBytes();</span>
+    }
+
+    /**
+     * Gets the long value.
+     *
+     * @return the long value.
+     */
+    public long getValueLong() {
+<span class="nc bnc" id="L157" title="All 2 branches missed.">        if (super.getType() != PRIMITIVE_LONG) {</span>
+<span class="nc" id="L158">            throw new IllegalStateException(&quot;Don't call getValueLong() on a non LONG ElementValue&quot;);</span>
+        }
+<span class="nc" id="L160">        final ConstantLong j = (ConstantLong) super.getConstantPool().getConstant(getIndex());</span>
+<span class="nc" id="L161">        return j.getBytes();</span>
+    }
+
+    /**
+     * Gets the short value.
+     *
+     * @return the short value.
+     */
+    public short getValueShort() {
+<span class="nc bnc" id="L170" title="All 2 branches missed.">        if (super.getType() != PRIMITIVE_SHORT) {</span>
+<span class="nc" id="L171">            throw new IllegalStateException(&quot;Don't call getValueShort() on a non SHORT ElementValue&quot;);</span>
+        }
+<span class="nc" id="L173">        final ConstantInteger s = (ConstantInteger) super.getConstantPool().getConstant(getIndex());</span>
+<span class="nc" id="L174">        return (short) s.getBytes();</span>
+    }
+
+    /**
+     * Gets the string value.
+     *
+     * @return the string value.
+     */
+    public String getValueString() {
+<span class="nc bnc" id="L183" title="All 2 branches missed.">        if (super.getType() != STRING) {</span>
+<span class="nc" id="L184">            throw new IllegalStateException(&quot;Don't call getValueString() on a non STRING ElementValue&quot;);</span>
+        }
+<span class="nc" id="L186">        return super.getConstantPool().getConstantUtf8(getIndex()).getBytes();</span>
+    }
+
+    /**
+     * Sets the index into the constant pool.
+     *
+     * @param index the index.
+     */
+    public void setIndex(final int index) {
+<span class="nc" id="L195">        this.index = index;</span>
+<span class="nc" id="L196">    }</span>
+
+    // Whatever kind of value it is, return it as a string
+    @Override
+    public String stringifyValue() {
+<span class="nc" id="L201">        final ConstantPool cpool = super.getConstantPool();</span>
+<span class="nc" id="L202">        final int type = super.getType();</span>
+<span class="nc bnc" id="L203" title="All 10 branches missed.">        switch (type) {</span>
+        case PRIMITIVE_INT:
+<span class="nc" id="L205">            return Integer.toString(cpool.getConstantInteger(getIndex()).getBytes());</span>
+        case PRIMITIVE_LONG:
+<span class="nc" id="L207">            final ConstantLong j = cpool.getConstant(getIndex(), Const.CONSTANT_Long, ConstantLong.class);</span>
+<span class="nc" id="L208">            return Long.toString(j.getBytes());</span>
+        case PRIMITIVE_DOUBLE:
+<span class="nc" id="L210">            final ConstantDouble d = cpool.getConstant(getIndex(), Const.CONSTANT_Double, ConstantDouble.class);</span>
+<span class="nc" id="L211">            return Double.toString(d.getBytes());</span>
+        case PRIMITIVE_FLOAT:
+<span class="nc" id="L213">            final ConstantFloat f = cpool.getConstant(getIndex(), Const.CONSTANT_Float, ConstantFloat.class);</span>
+<span class="nc" id="L214">            return Float.toString(f.getBytes());</span>
+        case PRIMITIVE_SHORT:
+<span class="nc" id="L216">            final ConstantInteger s = cpool.getConstantInteger(getIndex());</span>
+<span class="nc" id="L217">            return Integer.toString(s.getBytes());</span>
+        case PRIMITIVE_BYTE:
+<span class="nc" id="L219">            final ConstantInteger b = cpool.getConstantInteger(getIndex());</span>
+<span class="nc" id="L220">            return Integer.toString(b.getBytes());</span>
+        case PRIMITIVE_CHAR:
+<span class="nc" id="L222">            final ConstantInteger ch = cpool.getConstantInteger(getIndex());</span>
+<span class="nc" id="L223">            return String.valueOf((char) ch.getBytes());</span>
+        case PRIMITIVE_BOOLEAN:
+<span class="nc" id="L225">            final ConstantInteger bo = cpool.getConstantInteger(getIndex());</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">            if (bo.getBytes() == 0) {</span>
+<span class="nc" id="L227">                return &quot;false&quot;;</span>
+            }
+<span class="nc" id="L229">            return &quot;true&quot;;</span>
+        case STRING:
+<span class="nc" id="L231">            return cpool.getConstantUtf8(getIndex()).getBytes();</span>
+        default:
+<span class="nc" id="L233">            throw new IllegalStateException(&quot;SimpleElementValue class does not know how to stringify type &quot; + type);</span>
+        }
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L239">        return stringifyValue();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

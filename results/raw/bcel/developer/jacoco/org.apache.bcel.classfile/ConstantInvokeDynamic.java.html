@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConstantInvokeDynamic.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">ConstantInvokeDynamic.java</span></div><h1>ConstantInvokeDynamic.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.classfile;
+
+import java.io.DataInput;
+import java.io.IOException;
+
+import org.apache.bcel.Const;
+
+/**
+ * This class is derived from the abstract {@link Constant} and represents a reference to a invoke dynamic.
+ *
+ * @see Constant
+ * @see &lt;a href=&quot;https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.4.10&quot;&gt; The
+ *      CONSTANT_InvokeDynamic_info Structure in The Java Virtual Machine Specification&lt;/a&gt;
+ * @since 6.0
+ */
+public final class ConstantInvokeDynamic extends ConstantCP {
+
+    /**
+     * Initialize from another object.
+     *
+     * @param c Source to copy.
+     */
+    public ConstantInvokeDynamic(final ConstantInvokeDynamic c) {
+<span class="nc" id="L42">        this(c.getBootstrapMethodAttrIndex(), c.getNameAndTypeIndex());</span>
+<span class="nc" id="L43">    }</span>
+
+    /**
+     * Initialize instance from file data.
+     *
+     * @param file Input stream.
+     * @throws IOException if an I/O error occurs.
+     */
+    ConstantInvokeDynamic(final DataInput file) throws IOException {
+<span class="fc" id="L52">        this(file.readUnsignedShort(), file.readUnsignedShort());</span>
+<span class="fc" id="L53">    }</span>
+
+    /**
+     * Constructs a ConstantInvokeDynamic.
+     *
+     * @param bootstrapMethodAttrIndex Index to the bootstrap method.
+     * @param nameAndTypeIndex Index to the name and type.
+     */
+    public ConstantInvokeDynamic(final int bootstrapMethodAttrIndex, final int nameAndTypeIndex) {
+<span class="fc" id="L62">        super(Const.CONSTANT_InvokeDynamic, bootstrapMethodAttrIndex, nameAndTypeIndex);</span>
+<span class="fc" id="L63">    }</span>
+
+    /**
+     * Called by objects that are traversing the nodes of the tree implicitly defined by the contents of a Java class. I.e.,
+     * the hierarchy of methods, fields, attributes, etc. spawns a tree of objects.
+     *
+     * @param v Visitor object.
+     */
+    @Override
+    public void accept(final Visitor v) {
+<span class="fc" id="L73">        v.visitConstantInvokeDynamic(this);</span>
+<span class="fc" id="L74">    }</span>
+
+    /**
+     * Gets the reference (index) to bootstrap method this constant refers to.
+     *
+     * @return Reference (index) to bootstrap method this constant refers to.
+     *
+     *         Note that this method is a functional duplicate of getClassIndex for use by ConstantInvokeDynamic.
+     * @since 6.0
+     */
+    public int getBootstrapMethodAttrIndex() {
+<span class="fc" id="L85">        return super.getClassIndex(); // AKA bootstrap_method_attr_index</span>
+    }
+
+    /**
+     * @return String representation.
+     */
+    @Override
+    public String toString() {
+<span class="fc" id="L93">        return super.toString().replace(&quot;class_index&quot;, &quot;bootstrap_method_attr_index&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

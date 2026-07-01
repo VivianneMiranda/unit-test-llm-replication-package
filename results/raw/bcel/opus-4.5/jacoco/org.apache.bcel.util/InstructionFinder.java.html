@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InstructionFinder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.util</a> &gt; <span class="el_source">InstructionFinder.java</span></div><h1>InstructionFinder.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.util;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.generic.ClassGenException;
+import org.apache.bcel.generic.InstructionHandle;
+import org.apache.bcel.generic.InstructionList;
+import org.apache.commons.lang3.StringUtils;
+
+/**
+ * InstructionFinder is a tool to search for given instructions patterns, that is, match sequences of instructions in an
+ * instruction list via regular expressions. This can be used, for example, in order to implement a peep hole optimizer that
+ * looks for code patterns and replaces them with faster equivalents.
+ *
+ * &lt;p&gt;
+ * This class internally uses the java.util.regex package to search for regular expressions.
+ * &lt;/p&gt;
+ * &lt;p&gt;
+ * A typical application would look like this:
+ * &lt;/p&gt;
+ * &lt;pre&gt;
+ *   InstructionFinder f = new InstructionFinder(il);
+ *   String pat = &amp;quot;IfInstruction ICONST_0 GOTO ICONST_1 NOP (IFEQ|IFNE)&amp;quot;;
+ *
+ *   for (Iterator i = f.search(pat, constraint); i.hasNext(); ) {
+ *       InstructionHandle[] match = (InstructionHandle[])i.next();
+ *       ...
+ *       il.delete(match[1], match[5]);
+ *       ...
+ *   }
+
+ * &lt;/pre&gt;
+ *
+ * @see org.apache.bcel.generic.Instruction
+ * @see InstructionList
+ */
+public class InstructionFinder {
+
+    /**
+     * Code patterns found may be checked using an additional user-defined constraint object whether they really match the
+     * needed criterion. I.e., check constraints that cannot expressed with regular expressions.
+     */
+    public interface CodeConstraint {
+
+        /**
+         * Checks if the matched code area is really useful.
+         *
+         * @param match array of instructions matching the requested pattern.
+         * @return true if the matched area is really useful.
+         */
+        boolean checkCode(InstructionHandle[] match);
+    }
+
+    private static final int OFFSET = 32767; // char + OFFSET is outside of LATIN-1
+    private static final int NO_OPCODES = 256; // Potential number, some are not used
+<span class="fc" id="L82">    private static final Map&lt;String, String&gt; map = new HashMap&lt;&gt;();</span>
+
+    // Initialize pattern map
+    static {
+<span class="fc" id="L86">        map.put(&quot;arithmeticinstruction&quot;,</span>
+            &quot;(irem|lrem|iand|ior|ineg|isub|lneg|fneg|fmul|ldiv|fadd|lxor|frem|idiv|land|ixor|ishr|fsub|lshl|fdiv|iadd|lor|dmul|lsub|ishl|imul|lmul|lushr|dneg|iushr|lshr|ddiv|drem|dadd|ladd|dsub)&quot;);
+<span class="fc" id="L88">        map.put(&quot;invokeinstruction&quot;, &quot;(invokevirtual|invokeinterface|invokestatic|invokespecial|invokedynamic)&quot;);</span>
+<span class="fc" id="L89">        map.put(&quot;arrayinstruction&quot;,</span>
+            &quot;(baload|aastore|saload|caload|fastore|lastore|iaload|castore|iastore|aaload|bastore|sastore|faload|laload|daload|dastore)&quot;);
+<span class="fc" id="L91">        map.put(&quot;gotoinstruction&quot;, &quot;(goto|goto_w)&quot;);</span>
+<span class="fc" id="L92">        map.put(&quot;conversioninstruction&quot;, &quot;(d2l|l2d|i2s|d2i|l2i|i2b|l2f|d2f|f2i|i2d|i2l|f2d|i2c|f2l|i2f)&quot;);</span>
+<span class="fc" id="L93">        map.put(&quot;localvariableinstruction&quot;, &quot;(fstore|iinc|lload|dstore|dload|iload|aload|astore|istore|fload|lstore)&quot;);</span>
+<span class="fc" id="L94">        map.put(&quot;loadinstruction&quot;, &quot;(fload|dload|lload|iload|aload)&quot;);</span>
+<span class="fc" id="L95">        map.put(&quot;fieldinstruction&quot;, &quot;(getfield|putstatic|getstatic|putfield)&quot;);</span>
+<span class="fc" id="L96">        map.put(&quot;cpinstruction&quot;,</span>
+            &quot;(ldc2_w|invokeinterface|invokedynamic|multianewarray|putstatic|instanceof|getstatic|checkcast|getfield|invokespecial|ldc_w|invokestatic|invokevirtual|putfield|ldc|new|anewarray)&quot;);
+<span class="fc" id="L98">        map.put(&quot;stackinstruction&quot;, &quot;(dup2|swap|dup2_x2|pop|pop2|dup|dup2_x1|dup_x2|dup_x1)&quot;);</span>
+<span class="fc" id="L99">        map.put(&quot;branchinstruction&quot;,</span>
+            &quot;(ifle|if_acmpne|if_icmpeq|if_acmpeq|ifnonnull|goto_w|iflt|ifnull|if_icmpne|tableswitch|if_icmple|ifeq|if_icmplt|jsr_w|if_icmpgt|ifgt|jsr|goto|ifne|ifge|lookupswitch|if_icmpge)&quot;);
+<span class="fc" id="L101">        map.put(&quot;returninstruction&quot;, &quot;(lreturn|ireturn|freturn|dreturn|areturn|return)&quot;);</span>
+<span class="fc" id="L102">        map.put(&quot;storeinstruction&quot;, &quot;(istore|fstore|dstore|astore|lstore)&quot;);</span>
+<span class="fc" id="L103">        map.put(&quot;select&quot;, &quot;(tableswitch|lookupswitch)&quot;);</span>
+<span class="fc" id="L104">        map.put(&quot;ifinstruction&quot;,</span>
+            &quot;(ifeq|ifgt|if_icmpne|if_icmpeq|ifge|ifnull|ifne|if_icmple|if_icmpge|if_acmpeq|if_icmplt|if_acmpne|ifnonnull|iflt|if_icmpgt|ifle)&quot;);
+<span class="fc" id="L106">        map.put(&quot;jsrinstruction&quot;, &quot;(jsr|jsr_w)&quot;);</span>
+<span class="fc" id="L107">        map.put(&quot;variablelengthinstruction&quot;, &quot;(tableswitch|jsr|goto|lookupswitch)&quot;);</span>
+<span class="fc" id="L108">        map.put(&quot;unconditionalbranch&quot;, &quot;(goto|jsr|jsr_w|athrow|goto_w)&quot;);</span>
+<span class="fc" id="L109">        map.put(&quot;constantpushinstruction&quot;, &quot;(dconst|bipush|sipush|fconst|iconst|lconst)&quot;);</span>
+<span class="fc" id="L110">        map.put(&quot;typedinstruction&quot;,</span>
+            &quot;(imul|lsub|aload|fload|lor|new|aaload|fcmpg|iand|iaload|lrem|idiv|d2l|isub|dcmpg|dastore|ret|f2d|f2i|drem|iinc|i2c|checkcast|frem|lreturn|astore|lushr|daload|dneg|fastore|istore|lshl|ldiv|lstore|areturn|ishr|ldc_w|invokeinterface|invokedynamic|aastore|lxor|ishl|l2d|i2f|return|faload|sipush|iushr|caload|instanceof|invokespecial|putfield|fmul|ireturn|laload|d2f|lneg|ixor|i2l|fdiv|lastore|multianewarray|i2b|getstatic|i2d|putstatic|fcmpl|saload|ladd|irem|dload|jsr_w|dconst|dcmpl|fsub|freturn|ldc|aconst_null|castore|lmul|ldc2_w|dadd|iconst|f2l|ddiv|dstore|land|jsr|anewarray|dmul|bipush|dsub|sastore|d2i|i2s|lshr|iadd|l2i|lload|bastore|fstore|fneg|iload|fadd|baload|fconst|ior|ineg|dreturn|l2f|lconst|getfield|invokevirtual|invokestatic|iastore)&quot;);
+<span class="fc" id="L112">        map.put(&quot;popinstruction&quot;, &quot;(fstore|dstore|pop|pop2|astore|putstatic|istore|lstore)&quot;);</span>
+<span class="fc" id="L113">        map.put(&quot;allocationinstruction&quot;, &quot;(multianewarray|new|anewarray|newarray)&quot;);</span>
+<span class="fc" id="L114">        map.put(&quot;indexedinstruction&quot;,</span>
+            &quot;(lload|lstore|fload|ldc2_w|invokeinterface|invokedynamic|multianewarray|astore|dload|putstatic|instanceof|getstatic|checkcast|getfield|invokespecial|dstore|istore|iinc|ldc_w|ret|fstore|invokestatic|iload|putfield|invokevirtual|ldc|new|aload|anewarray)&quot;);
+<span class="fc" id="L116">        map.put(&quot;pushinstruction&quot;, &quot;(dup|lload|dup2|bipush|fload|ldc2_w|sipush|lconst|fconst|dload|getstatic|ldc_w|aconst_null|dconst|iload|ldc|iconst|aload)&quot;);</span>
+<span class="fc" id="L117">        map.put(&quot;stackproducer&quot;,</span>
+            &quot;(imul|lsub|aload|fload|lor|new|aaload|fcmpg|iand|iaload|lrem|idiv|d2l|isub|dcmpg|dup|f2d|f2i|drem|i2c|checkcast|frem|lushr|daload|dneg|lshl|ldiv|ishr|ldc_w|invokeinterface|invokedynamic|lxor|ishl|l2d|i2f|faload|sipush|iushr|caload|instanceof|invokespecial|fmul|laload|d2f|lneg|ixor|i2l|fdiv|getstatic|i2b|swap|i2d|dup2|fcmpl|saload|ladd|irem|dload|jsr_w|dconst|dcmpl|fsub|ldc|arraylength|aconst_null|tableswitch|lmul|ldc2_w|iconst|dadd|f2l|ddiv|land|jsr|anewarray|dmul|bipush|dsub|d2i|newarray|i2s|lshr|iadd|lload|l2i|fneg|iload|fadd|baload|fconst|lookupswitch|ior|ineg|lconst|l2f|getfield|invokevirtual|invokestatic)&quot;);
+<span class="fc" id="L119">        map.put(&quot;stackconsumer&quot;,</span>
+            &quot;(imul|lsub|lor|iflt|fcmpg|if_icmpgt|iand|ifeq|if_icmplt|lrem|ifnonnull|idiv|d2l|isub|dcmpg|dastore|if_icmpeq|f2d|f2i|drem|i2c|checkcast|frem|lreturn|astore|lushr|pop2|monitorexit|dneg|fastore|istore|lshl|ldiv|lstore|areturn|if_icmpge|ishr|monitorenter|invokeinterface|invokedynamic|aastore|lxor|ishl|l2d|i2f|return|iushr|instanceof|invokespecial|fmul|ireturn|d2f|lneg|ixor|pop|i2l|ifnull|fdiv|lastore|i2b|if_acmpeq|ifge|swap|i2d|putstatic|fcmpl|ladd|irem|dcmpl|fsub|freturn|ifgt|castore|lmul|dadd|f2l|ddiv|dstore|land|if_icmpne|if_acmpne|dmul|dsub|sastore|ifle|d2i|i2s|lshr|iadd|l2i|bastore|fstore|fneg|fadd|ior|ineg|ifne|dreturn|l2f|if_icmple|getfield|invokevirtual|invokestatic|iastore)&quot;);
+<span class="fc" id="L121">        map.put(&quot;exceptionthrower&quot;,</span>
+            &quot;(irem|lrem|laload|putstatic|baload|dastore|areturn|getstatic|ldiv|anewarray|iastore|castore|idiv|saload|lastore|fastore|putfield|lreturn|caload|getfield|return|aastore|freturn|newarray|instanceof|multianewarray|athrow|faload|iaload|aaload|dreturn|monitorenter|checkcast|bastore|arraylength|new|invokevirtual|sastore|ldc_w|ireturn|invokespecial|monitorexit|invokeinterface|invokedynamic|ldc|invokestatic|daload)&quot;);
+<span class="fc" id="L123">        map.put(&quot;loadclass&quot;,</span>
+            &quot;(multianewarray|invokeinterface|invokedynamic|instanceof|invokespecial|putfield|checkcast|putstatic|invokevirtual|new|getstatic|invokestatic|getfield|anewarray)&quot;);
+<span class="fc" id="L125">        map.put(&quot;instructiontargeter&quot;,</span>
+            &quot;(ifle|if_acmpne|if_icmpeq|if_acmpeq|ifnonnull|goto_w|iflt|ifnull|if_icmpne|tableswitch|if_icmple|ifeq|if_icmplt|jsr_w|if_icmpgt|ifgt|jsr|goto|ifne|ifge|lookupswitch|if_icmpge)&quot;);
+        // Some aliases
+<span class="fc" id="L128">        map.put(&quot;if_icmp&quot;, &quot;(if_icmpne|if_icmpeq|if_icmple|if_icmpge|if_icmplt|if_icmpgt)&quot;);</span>
+<span class="fc" id="L129">        map.put(&quot;if_acmp&quot;, &quot;(if_acmpeq|if_acmpne)&quot;);</span>
+<span class="fc" id="L130">        map.put(&quot;if&quot;, &quot;(ifeq|ifne|iflt|ifge|ifgt|ifle)&quot;);</span>
+        // Precompile some aliases first
+<span class="fc" id="L132">        map.put(&quot;iconst&quot;, precompile(Const.ICONST_0, Const.ICONST_5, Const.ICONST_M1));</span>
+<span class="fc" id="L133">        map.put(&quot;lconst&quot;, new String(new char[] {'(', makeChar(Const.LCONST_0), '|', makeChar(Const.LCONST_1), ')'}));</span>
+<span class="fc" id="L134">        map.put(&quot;dconst&quot;, new String(new char[] {'(', makeChar(Const.DCONST_0), '|', makeChar(Const.DCONST_1), ')'}));</span>
+<span class="fc" id="L135">        map.put(&quot;fconst&quot;, new String(new char[] {'(', makeChar(Const.FCONST_0), '|', makeChar(Const.FCONST_1), '|', makeChar(Const.FCONST_2), ')'}));</span>
+<span class="fc" id="L136">        map.put(&quot;lload&quot;, precompile(Const.LLOAD_0, Const.LLOAD_3, Const.LLOAD));</span>
+<span class="fc" id="L137">        map.put(&quot;iload&quot;, precompile(Const.ILOAD_0, Const.ILOAD_3, Const.ILOAD));</span>
+<span class="fc" id="L138">        map.put(&quot;dload&quot;, precompile(Const.DLOAD_0, Const.DLOAD_3, Const.DLOAD));</span>
+<span class="fc" id="L139">        map.put(&quot;fload&quot;, precompile(Const.FLOAD_0, Const.FLOAD_3, Const.FLOAD));</span>
+<span class="fc" id="L140">        map.put(&quot;aload&quot;, precompile(Const.ALOAD_0, Const.ALOAD_3, Const.ALOAD));</span>
+<span class="fc" id="L141">        map.put(&quot;lstore&quot;, precompile(Const.LSTORE_0, Const.LSTORE_3, Const.LSTORE));</span>
+<span class="fc" id="L142">        map.put(&quot;istore&quot;, precompile(Const.ISTORE_0, Const.ISTORE_3, Const.ISTORE));</span>
+<span class="fc" id="L143">        map.put(&quot;dstore&quot;, precompile(Const.DSTORE_0, Const.DSTORE_3, Const.DSTORE));</span>
+<span class="fc" id="L144">        map.put(&quot;fstore&quot;, precompile(Const.FSTORE_0, Const.FSTORE_3, Const.FSTORE));</span>
+<span class="fc" id="L145">        map.put(&quot;astore&quot;, precompile(Const.ASTORE_0, Const.ASTORE_3, Const.ASTORE));</span>
+        // Compile strings
+<span class="fc" id="L147">        map.forEach((key, value) -&gt; {</span>
+<span class="fc" id="L148">            final char ch = value.charAt(1); // Omit already precompiled patterns</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">            if (ch &lt; OFFSET) {</span>
+<span class="fc" id="L150">                map.put(key, compilePattern(value)); // precompile all patterns</span>
+            }
+<span class="fc" id="L152">        });</span>
+        // Add instruction alias to match anything
+<span class="fc" id="L154">        final StringBuilder buf = new StringBuilder(&quot;(&quot;);</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">        for (short i = 0; i &lt; NO_OPCODES; i++) {</span>
+<span class="fc bfc" id="L156" title="All 2 branches covered.">            if (Const.getNoOfOperands(i) != Const.UNDEFINED) { // Not an invalid opcode</span>
+<span class="fc" id="L157">                buf.append(makeChar(i));</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">                if (i &lt; NO_OPCODES - 1) {</span>
+<span class="fc" id="L159">                    buf.append('|');</span>
+                }
+            }
+        }
+<span class="fc" id="L163">        buf.append(')');</span>
+<span class="fc" id="L164">        map.put(&quot;instruction&quot;, buf.toString());</span>
+<span class="fc" id="L165">    }</span>
+
+    /**
+     * Replace symbolic names of instructions with the appropriate character and remove all white space from string. Meta
+     * characters such as +, * are ignored.
+     *
+     * @param pattern The pattern to compile.
+     * @return translated regular expression string.
+     */
+    private static String compilePattern(final String pattern) {
+        // Bug: BCEL-77 - Instructions are assumed to be english, to avoid odd Locale issues
+<span class="fc" id="L176">        final String lower = StringUtils.toRootLowerCase(pattern);</span>
+<span class="fc" id="L177">        final StringBuilder buf = new StringBuilder();</span>
+<span class="fc" id="L178">        final int size = pattern.length();</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">        for (int i = 0; i &lt; size; i++) {</span>
+<span class="fc" id="L180">            char ch = lower.charAt(i);</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">            if (Character.isLetterOrDigit(ch)) {</span>
+<span class="fc" id="L182">                final StringBuilder name = new StringBuilder();</span>
+<span class="pc bpc" id="L183" title="1 of 6 branches missed.">                while ((Character.isLetterOrDigit(ch) || ch == '_') &amp;&amp; i &lt; size) {</span>
+<span class="fc" id="L184">                    name.append(ch);</span>
+<span class="fc bfc" id="L185" title="All 2 branches covered.">                    if (++i &gt;= size) {</span>
+<span class="fc" id="L186">                        break;</span>
+                    }
+<span class="fc" id="L188">                    ch = lower.charAt(i);</span>
+                }
+<span class="fc" id="L190">                i--;</span>
+<span class="fc" id="L191">                buf.append(mapName(name.toString()));</span>
+<span class="fc bfc" id="L192" title="All 2 branches covered.">            } else if (!Character.isWhitespace(ch)) {</span>
+<span class="fc" id="L193">                buf.append(ch);</span>
+            }
+        }
+<span class="fc" id="L196">        return buf.toString();</span>
+    }
+
+    /**
+     * Convert opcode number to char.
+     */
+    private static char makeChar(final short opcode) {
+<span class="fc" id="L203">        return (char) (opcode + OFFSET);</span>
+    }
+
+    /**
+     * Map symbolic instruction names like &quot;getfield&quot; to a single character.
+     *
+     * @param pattern instruction pattern in lower case.
+     * @return encoded string for a pattern such as &quot;BranchInstruction&quot;.
+     */
+    private static String mapName(final String pattern) {
+<span class="fc" id="L213">        final String result = map.get(pattern);</span>
+<span class="fc bfc" id="L214" title="All 2 branches covered.">        if (result != null) {</span>
+<span class="fc" id="L215">            return result;</span>
+        }
+<span class="fc bfc" id="L217" title="All 2 branches covered.">        for (short i = 0; i &lt; NO_OPCODES; i++) {</span>
+<span class="fc bfc" id="L218" title="All 2 branches covered.">            if (pattern.equals(Const.getOpcodeName(i))) {</span>
+<span class="fc" id="L219">                return String.valueOf(makeChar(i));</span>
+            }
+        }
+<span class="fc" id="L222">        throw new IllegalArgumentException(&quot;Instruction unknown: &quot; + pattern);</span>
+    }
+
+    private static String precompile(final short from, final short to, final short extra) {
+<span class="fc" id="L226">        final StringBuilder buf = new StringBuilder(&quot;(&quot;);</span>
+<span class="fc bfc" id="L227" title="All 2 branches covered.">        for (short i = from; i &lt;= to; i++) {</span>
+<span class="fc" id="L228">            buf.append(makeChar(i));</span>
+<span class="fc" id="L229">            buf.append('|');</span>
+        }
+<span class="fc" id="L231">        buf.append(makeChar(extra));</span>
+<span class="fc" id="L232">        buf.append(&quot;)&quot;);</span>
+<span class="fc" id="L233">        return buf.toString();</span>
+    }
+
+    private final InstructionList il;
+
+    private String ilString; // instruction list as string
+
+    private InstructionHandle[] handles; // map instruction
+
+    // list to array
+
+    /**
+     * Constructs an InstructionFinder.
+     *
+     * @param il instruction list to search for given patterns.
+     */
+<span class="fc" id="L249">    public InstructionFinder(final InstructionList il) {</span>
+<span class="fc" id="L250">        this.il = il;</span>
+<span class="fc" id="L251">        reread();</span>
+<span class="fc" id="L252">    }</span>
+
+    /**
+     * Gets the inquired instruction list.
+     *
+     * @return the inquired instruction list.
+     */
+    public final InstructionList getInstructionList() {
+<span class="fc" id="L260">        return il;</span>
+    }
+
+    /**
+     * @return the matched piece of code as an array of instruction (handles).
+     */
+    private InstructionHandle[] getMatch(final int matchedFrom, final int matchLength) {
+<span class="fc" id="L267">        return Arrays.copyOfRange(handles, matchedFrom, matchedFrom + matchLength);</span>
+    }
+
+    /**
+     * Reread the instruction list, for example, after you've altered the list upon a match.
+     */
+    public final void reread() {
+<span class="fc" id="L274">        final int size = il.getLength();</span>
+<span class="fc" id="L275">        final char[] buf = new char[size]; // Create a string with length equal to il length</span>
+<span class="fc" id="L276">        handles = il.getInstructionHandles();</span>
+        // Map opcodes to characters
+<span class="fc bfc" id="L278" title="All 2 branches covered.">        for (int i = 0; i &lt; size; i++) {</span>
+<span class="fc" id="L279">            buf[i] = makeChar(handles[i].getInstruction().getOpcode());</span>
+        }
+<span class="fc" id="L281">        ilString = new String(buf);</span>
+<span class="fc" id="L282">    }</span>
+
+    /**
+     * Start search beginning from the start of the given instruction list.
+     *
+     * @param pattern the instruction pattern to search for, where case is ignored.
+     * @return iterator of matches where e.nextElement() returns an array of instruction handles describing the matched area.
+     */
+    public final Iterator&lt;InstructionHandle[]&gt; search(final String pattern) {
+<span class="fc" id="L291">        return search(pattern, il.getStart(), null);</span>
+    }
+
+    /**
+     * Start search beginning from the start of the given instruction list. Check found matches with the constraint object.
+     *
+     * @param pattern the instruction pattern to search for, case is ignored.
+     * @param constraint constraints to be checked on matching code.
+     * @return instruction handle or 'null' if the match failed.
+     */
+    public final Iterator&lt;InstructionHandle[]&gt; search(final String pattern, final CodeConstraint constraint) {
+<span class="fc" id="L302">        return search(pattern, il.getStart(), constraint);</span>
+    }
+
+    /**
+     * Start search beginning from 'from'.
+     *
+     * @param pattern the instruction pattern to search for, where case is ignored.
+     * @param from where to start the search in the instruction list.
+     * @return iterator of matches where e.nextElement() returns an array of instruction handles describing the matched area.
+     */
+    public final Iterator&lt;InstructionHandle[]&gt; search(final String pattern, final InstructionHandle from) {
+<span class="fc" id="L313">        return search(pattern, from, null);</span>
+    }
+
+    /**
+     * Search for the given pattern in the instruction list. You can search for any valid opcode via its symbolic name, for example
+     * &quot;istore&quot;. You can also use a super class or an interface name to match a whole set of instructions, for example
+     * &quot;BranchInstruction&quot; or &quot;LoadInstruction&quot;. &quot;istore&quot; is also an alias for all &quot;istore_x&quot; instructions. Additional
+     * aliases are &quot;if&quot; for &quot;ifxx&quot;, &quot;if_icmp&quot; for &quot;if_icmpxx&quot;, &quot;if_acmp&quot; for &quot;if_acmpxx&quot;.
+     *
+     * Consecutive instruction names must be separated by white space which will be removed during the compilation of the
+     * pattern.
+     *
+     * For the rest the usual pattern matching rules for regular expressions apply.
+     * &lt;p&gt;
+     * Example pattern:
+     * &lt;/p&gt;
+     * &lt;pre&gt;
+     * search(&amp;quot;BranchInstruction NOP ((IfInstruction|GOTO)+ ISTORE Instruction)*&amp;quot;);
+     * &lt;/pre&gt;
+     *
+     * &lt;p&gt;
+     * If you alter the instruction list upon a match such that other matching areas are affected, you should call reread()
+     * to update the finder and call search() again, because the matches are cached.
+     * &lt;/p&gt;
+     *
+     * @param pattern the instruction pattern to search for, where case is ignored.
+     * @param from where to start the search in the instruction list.
+     * @param constraint optional CodeConstraint to check the found code pattern for user-defined constraints.
+     * @return iterator of matches where e.nextElement() returns an array of instruction handles describing the matched area.
+     */
+    public final Iterator&lt;InstructionHandle[]&gt; search(final String pattern, final InstructionHandle from, final CodeConstraint constraint) {
+<span class="fc" id="L344">        final String search = compilePattern(pattern);</span>
+<span class="fc" id="L345">        int start = -1;</span>
+<span class="fc bfc" id="L346" title="All 2 branches covered.">        for (int i = 0; i &lt; handles.length; i++) {</span>
+<span class="fc bfc" id="L347" title="All 2 branches covered.">            if (handles[i] == from) {</span>
+<span class="fc" id="L348">                start = i; // Where to start search from (index)</span>
+<span class="fc" id="L349">                break;</span>
+            }
+        }
+<span class="fc bfc" id="L352" title="All 2 branches covered.">        if (start == -1) {</span>
+<span class="fc" id="L353">            throw new ClassGenException(&quot;Instruction handle &quot; + from + &quot; not found in instruction list.&quot;);</span>
+        }
+<span class="fc" id="L355">        final Pattern regex = Pattern.compile(search);</span>
+<span class="fc" id="L356">        final List&lt;InstructionHandle[]&gt; matches = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L357">        final Matcher matcher = regex.matcher(ilString);</span>
+<span class="fc bfc" id="L358" title="All 4 branches covered.">        while (start &lt; ilString.length() &amp;&amp; matcher.find(start)) {</span>
+<span class="fc" id="L359">            final int startExpr = matcher.start();</span>
+<span class="fc" id="L360">            final int endExpr = matcher.end();</span>
+<span class="fc" id="L361">            final int lenExpr = endExpr - startExpr;</span>
+<span class="fc" id="L362">            final InstructionHandle[] match = getMatch(startExpr, lenExpr);</span>
+<span class="fc bfc" id="L363" title="All 4 branches covered.">            if (constraint == null || constraint.checkCode(match)) {</span>
+<span class="fc" id="L364">                matches.add(match);</span>
+            }
+<span class="fc" id="L366">            start = endExpr;</span>
+<span class="fc" id="L367">        }</span>
+<span class="fc" id="L368">        return matches.iterator();</span>
+    }
+
+    /*
+     * Internal debugging routines.
+     */
+//    private static final String pattern2string( String pattern ) {
+//        return pattern2string(pattern, true);
+//    }
+
+//    private static final String pattern2string( String pattern, boolean make_string ) {
+//        StringBuilder buf = new StringBuilder();
+//        for (int i = 0; i &lt; pattern.length(); i++) {
+//            char ch = pattern.charAt(i);
+//            if (ch &gt;= OFFSET) {
+//                if (make_string) {
+//                    buf.append(Constants.getOpcodeName(ch - OFFSET));
+//                } else {
+//                    buf.append((ch - OFFSET));
+//                }
+//            } else {
+//                buf.append(ch);
+//            }
+//        }
+//        return buf.toString();
+//    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

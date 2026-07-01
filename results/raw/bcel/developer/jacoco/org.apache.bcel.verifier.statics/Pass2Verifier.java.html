@@ -1,0 +1,1467 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Pass2Verifier.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.verifier.statics</a> &gt; <span class="el_source">Pass2Verifier.java</span></div><h1>Pass2Verifier.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.verifier.statics;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.Constants;
+import org.apache.bcel.Repository;
+import org.apache.bcel.classfile.Attribute;
+import org.apache.bcel.classfile.ClassFormatException;
+import org.apache.bcel.classfile.Code;
+import org.apache.bcel.classfile.CodeException;
+import org.apache.bcel.classfile.Constant;
+import org.apache.bcel.classfile.ConstantClass;
+import org.apache.bcel.classfile.ConstantDouble;
+import org.apache.bcel.classfile.ConstantFieldref;
+import org.apache.bcel.classfile.ConstantFloat;
+import org.apache.bcel.classfile.ConstantInteger;
+import org.apache.bcel.classfile.ConstantInterfaceMethodref;
+import org.apache.bcel.classfile.ConstantLong;
+import org.apache.bcel.classfile.ConstantMethodref;
+import org.apache.bcel.classfile.ConstantNameAndType;
+import org.apache.bcel.classfile.ConstantPool;
+import org.apache.bcel.classfile.ConstantString;
+import org.apache.bcel.classfile.ConstantUtf8;
+import org.apache.bcel.classfile.ConstantValue;
+import org.apache.bcel.classfile.Deprecated;
+import org.apache.bcel.classfile.DescendingVisitor;
+import org.apache.bcel.classfile.EmptyVisitor;
+import org.apache.bcel.classfile.ExceptionTable;
+import org.apache.bcel.classfile.Field;
+import org.apache.bcel.classfile.InnerClass;
+import org.apache.bcel.classfile.InnerClasses;
+import org.apache.bcel.classfile.JavaClass;
+import org.apache.bcel.classfile.LineNumber;
+import org.apache.bcel.classfile.LineNumberTable;
+import org.apache.bcel.classfile.LocalVariable;
+import org.apache.bcel.classfile.LocalVariableTable;
+import org.apache.bcel.classfile.Method;
+import org.apache.bcel.classfile.Node;
+import org.apache.bcel.classfile.SourceFile;
+import org.apache.bcel.classfile.Synthetic;
+import org.apache.bcel.classfile.Unknown;
+import org.apache.bcel.classfile.Utility;
+import org.apache.bcel.generic.ArrayType;
+import org.apache.bcel.generic.ObjectType;
+import org.apache.bcel.generic.Type;
+import org.apache.bcel.verifier.PassVerifier;
+import org.apache.bcel.verifier.VerificationResult;
+import org.apache.bcel.verifier.Verifier;
+import org.apache.bcel.verifier.VerifierFactory;
+import org.apache.bcel.verifier.exc.AssertionViolatedException;
+import org.apache.bcel.verifier.exc.ClassConstraintException;
+import org.apache.bcel.verifier.exc.LocalVariableInfoInconsistentException;
+import org.apache.commons.lang3.StringUtils;
+
+/**
+ * This PassVerifier verifies a class file according to pass 2 as described in The Java Virtual Machine Specification,
+ * 2nd edition. More detailed information is to be found at the do_verify() method's documentation.
+ *
+ * @see #do_verify()
+ */
+public final class Pass2Verifier extends PassVerifier implements Constants {
+
+    /**
+     * A Visitor class that ensures the constant pool satisfies the static constraints. The visitXXX() methods throw
+     * ClassConstraintException instances otherwise.
+     *
+     * @see #constantPoolEntriesSatisfyStaticConstraints()
+     */
+    private final class CPESSC_Visitor extends EmptyVisitor {
+        private final Class&lt;?&gt; CONST_Class;
+
+        /*
+         * private Class&lt;?&gt; CONST_Fieldref; private Class&lt;?&gt; CONST_Methodref; private Class&lt;?&gt; CONST_InterfaceMethodref;
+         */
+        private final Class&lt;?&gt; CONST_String;
+        private final Class&lt;?&gt; CONST_Integer;
+        private final Class&lt;?&gt; CONST_Float;
+        private final Class&lt;?&gt; CONST_Long;
+        private final Class&lt;?&gt; CONST_Double;
+        private final Class&lt;?&gt; CONST_NameAndType;
+        private final Class&lt;?&gt; CONST_Utf8;
+
+        private final JavaClass jc;
+        private final ConstantPool cp; // ==jc.getConstantPool() -- only here to save typing work and computing power.
+        private final int cplen; // == cp.getLength() -- to save computing power.
+        private final DescendingVisitor carrier;
+
+<span class="fc" id="L111">        private final Set&lt;String&gt; fieldNames = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L112">        private final Set&lt;String&gt; fieldNamesAndDesc = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L113">        private final Set&lt;String&gt; methodNamesAndDesc = new HashSet&lt;&gt;();</span>
+
+<span class="fc" id="L115">        private CPESSC_Visitor(final JavaClass jc) {</span>
+<span class="fc" id="L116">            this.jc = jc;</span>
+<span class="fc" id="L117">            this.cp = jc.getConstantPool();</span>
+<span class="fc" id="L118">            this.cplen = cp.getLength();</span>
+
+<span class="fc" id="L120">            this.CONST_Class = ConstantClass.class;</span>
+            /*
+             * CONST_Fieldref = ConstantFieldref.class; CONST_Methodref = ConstantMethodref.class; CONST_InterfaceMethodref =
+             * ConstantInterfaceMethodref.class;
+             */
+<span class="fc" id="L125">            this.CONST_String = ConstantString.class;</span>
+<span class="fc" id="L126">            this.CONST_Integer = ConstantInteger.class;</span>
+<span class="fc" id="L127">            this.CONST_Float = ConstantFloat.class;</span>
+<span class="fc" id="L128">            this.CONST_Long = ConstantLong.class;</span>
+<span class="fc" id="L129">            this.CONST_Double = ConstantDouble.class;</span>
+<span class="fc" id="L130">            this.CONST_NameAndType = ConstantNameAndType.class;</span>
+<span class="fc" id="L131">            this.CONST_Utf8 = ConstantUtf8.class;</span>
+
+<span class="fc" id="L133">            this.carrier = new DescendingVisitor(jc, this);</span>
+<span class="fc" id="L134">            this.carrier.visit();</span>
+<span class="fc" id="L135">        }</span>
+
+        private void checkIndex(final Node referrer, final int index, final Class&lt;?&gt; shouldbe) {
+<span class="pc bpc" id="L138" title="2 of 4 branches missed.">            if (index &lt; 0 || index &gt;= cplen) {</span>
+<span class="nc" id="L139">                throw new ClassConstraintException(&quot;Invalid index '&quot; + index + &quot;' used by '&quot; + tostring(referrer) + &quot;'.&quot;);</span>
+            }
+<span class="fc" id="L141">            final Constant c = cp.getConstant(index);</span>
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">            if (!shouldbe.isInstance(c)) {</span>
+                /* String isnot = shouldbe.toString().substring(shouldbe.toString().lastIndexOf(&quot;.&quot;)+1); //Cut all before last &quot;.&quot; */
+<span class="nc" id="L144">                throw new ClassConstraintException(</span>
+<span class="nc" id="L145">                    &quot;Illegal constant '&quot; + tostring(c) + &quot;' at index '&quot; + index + &quot;'. '&quot; + tostring(referrer) + &quot;' expects a '&quot; + shouldbe + &quot;'.&quot;);</span>
+            }
+<span class="fc" id="L147">        }</span>
+
+        // SYNTHETIC: see above
+        // DEPRECATED: see above
+        /////////////////////////////////////////////////////////
+        // method_info-structure-ATTRIBUTES (vmspec2 4.6, 4.7) //
+        /////////////////////////////////////////////////////////
+        @Override
+        public void visitCode(final Code obj) { // vmspec2 4.7.3
+            try {
+                // No code attribute allowed for native or abstract methods: see visitMethod(Method).
+                // Code array constraints are checked in Pass3 (3a and 3b).
+
+<span class="fc" id="L160">                checkIndex(obj, obj.getNameIndex(), CONST_Utf8);</span>
+
+<span class="fc" id="L162">                final String name = ((ConstantUtf8) cp.getConstant(obj.getNameIndex())).getBytes();</span>
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">                if (!name.equals(&quot;Code&quot;)) {</span>
+<span class="nc" id="L164">                    throw new ClassConstraintException(&quot;The Code attribute '&quot; + tostring(obj) + &quot;' is not correctly named 'Code' but '&quot; + name + &quot;'.&quot;);</span>
+                }
+
+<span class="pc bpc" id="L167" title="1 of 2 branches missed.">                if (!(carrier.predecessor() instanceof Method)) {</span>
+<span class="nc" id="L168">                    addMessage(&quot;Code attribute '&quot; + tostring(obj) + &quot;' is not declared in a method_info structure but in '&quot; + carrier.predecessor()</span>
+                            + &quot;'. Ignored.&quot;);
+<span class="nc" id="L170">                    return;</span>
+                }
+<span class="fc" id="L172">                final Method m = (Method) carrier.predecessor(); // we can assume this method was visited before;</span>
+                                                                 // for example the data consistency was verified.
+
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">                if (obj.getCode().length == 0) {</span>
+<span class="nc" id="L176">                    throw new ClassConstraintException(&quot;Code array of Code attribute '&quot; + tostring(obj) + &quot;' (method '&quot; + m + &quot;') must not be empty.&quot;);</span>
+                }
+
+                // In JustIce, the check for correct offsets into the code array is delayed to Pass 3a.
+<span class="fc" id="L180">                final CodeException[] excTable = obj.getExceptionTable();</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">                for (final CodeException element : excTable) {</span>
+<span class="fc" id="L182">                    final int excIndex = element.getCatchType();</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">                    if (excIndex != 0) { // if 0, it catches all Throwables</span>
+<span class="fc" id="L184">                        checkIndex(obj, excIndex, CONST_Class);</span>
+<span class="fc" id="L185">                        final ConstantClass cc = (ConstantClass) cp.getConstant(excIndex);</span>
+                        // cannot be sure this ConstantClass has already been visited (checked)!
+<span class="fc" id="L187">                        checkIndex(cc, cc.getNameIndex(), CONST_Utf8);</span>
+<span class="fc" id="L188">                        final String cname = Utility.pathToPackage(((ConstantUtf8) cp.getConstant(cc.getNameIndex())).getBytes());</span>
+
+<span class="fc" id="L190">                        Verifier v = VerifierFactory.getVerifier(cname);</span>
+<span class="fc" id="L191">                        VerificationResult vr = v.doPass1();</span>
+
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">                        if (vr != VerificationResult.VR_OK) {</span>
+<span class="nc" id="L194">                            throw new ClassConstraintException(&quot;Code attribute '&quot; + tostring(obj) + &quot;' (method '&quot; + m + &quot;') has an exception_table entry '&quot;</span>
+<span class="nc" id="L195">                                    + tostring(element) + &quot;' that references '&quot; + cname + &quot;' as an Exception but it does not pass verification pass 1: &quot; + vr);</span>
+                        }
+                        // We cannot safely trust any other &quot;instanceof&quot; mechanism. We need to transitively verify
+                        // the ancestor hierarchy.
+<span class="fc" id="L199">                        JavaClass e = Repository.lookupClass(cname);</span>
+<span class="fc" id="L200">                        final JavaClass t = Repository.lookupClass(Type.THROWABLE.getClassName());</span>
+<span class="fc" id="L201">                        final JavaClass o = Repository.lookupClass(Type.OBJECT.getClassName());</span>
+<span class="pc bpc" id="L202" title="1 of 2 branches missed.">                        while (e != o) {</span>
+<span class="fc bfc" id="L203" title="All 2 branches covered.">                            if (e == t) {</span>
+<span class="fc" id="L204">                                break; // It's a subclass of Throwable, OKAY, leave.</span>
+                            }
+
+<span class="fc" id="L207">                            v = VerifierFactory.getVerifier(e.getSuperclassName());</span>
+<span class="fc" id="L208">                            vr = v.doPass1();</span>
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">                            if (vr != VerificationResult.VR_OK) {</span>
+<span class="nc" id="L210">                                throw new ClassConstraintException(&quot;Code attribute '&quot; + tostring(obj) + &quot;' (method '&quot; + m + &quot;') has an exception_table entry '&quot;</span>
+<span class="nc" id="L211">                                        + tostring(element) + &quot;' that references '&quot; + cname + &quot;' as an Exception but '&quot; + e.getSuperclassName()</span>
+                                        + &quot;' in the ancestor hierachy does not pass verification pass 1: &quot; + vr);
+                            }
+<span class="fc" id="L214">                            e = Repository.lookupClass(e.getSuperclassName());</span>
+                        }
+<span class="pc bpc" id="L216" title="1 of 2 branches missed.">                        if (e != t) {</span>
+<span class="nc" id="L217">                            throw new ClassConstraintException(</span>
+<span class="nc" id="L218">                                    &quot;Code attribute '&quot; + tostring(obj) + &quot;' (method '&quot; + m + &quot;') has an exception_table entry '&quot; + tostring(element)</span>
+<span class="nc" id="L219">                                            + &quot;' that references '&quot; + cname + &quot;' as an Exception but it is not a subclass of '&quot; + t.getClassName() + &quot;'.&quot;);</span>
+                        }
+                    }
+                }
+
+                // Create object for local variables information
+                // This is highly unelegant due to usage of the Visitor pattern.
+                // TODO: rework it.
+<span class="fc" id="L227">                int methodNumber = -1;</span>
+<span class="fc" id="L228">                final Method[] ms = Repository.lookupClass(verifier.getClassName()).getMethods();</span>
+<span class="pc bpc" id="L229" title="1 of 2 branches missed.">                for (int mn = 0; mn &lt; ms.length; mn++) {</span>
+<span class="fc bfc" id="L230" title="All 2 branches covered.">                    if (m == ms[mn]) {</span>
+<span class="fc" id="L231">                        methodNumber = mn;</span>
+<span class="fc" id="L232">                        break;</span>
+                    }
+                }
+                // If the .class file is malformed the loop above may not find a method.
+                // Try matching names instead of pointers.
+<span class="pc bpc" id="L237" title="1 of 2 branches missed.">                if (methodNumber &lt; 0) {</span>
+<span class="nc bnc" id="L238" title="All 2 branches missed.">                    for (int mn = 0; mn &lt; ms.length; mn++) {</span>
+<span class="nc bnc" id="L239" title="All 2 branches missed.">                        if (m.getName().equals(ms[mn].getName())) {</span>
+<span class="nc" id="L240">                            methodNumber = mn;</span>
+<span class="nc" id="L241">                            break;</span>
+                        }
+                    }
+                }
+
+<span class="pc bpc" id="L246" title="1 of 2 branches missed.">                if (methodNumber &lt; 0) { // Mmmmh. Can we be sure BCEL does not sometimes instantiate new objects?</span>
+<span class="nc" id="L247">                    throw new AssertionViolatedException(&quot;Could not find a known BCEL Method object in the corresponding BCEL JavaClass object.&quot;);</span>
+                }
+<span class="fc" id="L249">                localVariablesInfos[methodNumber] = new LocalVariablesInfo(obj.getMaxLocals());</span>
+
+<span class="fc" id="L251">                int numOfLvtAttribs = 0;</span>
+                // Now iterate through the attributes the Code attribute has.
+<span class="fc" id="L253">                final Attribute[] atts = obj.getAttributes();</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">                for (final Attribute att : atts) {</span>
+<span class="fc bfc" id="L255" title="All 4 branches covered.">                    if (!(att instanceof LineNumberTable) &amp;&amp; !(att instanceof LocalVariableTable)) {</span>
+<span class="fc" id="L256">                        addMessage(&quot;Attribute '&quot; + tostring(att) + &quot;' as an attribute of Code attribute '&quot; + tostring(obj) + &quot;' (method '&quot; + m</span>
+                                + &quot;') is unknown and will therefore be ignored.&quot;);
+                    } else { // LineNumberTable or LocalVariableTable
+<span class="fc" id="L259">                        addMessage(&quot;Attribute '&quot; + tostring(att) + &quot;' as an attribute of Code attribute '&quot; + tostring(obj) + &quot;' (method '&quot; + m</span>
+                                + &quot;') will effectively be ignored and is only useful for debuggers and such.&quot;);
+                    }
+
+                    // LocalVariableTable check (partially delayed to Pass3a).
+                    // Here because its easier to collect the information of the
+                    // (possibly more than one) LocalVariableTables belonging to
+                    // one certain Code attribute.
+<span class="fc bfc" id="L267" title="All 2 branches covered.">                    if (att instanceof LocalVariableTable) { // checks conforming to vmspec2 4.7.9</span>
+
+<span class="fc" id="L269">                        final LocalVariableTable lvt = (LocalVariableTable) att;</span>
+
+<span class="fc" id="L271">                        checkIndex(lvt, lvt.getNameIndex(), CONST_Utf8);</span>
+
+<span class="fc" id="L273">                        final String lvtname = ((ConstantUtf8) cp.getConstant(lvt.getNameIndex())).getBytes();</span>
+<span class="pc bpc" id="L274" title="1 of 2 branches missed.">                        if (!lvtname.equals(&quot;LocalVariableTable&quot;)) {</span>
+<span class="nc" id="L275">                            throw new ClassConstraintException(&quot;The LocalVariableTable attribute '&quot; + tostring(lvt)</span>
+                                    + &quot;' is not correctly named 'LocalVariableTable' but '&quot; + lvtname + &quot;'.&quot;);
+                        }
+
+                        // In JustIce, the check for correct offsets into the code array is delayed to Pass 3a.
+<span class="fc bfc" id="L280" title="All 2 branches covered.">                        for (final LocalVariable localvariable : lvt.getLocalVariableTable()) {</span>
+<span class="fc" id="L281">                            checkIndex(lvt, localvariable.getNameIndex(), CONST_Utf8);</span>
+<span class="fc" id="L282">                            final String localname = ((ConstantUtf8) cp.getConstant(localvariable.getNameIndex())).getBytes();</span>
+<span class="pc bpc" id="L283" title="1 of 2 branches missed.">                            if (!validJavaIdentifier(localname)) {</span>
+<span class="nc" id="L284">                                throw new ClassConstraintException(&quot;LocalVariableTable '&quot; + tostring(lvt) + &quot;' references a local variable by the name '&quot;</span>
+                                        + localname + &quot;' which is not a legal Java simple name.&quot;);
+                            }
+
+<span class="fc" id="L288">                            checkIndex(lvt, localvariable.getSignatureIndex(), CONST_Utf8);</span>
+<span class="fc" id="L289">                            final String localsig = ((ConstantUtf8) cp.getConstant(localvariable.getSignatureIndex())).getBytes(); // Local sig.(=descriptor)</span>
+                            final Type t;
+                            try {
+<span class="fc" id="L292">                                t = Type.getType(localsig);</span>
+<span class="nc" id="L293">                            } catch (final ClassFormatException cfe) {</span>
+<span class="nc" id="L294">                                throw new ClassConstraintException(&quot;Illegal descriptor (==signature) '&quot; + localsig + &quot;' used by LocalVariable '&quot;</span>
+<span class="nc" id="L295">                                        + tostring(localvariable) + &quot;' referenced by '&quot; + tostring(lvt) + &quot;'.&quot;, cfe);</span>
+<span class="fc" id="L296">                            }</span>
+<span class="fc" id="L297">                            final int localindex = localvariable.getIndex();</span>
+<span class="pc bpc" id="L298" title="1 of 6 branches missed.">                            if ((t == Type.LONG || t == Type.DOUBLE ? localindex + 1 : localindex) &gt;= obj.getMaxLocals()) {</span>
+<span class="nc" id="L299">                                throw new ClassConstraintException(&quot;LocalVariableTable attribute '&quot; + tostring(lvt) + &quot;' references a LocalVariable '&quot;</span>
+<span class="nc" id="L300">                                        + tostring(localvariable) + &quot;' with an index that exceeds the surrounding Code attribute's max_locals value of '&quot;</span>
+<span class="nc" id="L301">                                        + obj.getMaxLocals() + &quot;'.&quot;);</span>
+                            }
+
+                            try {
+<span class="fc" id="L305">                                localVariablesInfos[methodNumber].add(localindex, localname, localvariable.getStartPC(), localvariable.getLength(), t);</span>
+<span class="nc" id="L306">                            } catch (final LocalVariableInfoInconsistentException lviie) {</span>
+<span class="nc" id="L307">                                throw new ClassConstraintException(&quot;Conflicting information in LocalVariableTable '&quot; + tostring(lvt)</span>
+<span class="nc" id="L308">                                        + &quot;' found in Code attribute '&quot; + tostring(obj) + &quot;' (method '&quot; + tostring(m) + &quot;'). &quot; + lviie.getMessage(), lviie);</span>
+<span class="fc" id="L309">                            }</span>
+                        } // for all local variables localvariables[i] in the LocalVariableTable attribute atts[a] END
+
+<span class="fc" id="L312">                        numOfLvtAttribs++;</span>
+<span class="pc bpc" id="L313" title="1 of 4 branches missed.">                        if (!m.isStatic() &amp;&amp; numOfLvtAttribs &gt; obj.getMaxLocals()) {</span>
+<span class="nc" id="L314">                            throw new ClassConstraintException(&quot;Number of LocalVariableTable attributes of Code attribute '&quot; + tostring(obj) + &quot;' (method '&quot;</span>
+<span class="nc" id="L315">                                    + tostring(m) + &quot;') exceeds number of local variable slots '&quot; + obj.getMaxLocals()</span>
+                                    + &quot;' ('There may be at most one LocalVariableTable attribute per local variable in the Code attribute.').&quot;);
+                        }
+                    } // if atts[a] instanceof LocalVariableTable END
+                } // for all attributes atts[a] END
+
+<span class="nc" id="L321">            } catch (final ClassNotFoundException e) {</span>
+                // FIXME: this might not be the best way to handle missing classes.
+<span class="nc" id="L323">                throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="fc" id="L324">            }</span>
+
+<span class="fc" id="L326">        } // visitCode(Code) END</span>
+
+        @Override
+        public void visitCodeException(final CodeException obj) {
+            // Code constraints are checked in Pass3 (3a and 3b).
+            // This does not represent an Attribute but is only
+            // related to internal BCEL data representation.
+
+            // see visitCode(Code)
+<span class="fc" id="L335">        }</span>
+
+        /////////////////////////////
+        // CONSTANTS (vmspec2 4.4) //
+        /////////////////////////////
+        @Override
+        public void visitConstantClass(final ConstantClass obj) {
+<span class="pc bpc" id="L342" title="1 of 2 branches missed.">            if (obj.getTag() != Const.CONSTANT_Class) {</span>
+<span class="nc" id="L343">                throw new ClassConstraintException(&quot;Wrong constant tag in '&quot; + tostring(obj) + &quot;'.&quot;);</span>
+            }
+<span class="fc" id="L345">            checkIndex(obj, obj.getNameIndex(), CONST_Utf8);</span>
+
+<span class="fc" id="L347">        }</span>
+
+        @Override
+        public void visitConstantDouble(final ConstantDouble obj) {
+<span class="pc bpc" id="L351" title="1 of 2 branches missed.">            if (obj.getTag() != Const.CONSTANT_Double) {</span>
+<span class="nc" id="L352">                throw new ClassConstraintException(&quot;Wrong constant tag in '&quot; + tostring(obj) + &quot;'.&quot;);</span>
+            }
+            // no indices to check
+<span class="fc" id="L355">        }</span>
+
+        @Override
+        public void visitConstantFieldref(final ConstantFieldref obj) {
+<span class="pc bpc" id="L359" title="1 of 2 branches missed.">            if (obj.getTag() != Const.CONSTANT_Fieldref) {</span>
+<span class="nc" id="L360">                throw new ClassConstraintException(&quot;Wrong constant tag in '&quot; + tostring(obj) + &quot;'.&quot;);</span>
+            }
+<span class="fc" id="L362">            checkIndex(obj, obj.getClassIndex(), CONST_Class);</span>
+<span class="fc" id="L363">            checkIndex(obj, obj.getNameAndTypeIndex(), CONST_NameAndType);</span>
+<span class="fc" id="L364">        }</span>
+
+        @Override
+        public void visitConstantFloat(final ConstantFloat obj) {
+<span class="pc bpc" id="L368" title="1 of 2 branches missed.">            if (obj.getTag() != Const.CONSTANT_Float) {</span>
+<span class="nc" id="L369">                throw new ClassConstraintException(&quot;Wrong constant tag in '&quot; + tostring(obj) + &quot;'.&quot;);</span>
+            }
+            // no indices to check
+<span class="fc" id="L372">        }</span>
+
+        @Override
+        public void visitConstantInteger(final ConstantInteger obj) {
+<span class="pc bpc" id="L376" title="1 of 2 branches missed.">            if (obj.getTag() != Const.CONSTANT_Integer) {</span>
+<span class="nc" id="L377">                throw new ClassConstraintException(&quot;Wrong constant tag in '&quot; + tostring(obj) + &quot;'.&quot;);</span>
+            }
+            // no indices to check
+<span class="fc" id="L380">        }</span>
+
+        @Override
+        public void visitConstantInterfaceMethodref(final ConstantInterfaceMethodref obj) {
+<span class="pc bpc" id="L384" title="1 of 2 branches missed.">            if (obj.getTag() != Const.CONSTANT_InterfaceMethodref) {</span>
+<span class="nc" id="L385">                throw new ClassConstraintException(&quot;Wrong constant tag in '&quot; + tostring(obj) + &quot;'.&quot;);</span>
+            }
+<span class="fc" id="L387">            checkIndex(obj, obj.getClassIndex(), CONST_Class);</span>
+<span class="fc" id="L388">            checkIndex(obj, obj.getNameAndTypeIndex(), CONST_NameAndType);</span>
+<span class="fc" id="L389">        }</span>
+
+        @Override
+        public void visitConstantLong(final ConstantLong obj) {
+<span class="pc bpc" id="L393" title="1 of 2 branches missed.">            if (obj.getTag() != Const.CONSTANT_Long) {</span>
+<span class="nc" id="L394">                throw new ClassConstraintException(&quot;Wrong constant tag in '&quot; + tostring(obj) + &quot;'.&quot;);</span>
+            }
+            // no indices to check
+<span class="fc" id="L397">        }</span>
+
+        @Override
+        public void visitConstantMethodref(final ConstantMethodref obj) {
+<span class="pc bpc" id="L401" title="1 of 2 branches missed.">            if (obj.getTag() != Const.CONSTANT_Methodref) {</span>
+<span class="nc" id="L402">                throw new ClassConstraintException(&quot;Wrong constant tag in '&quot; + tostring(obj) + &quot;'.&quot;);</span>
+            }
+<span class="fc" id="L404">            checkIndex(obj, obj.getClassIndex(), CONST_Class);</span>
+<span class="fc" id="L405">            checkIndex(obj, obj.getNameAndTypeIndex(), CONST_NameAndType);</span>
+<span class="fc" id="L406">        }</span>
+
+        @Override
+        public void visitConstantNameAndType(final ConstantNameAndType obj) {
+<span class="pc bpc" id="L410" title="1 of 2 branches missed.">            if (obj.getTag() != Const.CONSTANT_NameAndType) {</span>
+<span class="nc" id="L411">                throw new ClassConstraintException(&quot;Wrong constant tag in '&quot; + tostring(obj) + &quot;'.&quot;);</span>
+            }
+<span class="fc" id="L413">            checkIndex(obj, obj.getNameIndex(), CONST_Utf8);</span>
+            // checkIndex(obj, obj.getDescriptorIndex(), CONST_Utf8); //inconsistently named in BCEL, see below.
+<span class="fc" id="L415">            checkIndex(obj, obj.getSignatureIndex(), CONST_Utf8);</span>
+<span class="fc" id="L416">        }</span>
+
+        @Override
+        public void visitConstantPool(final ConstantPool obj) {
+            // No need to. We're piggybacked by the DescendingVisitor.
+            // This does not represent an Attribute but is only
+            // related to internal BCEL data representation.
+<span class="fc" id="L423">        }</span>
+
+        @Override
+        public void visitConstantString(final ConstantString obj) {
+<span class="pc bpc" id="L427" title="1 of 2 branches missed.">            if (obj.getTag() != Const.CONSTANT_String) {</span>
+<span class="nc" id="L428">                throw new ClassConstraintException(&quot;Wrong constant tag in '&quot; + tostring(obj) + &quot;'.&quot;);</span>
+            }
+<span class="fc" id="L430">            checkIndex(obj, obj.getStringIndex(), CONST_Utf8);</span>
+<span class="fc" id="L431">        }</span>
+
+        @Override
+        public void visitConstantUtf8(final ConstantUtf8 obj) {
+<span class="pc bpc" id="L435" title="1 of 2 branches missed.">            if (obj.getTag() != Const.CONSTANT_Utf8) {</span>
+<span class="nc" id="L436">                throw new ClassConstraintException(&quot;Wrong constant tag in '&quot; + tostring(obj) + &quot;'.&quot;);</span>
+            }
+            // no indices to check
+<span class="fc" id="L439">        }</span>
+
+        ////////////////////////////////////////////////////////
+        // field_info-structure-ATTRIBUTES (vmspec2 4.5, 4.7) //
+        ////////////////////////////////////////////////////////
+        @Override
+        public void visitConstantValue(final ConstantValue obj) { // vmspec2 4.7.2
+            // Despite its name, this really is an Attribute,
+            // not a constant!
+<span class="fc" id="L448">            checkIndex(obj, obj.getNameIndex(), CONST_Utf8);</span>
+
+<span class="fc" id="L450">            final String name = ((ConstantUtf8) cp.getConstant(obj.getNameIndex())).getBytes();</span>
+<span class="pc bpc" id="L451" title="1 of 2 branches missed.">            if (!name.equals(&quot;ConstantValue&quot;)) {</span>
+<span class="nc" id="L452">                throw new ClassConstraintException(</span>
+<span class="nc" id="L453">                    &quot;The ConstantValue attribute '&quot; + tostring(obj) + &quot;' is not correctly named 'ConstantValue' but '&quot; + name + &quot;'.&quot;);</span>
+            }
+
+<span class="fc" id="L456">            final Object pred = carrier.predecessor();</span>
+<span class="pc bpc" id="L457" title="1 of 2 branches missed.">            if (pred instanceof Field) { // ConstantValue attributes are quite senseless if the predecessor is not a field.</span>
+<span class="fc" id="L458">                final Field f = (Field) pred;</span>
+                // Field constraints have been checked before -- so we are safe using their type information.
+<span class="fc" id="L460">                final Type fieldType = Type.getType(((ConstantUtf8) cp.getConstant(f.getSignatureIndex())).getBytes());</span>
+
+<span class="fc" id="L462">                final int index = obj.getConstantValueIndex();</span>
+<span class="pc bpc" id="L463" title="2 of 4 branches missed.">                if (index &lt; 0 || index &gt;= cplen) {</span>
+<span class="nc" id="L464">                    throw new ClassConstraintException(&quot;Invalid index '&quot; + index + &quot;' used by '&quot; + tostring(obj) + &quot;'.&quot;);</span>
+                }
+<span class="fc" id="L466">                final Constant c = cp.getConstant(index);</span>
+
+<span class="pc bpc" id="L468" title="2 of 8 branches missed.">                if (CONST_Long.isInstance(c) &amp;&amp; fieldType.equals(Type.LONG) || CONST_Float.isInstance(c) &amp;&amp; fieldType.equals(Type.FLOAT)) {</span>
+<span class="fc" id="L469">                    return;</span>
+                }
+<span class="pc bpc" id="L471" title="1 of 4 branches missed.">                if (CONST_Double.isInstance(c) &amp;&amp; fieldType.equals(Type.DOUBLE)) {</span>
+<span class="fc" id="L472">                    return;</span>
+                }
+<span class="fc bfc" id="L474" title="All 8 branches covered.">                if (CONST_Integer.isInstance(c) &amp;&amp; (fieldType.equals(Type.INT) || fieldType.equals(Type.SHORT) || fieldType.equals(Type.CHAR)</span>
+<span class="pc bpc" id="L475" title="1 of 4 branches missed.">                    || fieldType.equals(Type.BYTE) || fieldType.equals(Type.BOOLEAN))) {</span>
+<span class="fc" id="L476">                    return;</span>
+                }
+<span class="pc bpc" id="L478" title="2 of 4 branches missed.">                if (CONST_String.isInstance(c) &amp;&amp; fieldType.equals(Type.STRING)) {</span>
+<span class="fc" id="L479">                    return;</span>
+                }
+
+<span class="nc" id="L482">                throw new ClassConstraintException(&quot;Illegal type of ConstantValue '&quot; + obj + &quot;' embedding Constant '&quot; + c + &quot;'. It is referenced by field '&quot;</span>
+<span class="nc" id="L483">                    + tostring(f) + &quot;' expecting a different type: '&quot; + fieldType + &quot;'.&quot;);</span>
+            }
+<span class="nc" id="L485">        }</span>
+
+        @Override
+        public void visitDeprecated(final Deprecated obj) { // vmspec2 4.7.10
+<span class="fc" id="L489">            checkIndex(obj, obj.getNameIndex(), CONST_Utf8);</span>
+
+<span class="fc" id="L491">            final String name = ((ConstantUtf8) cp.getConstant(obj.getNameIndex())).getBytes();</span>
+<span class="pc bpc" id="L492" title="1 of 2 branches missed.">            if (!name.equals(&quot;Deprecated&quot;)) {</span>
+<span class="nc" id="L493">                throw new ClassConstraintException(&quot;The Deprecated attribute '&quot; + tostring(obj) + &quot;' is not correctly named 'Deprecated' but '&quot; + name + &quot;'.&quot;);</span>
+            }
+<span class="fc" id="L495">        }</span>
+
+        @Override
+        public void visitExceptionTable(final ExceptionTable obj) { // vmspec2 4.7.4
+            try {
+                // incorrectly named, it's the Exceptions attribute (vmspec2 4.7.4)
+<span class="fc" id="L501">                checkIndex(obj, obj.getNameIndex(), CONST_Utf8);</span>
+
+<span class="fc" id="L503">                final String name = ((ConstantUtf8) cp.getConstant(obj.getNameIndex())).getBytes();</span>
+<span class="pc bpc" id="L504" title="1 of 2 branches missed.">                if (!name.equals(&quot;Exceptions&quot;)) {</span>
+<span class="nc" id="L505">                    throw new ClassConstraintException(</span>
+<span class="nc" id="L506">                        &quot;The Exceptions attribute '&quot; + tostring(obj) + &quot;' is not correctly named 'Exceptions' but '&quot; + name + &quot;'.&quot;);</span>
+                }
+
+<span class="fc" id="L509">                final int[] excIndices = obj.getExceptionIndexTable();</span>
+
+<span class="fc bfc" id="L511" title="All 2 branches covered.">                for (final int excIndice : excIndices) {</span>
+<span class="fc" id="L512">                    checkIndex(obj, excIndice, CONST_Class);</span>
+
+<span class="fc" id="L514">                    final ConstantClass cc = (ConstantClass) cp.getConstant(excIndice);</span>
+<span class="fc" id="L515">                    checkIndex(cc, cc.getNameIndex(), CONST_Utf8); // can't be sure this ConstantClass has already been visited (checked)!</span>
+                    // convert internal notation on-the-fly to external notation:
+<span class="fc" id="L517">                    final String cname = Utility.pathToPackage(((ConstantUtf8) cp.getConstant(cc.getNameIndex())).getBytes());</span>
+
+<span class="fc" id="L519">                    Verifier v = VerifierFactory.getVerifier(cname);</span>
+<span class="fc" id="L520">                    VerificationResult vr = v.doPass1();</span>
+
+<span class="pc bpc" id="L522" title="1 of 2 branches missed.">                    if (vr != VerificationResult.VR_OK) {</span>
+<span class="nc" id="L523">                        throw new ClassConstraintException(&quot;Exceptions attribute '&quot; + tostring(obj) + &quot;' references '&quot; + cname</span>
+                            + &quot;' as an Exception but it does not pass verification pass 1: &quot; + vr);
+                    }
+                    // We cannot safely trust any other &quot;instanceof&quot; mechanism. We need to transitively verify
+                    // the ancestor hierarchy.
+<span class="fc" id="L528">                    JavaClass e = Repository.lookupClass(cname);</span>
+<span class="fc" id="L529">                    final JavaClass t = Repository.lookupClass(Type.THROWABLE.getClassName());</span>
+<span class="fc" id="L530">                    final JavaClass o = Repository.lookupClass(Type.OBJECT.getClassName());</span>
+<span class="pc bpc" id="L531" title="1 of 2 branches missed.">                    while (e != o) {</span>
+<span class="fc bfc" id="L532" title="All 2 branches covered.">                        if (e == t) {</span>
+<span class="fc" id="L533">                            break; // It's a subclass of Throwable, OKAY, leave.</span>
+                        }
+
+<span class="fc" id="L536">                        v = VerifierFactory.getVerifier(e.getSuperclassName());</span>
+<span class="fc" id="L537">                        vr = v.doPass1();</span>
+<span class="pc bpc" id="L538" title="1 of 2 branches missed.">                        if (vr != VerificationResult.VR_OK) {</span>
+<span class="nc" id="L539">                            throw new ClassConstraintException(&quot;Exceptions attribute '&quot; + tostring(obj) + &quot;' references '&quot; + cname + &quot;' as an Exception but '&quot;</span>
+<span class="nc" id="L540">                                + e.getSuperclassName() + &quot;' in the ancestor hierachy does not pass verification pass 1: &quot; + vr);</span>
+                        }
+<span class="fc" id="L542">                        e = Repository.lookupClass(e.getSuperclassName());</span>
+                    }
+<span class="pc bpc" id="L544" title="1 of 2 branches missed.">                    if (e != t) {</span>
+<span class="nc" id="L545">                        throw new ClassConstraintException(&quot;Exceptions attribute '&quot; + tostring(obj) + &quot;' references '&quot; + cname</span>
+<span class="nc" id="L546">                            + &quot;' as an Exception but it is not a subclass of '&quot; + t.getClassName() + &quot;'.&quot;);</span>
+                    }
+                }
+
+<span class="nc" id="L550">            } catch (final ClassNotFoundException e) {</span>
+                // FIXME: this might not be the best way to handle missing classes.
+<span class="nc" id="L552">                throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="fc" id="L553">            }</span>
+<span class="fc" id="L554">        }</span>
+
+        //////////////////////////
+        // FIELDS (vmspec2 4.5) //
+        //////////////////////////
+        @Override
+        public void visitField(final Field obj) {
+
+<span class="fc bfc" id="L562" title="All 2 branches covered.">            if (jc.isClass()) {</span>
+<span class="fc" id="L563">                int maxone = 0;</span>
+<span class="fc bfc" id="L564" title="All 2 branches covered.">                if (obj.isPrivate()) {</span>
+<span class="fc" id="L565">                    maxone++;</span>
+                }
+<span class="fc bfc" id="L567" title="All 2 branches covered.">                if (obj.isProtected()) {</span>
+<span class="fc" id="L568">                    maxone++;</span>
+                }
+<span class="fc bfc" id="L570" title="All 2 branches covered.">                if (obj.isPublic()) {</span>
+<span class="fc" id="L571">                    maxone++;</span>
+                }
+<span class="pc bpc" id="L573" title="1 of 2 branches missed.">                if (maxone &gt; 1) {</span>
+<span class="nc" id="L574">                    throw new ClassConstraintException(</span>
+<span class="nc" id="L575">                        &quot;Field '&quot; + tostring(obj) + &quot;' must only have at most one of its ACC_PRIVATE, ACC_PROTECTED, ACC_PUBLIC modifiers set.&quot;);</span>
+                }
+
+<span class="pc bpc" id="L578" title="1 of 4 branches missed.">                if (obj.isFinal() &amp;&amp; obj.isVolatile()) {</span>
+<span class="nc" id="L579">                    throw new ClassConstraintException(</span>
+<span class="nc" id="L580">                        &quot;Field '&quot; + tostring(obj) + &quot;' must only have at most one of its ACC_FINAL, ACC_VOLATILE modifiers set.&quot;);</span>
+                }
+<span class="fc" id="L582">            } else { // isInterface!</span>
+<span class="pc bpc" id="L583" title="1 of 2 branches missed.">                if (!obj.isPublic()) {</span>
+<span class="nc" id="L584">                    throw new ClassConstraintException(&quot;Interface field '&quot; + tostring(obj) + &quot;' must have the ACC_PUBLIC modifier set but hasn't.&quot;);</span>
+                }
+<span class="pc bpc" id="L586" title="1 of 2 branches missed.">                if (!obj.isStatic()) {</span>
+<span class="nc" id="L587">                    throw new ClassConstraintException(&quot;Interface field '&quot; + tostring(obj) + &quot;' must have the ACC_STATIC modifier set but hasn't.&quot;);</span>
+                }
+<span class="pc bpc" id="L589" title="1 of 2 branches missed.">                if (!obj.isFinal()) {</span>
+<span class="nc" id="L590">                    throw new ClassConstraintException(&quot;Interface field '&quot; + tostring(obj) + &quot;' must have the ACC_FINAL modifier set but hasn't.&quot;);</span>
+                }
+            }
+
+<span class="fc bfc" id="L594" title="All 2 branches covered.">            if ((obj.getAccessFlags() &amp; ~(Const.ACC_PUBLIC | Const.ACC_PRIVATE | Const.ACC_PROTECTED | Const.ACC_STATIC | Const.ACC_FINAL | Const.ACC_VOLATILE |</span>
+                Const.ACC_TRANSIENT)) &gt; 0) {
+<span class="fc" id="L596">                addMessage(&quot;Field '&quot; + tostring(obj) + &quot;' has access flag(s) other than ACC_PUBLIC, ACC_PRIVATE, ACC_PROTECTED,&quot;</span>
+                    + &quot; ACC_STATIC, ACC_FINAL, ACC_VOLATILE, ACC_TRANSIENT set (ignored).&quot;);
+            }
+
+<span class="fc" id="L600">            checkIndex(obj, obj.getNameIndex(), CONST_Utf8);</span>
+
+<span class="fc" id="L602">            final String name = obj.getName();</span>
+<span class="pc bpc" id="L603" title="1 of 2 branches missed.">            if (!validFieldName(name)) {</span>
+<span class="nc" id="L604">                throw new ClassConstraintException(&quot;Field '&quot; + tostring(obj) + &quot;' has illegal name '&quot; + obj.getName() + &quot;'.&quot;);</span>
+            }
+
+            // A descriptor is often named signature in BCEL
+<span class="fc" id="L608">            checkIndex(obj, obj.getSignatureIndex(), CONST_Utf8);</span>
+
+<span class="fc" id="L610">            final String sig = ((ConstantUtf8) cp.getConstant(obj.getSignatureIndex())).getBytes(); // Field or Method sig.(=descriptor)</span>
+
+            try {
+<span class="fc" id="L613">                Type.getType(sig); /* Don't need the return value */</span>
+<span class="nc" id="L614">            } catch (final ClassFormatException cfe) {</span>
+<span class="nc" id="L615">                throw new ClassConstraintException(&quot;Illegal descriptor (==signature) '&quot; + sig + &quot;' used by '&quot; + tostring(obj) + &quot;'.&quot;, cfe);</span>
+<span class="fc" id="L616">            }</span>
+
+<span class="fc" id="L618">            final String nameanddesc = name + sig;</span>
+<span class="pc bpc" id="L619" title="1 of 2 branches missed.">            if (fieldNamesAndDesc.contains(nameanddesc)) {</span>
+<span class="nc" id="L620">                throw new ClassConstraintException(&quot;No two fields (like '&quot; + tostring(obj) + &quot;') are allowed have same names and descriptors.&quot;);</span>
+            }
+<span class="pc bpc" id="L622" title="1 of 2 branches missed.">            if (fieldNames.contains(name)) {</span>
+<span class="nc" id="L623">                addMessage(&quot;More than one field of name '&quot; + name + &quot;' detected (but with different type descriptors). This is very unusual.&quot;);</span>
+            }
+<span class="fc" id="L625">            fieldNamesAndDesc.add(nameanddesc);</span>
+<span class="fc" id="L626">            fieldNames.add(name);</span>
+
+<span class="fc" id="L628">            final Attribute[] atts = obj.getAttributes();</span>
+<span class="fc bfc" id="L629" title="All 2 branches covered.">            for (final Attribute att : atts) {</span>
+<span class="fc bfc" id="L630" title="All 6 branches covered.">                if (!(att instanceof ConstantValue) &amp;&amp; !(att instanceof Synthetic) &amp;&amp; !(att instanceof Deprecated)) {</span>
+<span class="fc" id="L631">                    addMessage(&quot;Attribute '&quot; + tostring(att) + &quot;' as an attribute of Field '&quot; + tostring(obj) + &quot;' is unknown and will therefore be ignored.&quot;);</span>
+                }
+<span class="fc bfc" id="L633" title="All 2 branches covered.">                if (!(att instanceof ConstantValue)) {</span>
+<span class="fc" id="L634">                    addMessage(&quot;Attribute '&quot; + tostring(att) + &quot;' as an attribute of Field '&quot; + tostring(obj)</span>
+                        + &quot;' is not a ConstantValue and is therefore only of use for debuggers and such.&quot;);
+                }
+            }
+<span class="fc" id="L638">        }</span>
+
+        @Override
+        public void visitInnerClass(final InnerClass obj) {
+            // This does not represent an Attribute but is only
+            // related to internal BCEL data representation.
+<span class="fc" id="L644">        }</span>
+
+        @Override
+        public void visitInnerClasses(final InnerClasses innerClasses) { // vmspec2 4.7.5
+
+            // exactly one InnerClasses attr per ClassFile if some inner class is refernced: see visitJavaClass()
+
+<span class="fc" id="L651">            checkIndex(innerClasses, innerClasses.getNameIndex(), CONST_Utf8);</span>
+
+<span class="fc" id="L653">            final String name = ((ConstantUtf8) cp.getConstant(innerClasses.getNameIndex())).getBytes();</span>
+<span class="pc bpc" id="L654" title="1 of 2 branches missed.">            if (!name.equals(&quot;InnerClasses&quot;)) {</span>
+<span class="nc" id="L655">                throw new ClassConstraintException(</span>
+<span class="nc" id="L656">                    &quot;The InnerClasses attribute '&quot; + tostring(innerClasses) + &quot;' is not correctly named 'InnerClasses' but '&quot; + name + &quot;'.&quot;);</span>
+            }
+
+<span class="fc" id="L659">            innerClasses.forEach(ic -&gt; {</span>
+<span class="fc" id="L660">                checkIndex(innerClasses, ic.getInnerClassIndex(), CONST_Class);</span>
+<span class="fc" id="L661">                final int outerIdx = ic.getOuterClassIndex();</span>
+<span class="fc bfc" id="L662" title="All 2 branches covered.">                if (outerIdx != 0) {</span>
+<span class="fc" id="L663">                    checkIndex(innerClasses, outerIdx, CONST_Class);</span>
+                }
+<span class="fc" id="L665">                final int innernameIdx = ic.getInnerNameIndex();</span>
+<span class="fc bfc" id="L666" title="All 2 branches covered.">                if (innernameIdx != 0) {</span>
+<span class="fc" id="L667">                    checkIndex(innerClasses, innernameIdx, CONST_Utf8);</span>
+                }
+<span class="fc" id="L669">                int acc = ic.getInnerAccessFlags();</span>
+<span class="fc" id="L670">                acc &amp;= ~(Const.ACC_PUBLIC | Const.ACC_PRIVATE | Const.ACC_PROTECTED | Const.ACC_STATIC | Const.ACC_FINAL | Const.ACC_INTERFACE |</span>
+                    Const.ACC_ABSTRACT);
+<span class="fc bfc" id="L672" title="All 2 branches covered.">                if (acc != 0) {</span>
+<span class="fc" id="L673">                    addMessage(&quot;Unknown access flag for inner class '&quot; + tostring(ic) + &quot;' set (InnerClasses attribute '&quot; + tostring(innerClasses) + &quot;').&quot;);</span>
+                }
+<span class="fc" id="L675">            });</span>
+            // Semantical consistency is not yet checked by Sun, see vmspec2 4.7.5.
+            // [marked TODO in JustIce]
+<span class="fc" id="L678">        }</span>
+
+        ///////////////////////////////////////
+        // ClassFile structure (vmspec2 4.1) //
+        ///////////////////////////////////////
+        @Override
+        public void visitJavaClass(final JavaClass obj) {
+<span class="fc" id="L685">            final Attribute[] atts = obj.getAttributes();</span>
+<span class="fc" id="L686">            boolean foundSourceFile = false;</span>
+<span class="fc" id="L687">            boolean foundInnerClasses = false;</span>
+
+            // Is there an InnerClass referenced?
+            // This is a costly check; existing verifiers don't do it!
+<span class="fc" id="L691">            final boolean hasInnerClass = new InnerClassDetector(jc).innerClassReferenced();</span>
+
+<span class="fc bfc" id="L693" title="All 2 branches covered.">            for (final Attribute att : atts) {</span>
+<span class="fc bfc" id="L694" title="All 8 branches covered.">                if (!(att instanceof SourceFile) &amp;&amp; !(att instanceof Deprecated) &amp;&amp; !(att instanceof InnerClasses) &amp;&amp; !(att instanceof Synthetic)) {</span>
+<span class="fc" id="L695">                    addMessage(&quot;Attribute '&quot; + tostring(att) + &quot;' as an attribute of the ClassFile structure '&quot; + tostring(obj)</span>
+                        + &quot;' is unknown and will therefore be ignored.&quot;);
+                }
+
+<span class="fc bfc" id="L699" title="All 2 branches covered.">                if (att instanceof SourceFile) {</span>
+<span class="pc bpc" id="L700" title="1 of 2 branches missed.">                    if (foundSourceFile) {</span>
+<span class="nc" id="L701">                        throw new ClassConstraintException(</span>
+<span class="nc" id="L702">                            &quot;A ClassFile structure (like '&quot; + tostring(obj) + &quot;') may have no more than one SourceFile attribute.&quot;); // vmspec2 4.7.7</span>
+                    }
+<span class="fc" id="L704">                    foundSourceFile = true;</span>
+                }
+
+<span class="fc bfc" id="L707" title="All 2 branches covered.">                if (att instanceof InnerClasses) {</span>
+<span class="pc bpc" id="L708" title="1 of 2 branches missed.">                    if (!foundInnerClasses) {</span>
+<span class="fc" id="L709">                        foundInnerClasses = true;</span>
+<span class="nc bnc" id="L710" title="All 2 branches missed.">                    } else if (hasInnerClass) {</span>
+<span class="nc" id="L711">                        throw new ClassConstraintException(&quot;A Classfile structure (like '&quot; + tostring(obj) + &quot;') must have exactly one InnerClasses attribute&quot;</span>
+                            + &quot; if at least one Inner Class is referenced (which is the case). More than one InnerClasses attribute was found.&quot;);
+                    }
+<span class="fc bfc" id="L714" title="All 2 branches covered.">                    if (!hasInnerClass) {</span>
+<span class="fc" id="L715">                        addMessage(&quot;No referenced Inner Class found, but InnerClasses attribute '&quot; + tostring(att)</span>
+                            + &quot;' found. Strongly suggest removal of that attribute.&quot;);
+                    }
+                }
+
+            }
+<span class="pc bpc" id="L721" title="1 of 4 branches missed.">            if (hasInnerClass &amp;&amp; !foundInnerClasses) {</span>
+                // throw new ClassConstraintException(&quot;A Classfile structure (like '&quot;+tostring(obj)+
+                // &quot;') must have exactly one InnerClasses attribute if at least one Inner Class is referenced (which is the case).&quot;+
+                // &quot; No InnerClasses attribute was found.&quot;);
+                // vmspec2, page 125 says it would be a constraint: but existing verifiers
+                // don't check it and javac doesn't satisfy it when it comes to anonymous
+                // inner classes
+<span class="nc" id="L728">                addMessage(&quot;A Classfile structure (like '&quot; + tostring(obj)</span>
+                    + &quot;') must have exactly one InnerClasses attribute if at least one Inner Class is referenced (which is the case).&quot;
+                    + &quot; No InnerClasses attribute was found.&quot;);
+            }
+<span class="fc" id="L732">        }</span>
+
+        @Override
+        public void visitLineNumber(final LineNumber obj) {
+            // This does not represent an Attribute but is only
+            // related to internal BCEL data representation.
+
+            // see visitLineNumberTable(LineNumberTable)
+<span class="fc" id="L740">        }</span>
+
+        // SYNTHETIC: see above
+        // DEPRECATED: see above
+        //////////////////////////////////////////////////////////////
+        // code_attribute-structure-ATTRIBUTES (vmspec2 4.7.3, 4.7) //
+        //////////////////////////////////////////////////////////////
+        @Override
+        public void visitLineNumberTable(final LineNumberTable obj) { // vmspec2 4.7.8
+<span class="fc" id="L749">            checkIndex(obj, obj.getNameIndex(), CONST_Utf8);</span>
+
+<span class="fc" id="L751">            final String name = ((ConstantUtf8) cp.getConstant(obj.getNameIndex())).getBytes();</span>
+<span class="pc bpc" id="L752" title="1 of 2 branches missed.">            if (!name.equals(&quot;LineNumberTable&quot;)) {</span>
+<span class="nc" id="L753">                throw new ClassConstraintException(</span>
+<span class="nc" id="L754">                    &quot;The LineNumberTable attribute '&quot; + tostring(obj) + &quot;' is not correctly named 'LineNumberTable' but '&quot; + name + &quot;'.&quot;);</span>
+            }
+
+            // In JustIce, this check is delayed to Pass 3a.
+            // LineNumber[] linenumbers = obj.getLineNumberTable();
+            // ...validity check...
+
+<span class="fc" id="L761">        }</span>
+
+        //////////
+        // BCEL //
+        //////////
+        @Override
+        public void visitLocalVariable(final LocalVariable obj) {
+            // This does not represent an Attribute but is only
+            // related to internal BCEL data representation.
+
+            // see visitLocalVariableTable(LocalVariableTable)
+<span class="fc" id="L772">        }</span>
+
+        @Override
+        public void visitLocalVariableTable(final LocalVariableTable obj) { // vmspec2 4.7.9
+            // In JustIce, this check is partially delayed to Pass 3a.
+            // The other part can be found in the visitCode(Code) method.
+<span class="fc" id="L778">        }</span>
+
+        ///////////////////////////
+        // METHODS (vmspec2 4.6) //
+        ///////////////////////////
+        @Override
+        public void visitMethod(final Method obj) {
+
+<span class="fc" id="L786">            checkIndex(obj, obj.getNameIndex(), CONST_Utf8);</span>
+
+<span class="fc" id="L788">            final String name = obj.getName();</span>
+<span class="pc bpc" id="L789" title="1 of 2 branches missed.">            if (!validMethodName(name, true)) {</span>
+<span class="nc" id="L790">                throw new ClassConstraintException(&quot;Method '&quot; + tostring(obj) + &quot;' has illegal name '&quot; + name + &quot;'.&quot;);</span>
+            }
+
+            // A descriptor is often named signature in BCEL
+<span class="fc" id="L794">            checkIndex(obj, obj.getSignatureIndex(), CONST_Utf8);</span>
+
+<span class="fc" id="L796">            final String sig = ((ConstantUtf8) cp.getConstant(obj.getSignatureIndex())).getBytes(); // Method's signature(=descriptor)</span>
+
+            final Type t;
+            final Type[] ts; // needed below the try block.
+            try {
+<span class="fc" id="L801">                t = Type.getReturnType(sig);</span>
+<span class="fc" id="L802">                ts = Type.getArgumentTypes(sig);</span>
+<span class="nc" id="L803">            } catch (final ClassFormatException cfe) {</span>
+<span class="nc" id="L804">                throw new ClassConstraintException(&quot;Illegal descriptor (==signature) '&quot; + sig + &quot;' used by Method '&quot; + tostring(obj) + &quot;'.&quot;, cfe);</span>
+<span class="fc" id="L805">            }</span>
+
+            // Check if referenced objects exist.
+<span class="fc" id="L808">            Type act = t;</span>
+<span class="fc bfc" id="L809" title="All 2 branches covered.">            if (act instanceof ArrayType) {</span>
+<span class="fc" id="L810">                act = ((ArrayType) act).getBasicType();</span>
+            }
+<span class="fc bfc" id="L812" title="All 2 branches covered.">            if (act instanceof ObjectType) {</span>
+<span class="fc" id="L813">                final Verifier v = VerifierFactory.getVerifier(((ObjectType) act).getClassName());</span>
+<span class="fc" id="L814">                final VerificationResult vr = v.doPass1();</span>
+<span class="pc bpc" id="L815" title="1 of 2 branches missed.">                if (vr != VerificationResult.VR_OK) {</span>
+<span class="nc" id="L816">                    throw new ClassConstraintException(</span>
+<span class="nc" id="L817">                        &quot;Method '&quot; + tostring(obj) + &quot;' has a return type that does not pass verification pass 1: '&quot; + vr + &quot;'.&quot;);</span>
+                }
+            }
+
+<span class="fc bfc" id="L821" title="All 2 branches covered.">            for (final Type element : ts) {</span>
+<span class="fc" id="L822">                act = element;</span>
+<span class="fc bfc" id="L823" title="All 2 branches covered.">                if (act instanceof ArrayType) {</span>
+<span class="fc" id="L824">                    act = ((ArrayType) act).getBasicType();</span>
+                }
+<span class="fc bfc" id="L826" title="All 2 branches covered.">                if (act instanceof ObjectType) {</span>
+<span class="fc" id="L827">                    final Verifier v = VerifierFactory.getVerifier(((ObjectType) act).getClassName());</span>
+<span class="fc" id="L828">                    final VerificationResult vr = v.doPass1();</span>
+<span class="pc bpc" id="L829" title="1 of 2 branches missed.">                    if (vr != VerificationResult.VR_OK) {</span>
+<span class="nc" id="L830">                        throw new ClassConstraintException(</span>
+<span class="nc" id="L831">                            &quot;Method '&quot; + tostring(obj) + &quot;' has an argument type that does not pass verification pass 1: '&quot; + vr + &quot;'.&quot;);</span>
+                    }
+                }
+            }
+
+            // Nearly forgot this! Funny return values are allowed, but a non-empty arguments list makes a different method out of
+            // it!
+<span class="pc bpc" id="L838" title="1 of 4 branches missed.">            if (name.equals(Const.STATIC_INITIALIZER_NAME) &amp;&amp; ts.length != 0) {</span>
+<span class="nc" id="L839">                throw new ClassConstraintException(&quot;Method '&quot; + tostring(obj) + &quot;' has illegal name '&quot; + name + &quot;'.&quot;</span>
+                    + &quot; Its name resembles the class or interface initialization method which it isn't because of its arguments (==descriptor).&quot;);
+            }
+
+<span class="fc bfc" id="L843" title="All 2 branches covered.">            if (jc.isClass()) {</span>
+<span class="fc" id="L844">                int maxone = 0;</span>
+<span class="fc bfc" id="L845" title="All 2 branches covered.">                if (obj.isPrivate()) {</span>
+<span class="fc" id="L846">                    maxone++;</span>
+                }
+<span class="fc bfc" id="L848" title="All 2 branches covered.">                if (obj.isProtected()) {</span>
+<span class="fc" id="L849">                    maxone++;</span>
+                }
+<span class="fc bfc" id="L851" title="All 2 branches covered.">                if (obj.isPublic()) {</span>
+<span class="fc" id="L852">                    maxone++;</span>
+                }
+<span class="pc bpc" id="L854" title="1 of 2 branches missed.">                if (maxone &gt; 1) {</span>
+<span class="nc" id="L855">                    throw new ClassConstraintException(</span>
+<span class="nc" id="L856">                        &quot;Method '&quot; + tostring(obj) + &quot;' must only have at most one of its ACC_PRIVATE, ACC_PROTECTED, ACC_PUBLIC modifiers set.&quot;);</span>
+                }
+
+<span class="fc bfc" id="L859" title="All 2 branches covered.">                if (obj.isAbstract()) {</span>
+<span class="pc bpc" id="L860" title="1 of 2 branches missed.">                    if (obj.isFinal()) {</span>
+<span class="nc" id="L861">                        throw new ClassConstraintException(&quot;Abstract method '&quot; + tostring(obj) + &quot;' must not have the ACC_FINAL modifier set.&quot;);</span>
+                    }
+<span class="pc bpc" id="L863" title="1 of 2 branches missed.">                    if (obj.isNative()) {</span>
+<span class="nc" id="L864">                        throw new ClassConstraintException(&quot;Abstract method '&quot; + tostring(obj) + &quot;' must not have the ACC_NATIVE modifier set.&quot;);</span>
+                    }
+<span class="pc bpc" id="L866" title="1 of 2 branches missed.">                    if (obj.isPrivate()) {</span>
+<span class="nc" id="L867">                        throw new ClassConstraintException(&quot;Abstract method '&quot; + tostring(obj) + &quot;' must not have the ACC_PRIVATE modifier set.&quot;);</span>
+                    }
+<span class="pc bpc" id="L869" title="1 of 2 branches missed.">                    if (obj.isStatic()) {</span>
+<span class="nc" id="L870">                        throw new ClassConstraintException(&quot;Abstract method '&quot; + tostring(obj) + &quot;' must not have the ACC_STATIC modifier set.&quot;);</span>
+                    }
+<span class="pc bpc" id="L872" title="1 of 2 branches missed.">                    if (obj.isStrictfp()) {</span>
+<span class="nc" id="L873">                        throw new ClassConstraintException(&quot;Abstract method '&quot; + tostring(obj) + &quot;' must not have the ACC_STRICT modifier set.&quot;);</span>
+                    }
+<span class="pc bpc" id="L875" title="1 of 2 branches missed.">                    if (obj.isSynchronized()) {</span>
+<span class="nc" id="L876">                        throw new ClassConstraintException(&quot;Abstract method '&quot; + tostring(obj) + &quot;' must not have the ACC_SYNCHRONIZED modifier set.&quot;);</span>
+                    }
+                }
+
+                // A specific instance initialization method... (vmspec2,Page 116).
+                // ..may have at most one of ACC_PRIVATE, ACC_PROTECTED, ACC_PUBLIC set: is checked above.
+                // ..may also have ACC_STRICT set, but none of the other flags in table 4.5 (vmspec2, page 115)
+<span class="pc bpc" id="L883" title="5 of 12 branches missed.">                if (name.equals(Const.CONSTRUCTOR_NAME) &amp;&amp; (obj.isStatic() || obj.isFinal() || obj.isSynchronized() || obj.isNative() || obj.isAbstract())) {</span>
+<span class="nc" id="L884">                    throw new ClassConstraintException(&quot;Instance initialization method '&quot; + tostring(obj) + &quot;' must not have&quot;</span>
+                            + &quot; any of the ACC_STATIC, ACC_FINAL, ACC_SYNCHRONIZED, ACC_NATIVE, ACC_ABSTRACT modifiers set.&quot;);
+                }
+<span class="pc bpc" id="L887" title="1 of 2 branches missed.">            } else if (!name.equals(Const.STATIC_INITIALIZER_NAME)) { // vmspec2, p.116, 2nd paragraph</span>
+<span class="fc bfc" id="L888" title="All 2 branches covered.">                if (jc.getMajor() &gt;= Const.MAJOR_1_8) {</span>
+<span class="pc bpc" id="L889" title="1 of 2 branches missed.">                    if (obj.isPublic() == obj.isPrivate()) {</span>
+<span class="nc" id="L890">                        throw new ClassConstraintException(</span>
+<span class="nc" id="L891">                            &quot;Interface method '&quot; + tostring(obj) + &quot;' must have exactly one of its ACC_PUBLIC and ACC_PRIVATE modifiers set.&quot;);</span>
+                    }
+<span class="pc bpc" id="L893" title="4 of 8 branches missed.">                    if (obj.isProtected() || obj.isFinal() || obj.isSynchronized() || obj.isNative()) {</span>
+<span class="nc" id="L894">                        throw new ClassConstraintException(&quot;Interface method '&quot; + tostring(obj) + &quot;' must not have&quot;</span>
+                            + &quot; any of the ACC_PROTECTED, ACC_FINAL, ACC_SYNCHRONIZED, or ACC_NATIVE modifiers set.&quot;);
+                    }
+
+                } else {
+<span class="pc bpc" id="L899" title="1 of 2 branches missed.">                    if (!obj.isPublic()) {</span>
+<span class="nc" id="L900">                        throw new ClassConstraintException(&quot;Interface method '&quot; + tostring(obj) + &quot;' must have the ACC_PUBLIC modifier set but hasn't.&quot;);</span>
+                    }
+<span class="pc bpc" id="L902" title="1 of 2 branches missed.">                    if (!obj.isAbstract()) {</span>
+<span class="nc" id="L903">                        throw new ClassConstraintException(&quot;Interface method '&quot; + tostring(obj) + &quot;' must have the ACC_ABSTRACT modifier set but hasn't.&quot;);</span>
+                    }
+<span class="pc bpc" id="L905" title="7 of 14 branches missed.">                    if (obj.isPrivate() || obj.isProtected() || obj.isStatic() || obj.isFinal() || obj.isSynchronized() || obj.isNative() || obj.isStrictfp()) {</span>
+<span class="nc" id="L906">                        throw new ClassConstraintException(&quot;Interface method '&quot; + tostring(obj) + &quot;' must not have&quot;</span>
+                            + &quot; any of the ACC_PRIVATE, ACC_PROTECTED, ACC_STATIC, ACC_FINAL, ACC_SYNCHRONIZED,&quot;
+                            + &quot; ACC_NATIVE, ACC_ABSTRACT, ACC_STRICT modifiers set.&quot;);
+                    }
+                }
+            }
+
+<span class="fc bfc" id="L913" title="All 2 branches covered.">            if ((obj.getAccessFlags() &amp; ~(Const.ACC_PUBLIC | Const.ACC_PRIVATE | Const.ACC_PROTECTED | Const.ACC_STATIC | Const.ACC_FINAL |</span>
+                Const.ACC_SYNCHRONIZED | Const.ACC_NATIVE | Const.ACC_ABSTRACT | Const.ACC_STRICT)) &gt; 0) {
+<span class="fc" id="L915">                addMessage(&quot;Method '&quot; + tostring(obj) + &quot;' has access flag(s) other than ACC_PUBLIC, ACC_PRIVATE, ACC_PROTECTED, ACC_STATIC, ACC_FINAL,&quot;</span>
+                    + &quot; ACC_SYNCHRONIZED, ACC_NATIVE, ACC_ABSTRACT, ACC_STRICT set (ignored).&quot;);
+            }
+
+<span class="fc" id="L919">            final String nameanddesc = name + sig;</span>
+<span class="pc bpc" id="L920" title="1 of 2 branches missed.">            if (methodNamesAndDesc.contains(nameanddesc)) {</span>
+<span class="nc" id="L921">                throw new ClassConstraintException(&quot;No two methods (like '&quot; + tostring(obj) + &quot;') are allowed have same names and desciptors.&quot;);</span>
+            }
+<span class="fc" id="L923">            methodNamesAndDesc.add(nameanddesc);</span>
+
+<span class="fc" id="L925">            final Attribute[] atts = obj.getAttributes();</span>
+<span class="fc" id="L926">            int numCodeAtts = 0;</span>
+<span class="fc bfc" id="L927" title="All 2 branches covered.">            for (final Attribute att : atts) {</span>
+<span class="fc bfc" id="L928" title="All 8 branches covered.">                if (!(att instanceof Code) &amp;&amp; !(att instanceof ExceptionTable) &amp;&amp; !(att instanceof Synthetic) &amp;&amp; !(att instanceof Deprecated)) {</span>
+<span class="fc" id="L929">                    addMessage(&quot;Attribute '&quot; + tostring(att) + &quot;' as an attribute of Method '&quot; + tostring(obj) + &quot;' is unknown and will therefore be ignored.&quot;);</span>
+                }
+<span class="fc bfc" id="L931" title="All 4 branches covered.">                if (!(att instanceof Code) &amp;&amp; !(att instanceof ExceptionTable)) {</span>
+<span class="fc" id="L932">                    addMessage(&quot;Attribute '&quot; + tostring(att) + &quot;' as an attribute of Method '&quot; + tostring(obj)</span>
+                        + &quot;' is neither Code nor Exceptions and is therefore only of use for debuggers and such.&quot;);
+                }
+<span class="pc bpc" id="L935" title="2 of 6 branches missed.">                if (att instanceof Code &amp;&amp; (obj.isNative() || obj.isAbstract())) {</span>
+<span class="nc" id="L936">                    throw new ClassConstraintException(</span>
+<span class="nc" id="L937">                        &quot;Native or abstract methods like '&quot; + tostring(obj) + &quot;' must not have a Code attribute like '&quot; + tostring(att) + &quot;'.&quot;); // vmspec2</span>
+                                                                                                                                                 // page120,
+                                                                                                                                                 // 4.7.3
+                }
+<span class="fc bfc" id="L941" title="All 2 branches covered.">                if (att instanceof Code) {</span>
+<span class="fc" id="L942">                    numCodeAtts++;</span>
+                }
+            }
+<span class="pc bpc" id="L945" title="1 of 6 branches missed.">            if (!obj.isNative() &amp;&amp; !obj.isAbstract() &amp;&amp; numCodeAtts != 1) {</span>
+<span class="nc" id="L946">                throw new ClassConstraintException(</span>
+<span class="nc" id="L947">                    &quot;Non-native, non-abstract methods like '&quot; + tostring(obj) + &quot;' must have exactly one Code attribute (found: &quot; + numCodeAtts + &quot;).&quot;);</span>
+            }
+<span class="fc" id="L949">        }</span>
+
+        ///////////////////////////////////////////////////////
+        // ClassFile-structure-ATTRIBUTES (vmspec2 4.1, 4.7) //
+        ///////////////////////////////////////////////////////
+        @Override
+        public void visitSourceFile(final SourceFile obj) { // vmspec2 4.7.7
+
+            // zero or one SourceFile attr per ClassFile: see visitJavaClass()
+
+<span class="fc" id="L959">            checkIndex(obj, obj.getNameIndex(), CONST_Utf8);</span>
+
+<span class="fc" id="L961">            final String name = ((ConstantUtf8) cp.getConstant(obj.getNameIndex())).getBytes();</span>
+<span class="pc bpc" id="L962" title="1 of 2 branches missed.">            if (!name.equals(&quot;SourceFile&quot;)) {</span>
+<span class="nc" id="L963">                throw new ClassConstraintException(&quot;The SourceFile attribute '&quot; + tostring(obj) + &quot;' is not correctly named 'SourceFile' but '&quot; + name + &quot;'.&quot;);</span>
+            }
+
+<span class="fc" id="L966">            checkIndex(obj, obj.getSourceFileIndex(), CONST_Utf8);</span>
+
+<span class="fc" id="L968">            final String sourceFileName = ((ConstantUtf8) cp.getConstant(obj.getSourceFileIndex())).getBytes(); // ==obj.getSourceFileName() ?</span>
+<span class="fc" id="L969">            final String sourceFileNameLc = StringUtils.toRootLowerCase(sourceFileName);</span>
+
+<span class="pc bpc" id="L971" title="3 of 6 branches missed.">            if (sourceFileName.indexOf('/') != -1 || sourceFileName.indexOf('\\') != -1 || sourceFileName.indexOf(':') != -1</span>
+<span class="pc bpc" id="L972" title="1 of 2 branches missed.">                || sourceFileNameLc.lastIndexOf(&quot;.java&quot;) == -1) {</span>
+<span class="nc" id="L973">                addMessage(&quot;SourceFile attribute '&quot; + tostring(obj)</span>
+                    + &quot;' has a funny name: remember not to confuse certain parsers working on javap's output. Also, this name ('&quot; + sourceFileName
+                    + &quot;') is considered an unqualified (simple) file name only.&quot;);
+            }
+<span class="fc" id="L977">        }</span>
+
+        @Override
+        public void visitSynthetic(final Synthetic obj) { // vmspec2 4.7.6
+<span class="fc" id="L981">            checkIndex(obj, obj.getNameIndex(), CONST_Utf8);</span>
+<span class="fc" id="L982">            final String name = ((ConstantUtf8) cp.getConstant(obj.getNameIndex())).getBytes();</span>
+<span class="pc bpc" id="L983" title="1 of 2 branches missed.">            if (!name.equals(&quot;Synthetic&quot;)) {</span>
+<span class="nc" id="L984">                throw new ClassConstraintException(&quot;The Synthetic attribute '&quot; + tostring(obj) + &quot;' is not correctly named 'Synthetic' but '&quot; + name + &quot;'.&quot;);</span>
+            }
+<span class="fc" id="L986">        }</span>
+
+        ////////////////////////////////////////////////////
+        // MISC-structure-ATTRIBUTES (vmspec2 4.7.1, 4.7) //
+        ////////////////////////////////////////////////////
+        @Override
+        public void visitUnknown(final Unknown obj) { // vmspec2 4.7.1
+            // Represents an unknown attribute.
+<span class="nc" id="L994">            checkIndex(obj, obj.getNameIndex(), CONST_Utf8);</span>
+
+            // Maybe only misnamed? Give a (warning) message.
+<span class="nc" id="L997">            addMessage(&quot;Unknown attribute '&quot; + tostring(obj) + &quot;'. This attribute is not known in any context!&quot;);</span>
+<span class="nc" id="L998">        }</span>
+    }
+
+    /**
+     * A Visitor class that ensures the ConstantCP-subclassed entries of the constant pool are valid. &lt;B&gt;Precondition:
+     * index-style cross referencing in the constant pool must be valid.&lt;/B&gt;
+     *
+     * @see #constantPoolEntriesSatisfyStaticConstraints()
+     * @see org.apache.bcel.classfile.ConstantCP
+     */
+    private final class FAMRAV_Visitor extends EmptyVisitor {
+        private final ConstantPool cp; // ==jc.getConstantPool() -- only here to save typing work.
+
+<span class="fc" id="L1011">        private FAMRAV_Visitor(final JavaClass jc) {</span>
+<span class="fc" id="L1012">            this.cp = jc.getConstantPool();</span>
+<span class="fc" id="L1013">        }</span>
+
+        @Override
+        public void visitConstantFieldref(final ConstantFieldref obj) {
+<span class="pc bpc" id="L1017" title="1 of 2 branches missed.">            if (obj.getTag() != Const.CONSTANT_Fieldref) {</span>
+<span class="nc" id="L1018">                throw new ClassConstraintException(&quot;ConstantFieldref '&quot; + tostring(obj) + &quot;' has wrong tag.&quot;);</span>
+            }
+<span class="fc" id="L1020">            final int nameAndTypeIndex = obj.getNameAndTypeIndex();</span>
+<span class="fc" id="L1021">            final ConstantNameAndType cnat = (ConstantNameAndType) cp.getConstant(nameAndTypeIndex);</span>
+<span class="fc" id="L1022">            final String name = ((ConstantUtf8) cp.getConstant(cnat.getNameIndex())).getBytes(); // Field or Method name</span>
+<span class="pc bpc" id="L1023" title="1 of 2 branches missed.">            if (!validFieldName(name)) {</span>
+<span class="nc" id="L1024">                throw new ClassConstraintException(&quot;Invalid field name '&quot; + name + &quot;' referenced by '&quot; + tostring(obj) + &quot;'.&quot;);</span>
+            }
+
+<span class="fc" id="L1027">            final int classIndex = obj.getClassIndex();</span>
+<span class="fc" id="L1028">            final ConstantClass cc = (ConstantClass) cp.getConstant(classIndex);</span>
+<span class="fc" id="L1029">            final String className = ((ConstantUtf8) cp.getConstant(cc.getNameIndex())).getBytes(); // Class Name in internal form</span>
+<span class="pc bpc" id="L1030" title="1 of 2 branches missed.">            if (!validClassName(className)) {</span>
+<span class="nc" id="L1031">                throw new ClassConstraintException(&quot;Illegal class name '&quot; + className + &quot;' used by '&quot; + tostring(obj) + &quot;'.&quot;);</span>
+            }
+
+<span class="fc" id="L1034">            final String sig = ((ConstantUtf8) cp.getConstant(cnat.getSignatureIndex())).getBytes(); // Field or Method sig.(=descriptor)</span>
+
+            try {
+<span class="fc" id="L1037">                Type.getType(sig); /* Don't need the return value */</span>
+<span class="nc" id="L1038">            } catch (final ClassFormatException cfe) {</span>
+<span class="nc" id="L1039">                throw new ClassConstraintException(&quot;Illegal descriptor (==signature) '&quot; + sig + &quot;' used by '&quot; + tostring(obj) + &quot;'.&quot;, cfe);</span>
+<span class="fc" id="L1040">            }</span>
+<span class="fc" id="L1041">        }</span>
+
+        @Override
+        public void visitConstantInterfaceMethodref(final ConstantInterfaceMethodref obj) {
+<span class="pc bpc" id="L1045" title="1 of 2 branches missed.">            if (obj.getTag() != Const.CONSTANT_InterfaceMethodref) {</span>
+<span class="nc" id="L1046">                throw new ClassConstraintException(&quot;ConstantInterfaceMethodref '&quot; + tostring(obj) + &quot;' has wrong tag.&quot;);</span>
+            }
+<span class="fc" id="L1048">            final int nameAndTypeIndex = obj.getNameAndTypeIndex();</span>
+<span class="fc" id="L1049">            final ConstantNameAndType cnat = (ConstantNameAndType) cp.getConstant(nameAndTypeIndex);</span>
+<span class="fc" id="L1050">            final String name = ((ConstantUtf8) cp.getConstant(cnat.getNameIndex())).getBytes(); // Field or Method name</span>
+<span class="pc bpc" id="L1051" title="1 of 2 branches missed.">            if (!validInterfaceMethodName(name)) {</span>
+<span class="nc" id="L1052">                throw new ClassConstraintException(&quot;Invalid (interface) method name '&quot; + name + &quot;' referenced by '&quot; + tostring(obj) + &quot;'.&quot;);</span>
+            }
+
+<span class="fc" id="L1055">            final int classIndex = obj.getClassIndex();</span>
+<span class="fc" id="L1056">            final ConstantClass cc = (ConstantClass) cp.getConstant(classIndex);</span>
+<span class="fc" id="L1057">            final String className = ((ConstantUtf8) cp.getConstant(cc.getNameIndex())).getBytes(); // Class Name in internal form</span>
+<span class="pc bpc" id="L1058" title="1 of 2 branches missed.">            if (!validClassName(className)) {</span>
+<span class="nc" id="L1059">                throw new ClassConstraintException(&quot;Illegal class name '&quot; + className + &quot;' used by '&quot; + tostring(obj) + &quot;'.&quot;);</span>
+            }
+
+<span class="fc" id="L1062">            final String sig = ((ConstantUtf8) cp.getConstant(cnat.getSignatureIndex())).getBytes(); // Field or Method sig.(=descriptor)</span>
+
+            try {
+<span class="fc" id="L1065">                final Type t = Type.getReturnType(sig);</span>
+<span class="pc bpc" id="L1066" title="3 of 4 branches missed.">                if (name.equals(Const.STATIC_INITIALIZER_NAME) &amp;&amp; t != Type.VOID) {</span>
+<span class="nc" id="L1067">                    addMessage(&quot;Class or interface initialization method '&quot; + Const.STATIC_INITIALIZER_NAME + &quot;' usually has VOID return type instead of '&quot; + t</span>
+                        + &quot;'. Note this is really not a requirement of The Java Virtual Machine Specification, Second Edition.&quot;);
+                }
+<span class="nc" id="L1070">            } catch (final ClassFormatException cfe) {</span>
+<span class="nc" id="L1071">                throw new ClassConstraintException(&quot;Illegal descriptor (==signature) '&quot; + sig + &quot;' used by '&quot; + tostring(obj) + &quot;'.&quot;, cfe);</span>
+<span class="fc" id="L1072">            }</span>
+
+<span class="fc" id="L1074">        }</span>
+
+        @Override
+        public void visitConstantMethodref(final ConstantMethodref obj) {
+<span class="pc bpc" id="L1078" title="1 of 2 branches missed.">            if (obj.getTag() != Const.CONSTANT_Methodref) {</span>
+<span class="nc" id="L1079">                throw new ClassConstraintException(&quot;ConstantMethodref '&quot; + tostring(obj) + &quot;' has wrong tag.&quot;);</span>
+            }
+<span class="fc" id="L1081">            final int nameAndTypeIndex = obj.getNameAndTypeIndex();</span>
+<span class="fc" id="L1082">            final ConstantNameAndType cnat = (ConstantNameAndType) cp.getConstant(nameAndTypeIndex);</span>
+<span class="fc" id="L1083">            final String name = ((ConstantUtf8) cp.getConstant(cnat.getNameIndex())).getBytes(); // Field or Method name</span>
+<span class="pc bpc" id="L1084" title="1 of 2 branches missed.">            if (!validClassMethodName(name)) {</span>
+<span class="nc" id="L1085">                throw new ClassConstraintException(&quot;Invalid (non-interface) method name '&quot; + name + &quot;' referenced by '&quot; + tostring(obj) + &quot;'.&quot;);</span>
+            }
+
+<span class="fc" id="L1088">            final int classIndex = obj.getClassIndex();</span>
+<span class="fc" id="L1089">            final ConstantClass cc = (ConstantClass) cp.getConstant(classIndex);</span>
+<span class="fc" id="L1090">            final String className = ((ConstantUtf8) cp.getConstant(cc.getNameIndex())).getBytes(); // Class Name in internal form</span>
+<span class="pc bpc" id="L1091" title="1 of 2 branches missed.">            if (!validClassName(className)) {</span>
+<span class="nc" id="L1092">                throw new ClassConstraintException(&quot;Illegal class name '&quot; + className + &quot;' used by '&quot; + tostring(obj) + &quot;'.&quot;);</span>
+            }
+
+<span class="fc" id="L1095">            final String sig = ((ConstantUtf8) cp.getConstant(cnat.getSignatureIndex())).getBytes(); // Field or Method sig.(=descriptor)</span>
+
+            try {
+<span class="fc" id="L1098">                final Type t = Type.getReturnType(sig);</span>
+<span class="pc bpc" id="L1099" title="1 of 4 branches missed.">                if (name.equals(Const.CONSTRUCTOR_NAME) &amp;&amp; t != Type.VOID) {</span>
+<span class="nc" id="L1100">                    throw new ClassConstraintException(&quot;Instance initialization method must have VOID return type.&quot;);</span>
+                }
+<span class="nc" id="L1102">            } catch (final ClassFormatException cfe) {</span>
+<span class="nc" id="L1103">                throw new ClassConstraintException(&quot;Illegal descriptor (==signature) '&quot; + sig + &quot;' used by '&quot; + tostring(obj) + &quot;'.&quot;, cfe);</span>
+<span class="fc" id="L1104">            }</span>
+<span class="fc" id="L1105">        }</span>
+
+    }
+
+    /**
+     * This class serves for finding out if a given JavaClass' ConstantPool references an Inner Class. The Java Virtual
+     * Machine Specification, Second Edition is not very precise about when an &quot;InnerClasses&quot; attribute has to appear.
+     * However, it states that there has to be exactly one InnerClasses attribute in the ClassFile structure if the constant
+     * pool of a class or interface refers to any class or interface &quot;that is not a member of a package&quot;. Sun does not mean
+     * &quot;member of the default package&quot;. In &quot;Inner Classes Specification&quot; they point out how a &quot;bytecode name&quot; is derived so
+     * one has to deduce what a class name of a class &quot;that is not a member of a package&quot; looks like: there is at least one
+     * character in the byte- code name that cannot be part of a legal Java Language Class name (and not equal to '/'). This
+     * assumption is wrong as the delimiter is '$' for which Character.isJavaIdentifierPart() == true. Hence, you really run
+     * into trouble if you have a toplevel class called &quot;A$XXX&quot; and another toplevel class called &quot;A&quot; with in inner class
+     * called &quot;XXX&quot;. JustIce cannot repair this; please note that existing verifiers at this time even fail to detect
+     * missing InnerClasses attributes in pass 2.
+     */
+    private static final class InnerClassDetector extends EmptyVisitor {
+        private boolean hasInnerClass;
+        private final JavaClass jc;
+        private final ConstantPool cp;
+
+        /** Constructs an InnerClassDetector working on the JavaClass _jc. */
+<span class="fc" id="L1128">        InnerClassDetector(final JavaClass javaClass) {</span>
+<span class="fc" id="L1129">            this.jc = javaClass;</span>
+<span class="fc" id="L1130">            this.cp = jc.getConstantPool();</span>
+<span class="fc" id="L1131">            new DescendingVisitor(jc, this).visit();</span>
+<span class="fc" id="L1132">        }</span>
+
+        /**
+         * Returns if the JavaClass this InnerClassDetector is working on has an Inner Class reference in its constant pool.
+         *
+         * @return Whether this InnerClassDetector is working on has an Inner Class reference in its constant pool.
+         */
+        public boolean innerClassReferenced() {
+<span class="fc" id="L1140">            return hasInnerClass;</span>
+        }
+
+        /** This method casually visits ConstantClass references. */
+        @Override
+        public void visitConstantClass(final ConstantClass obj) {
+<span class="fc" id="L1146">            final Constant c = cp.getConstant(obj.getNameIndex());</span>
+<span class="pc bpc" id="L1147" title="1 of 2 branches missed.">            if (c instanceof ConstantUtf8) { // Ignore the case where it's not a ConstantUtf8 here, we'll find out later.</span>
+<span class="fc" id="L1148">                final String className = ((ConstantUtf8) c).getBytes();</span>
+<span class="fc bfc" id="L1149" title="All 2 branches covered.">                if (className.startsWith(Utility.packageToPath(jc.getClassName()) + &quot;$&quot;)) {</span>
+<span class="fc" id="L1150">                    hasInnerClass = true;</span>
+                }
+            }
+<span class="fc" id="L1153">        }</span>
+    }
+
+    /**
+     * This method is here to save typing work and improve code readability.
+     */
+    private static String tostring(final Node n) {
+<span class="fc" id="L1160">        return new StringRepresentation(n).toString();</span>
+    }
+
+    /**
+     * This method returns true if and only if the supplied String represents a valid method name that may be referenced by
+     * ConstantMethodref objects.
+     */
+    private static boolean validClassMethodName(final String name) {
+<span class="fc" id="L1168">        return validMethodName(name, false);</span>
+    }
+
+    /**
+     * This method returns true if and only if the supplied String represents a valid Java class name.
+     */
+    private static boolean validClassName(final String name) {
+        /*
+         * TODO: implement. Are there any restrictions?
+         */
+<span class="fc" id="L1178">        Objects.requireNonNull(name, &quot;name&quot;);</span>
+<span class="fc" id="L1179">        return true;</span>
+    }
+
+    /**
+     * This method returns true if and only if the supplied String represents a valid Java field name.
+     */
+    private static boolean validFieldName(final String name) {
+        // vmspec2 2.7, vmspec2 2.2
+<span class="fc" id="L1187">        return validJavaIdentifier(name);</span>
+    }
+
+    /**
+     * This method returns true if and only if the supplied String represents a valid Java interface method name that may be
+     * referenced by ConstantInterfaceMethodref objects.
+     */
+    private static boolean validInterfaceMethodName(final String name) {
+        // I guess we should assume special names forbidden here.
+<span class="pc bpc" id="L1196" title="1 of 2 branches missed.">        if (name.startsWith(&quot;&lt;&quot;)) {</span>
+<span class="nc" id="L1197">            return false;</span>
+        }
+<span class="fc" id="L1199">        return validJavaLangMethodName(name);</span>
+    }
+
+    /**
+     * This method returns true if and only if the supplied String represents a valid Java identifier (so-called simple or
+     * unqualified name).
+     */
+    private static boolean validJavaIdentifier(final String name) {
+        // vmspec2 2.7, vmspec2 2.2
+<span class="pc bpc" id="L1208" title="1 of 4 branches missed.">        if (name.isEmpty() || !Character.isJavaIdentifierStart(name.charAt(0))) {</span>
+<span class="fc" id="L1209">            return false;</span>
+        }
+
+<span class="fc bfc" id="L1212" title="All 2 branches covered.">        for (int i = 1; i &lt; name.length(); i++) {</span>
+<span class="pc bpc" id="L1213" title="1 of 2 branches missed.">            if (!Character.isJavaIdentifierPart(name.charAt(i))) {</span>
+<span class="nc" id="L1214">                return false;</span>
+            }
+        }
+<span class="fc" id="L1217">        return true;</span>
+    }
+
+    /**
+     * This method returns true if and only if the supplied String represents a valid Java programming language method name
+     * stored as a simple (non-qualified) name. Conforming to: The Java Virtual Machine Specification, Second Edition,
+     * �2.7, �2.7.1, �2.2.
+     */
+    private static boolean validJavaLangMethodName(final String name) {
+<span class="fc" id="L1226">        return validJavaIdentifier(name);</span>
+    }
+
+    /**
+     * This method returns true if and only if the supplied String represents a valid method name. This is basically the
+     * same as a valid identifier name in the Java programming language, but the special name for the instance
+     * initialization method is allowed and the special name for the class/interface initialization method may be allowed.
+     */
+    private static boolean validMethodName(final String name, final boolean allowStaticInit) {
+<span class="fc bfc" id="L1235" title="All 2 branches covered.">        if (validJavaLangMethodName(name)) {</span>
+<span class="fc" id="L1236">            return true;</span>
+        }
+
+<span class="fc bfc" id="L1239" title="All 2 branches covered.">        if (allowStaticInit) {</span>
+<span class="pc bpc" id="L1240" title="1 of 4 branches missed.">            return name.equals(Const.CONSTRUCTOR_NAME) || name.equals(Const.STATIC_INITIALIZER_NAME);</span>
+        }
+<span class="fc" id="L1242">        return name.equals(Const.CONSTRUCTOR_NAME);</span>
+    }
+
+    /**
+     * The LocalVariableInfo instances used by Pass3bVerifier. localVariablesInfos[i] denotes the information for the local
+     * variables of method number i in the JavaClass this verifier operates on.
+     */
+    private LocalVariablesInfo[] localVariablesInfos;
+
+    /** The Verifier that created this. */
+    private final Verifier verifier;
+
+    /**
+     * Should only be instantiated by a Verifier.
+     *
+     * @param verifier the verifier.
+     * @see Verifier
+     */
+<span class="fc" id="L1260">    public Pass2Verifier(final Verifier verifier) {</span>
+<span class="fc" id="L1261">        this.verifier = verifier;</span>
+<span class="fc" id="L1262">    }</span>
+
+    /**
+     * Ensures that the constant pool entries satisfy the static constraints as described in The Java Virtual Machine
+     * Specification, 2nd Edition.
+     *
+     * @throws ClassConstraintException otherwise.
+     */
+    private void constantPoolEntriesSatisfyStaticConstraints() {
+        try {
+            // Most of the consistency is handled internally by BCEL; here
+            // we only have to verify if the indices of the constants point
+            // to constants of the appropriate type and such.
+<span class="fc" id="L1275">            final JavaClass jc = Repository.lookupClass(verifier.getClassName());</span>
+<span class="fc" id="L1276">            new CPESSC_Visitor(jc); // constructor implicitly traverses jc</span>
+
+<span class="nc" id="L1278">        } catch (final ClassNotFoundException e) {</span>
+            // FIXME: this might not be the best way to handle missing classes.
+<span class="nc" id="L1280">            throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="fc" id="L1281">        }</span>
+<span class="fc" id="L1282">    }</span>
+
+    /**
+     * Pass 2 is the pass where static properties of the class file are checked without looking into &quot;Code&quot; arrays of
+     * methods. This verification pass is usually invoked when a class is resolved; and it may be possible that this
+     * verification pass has to load in other classes such as superclasses or implemented interfaces. Therefore, Pass 1 is
+     * run on them.
+     * &lt;p&gt;
+     * Note that most referenced classes are &lt;strong&gt;not&lt;/strong&gt; loaded in for verification or for an existence check by this pass;
+     * only the syntactical correctness of their names and descriptors (a.k.a. signatures) is checked.
+     * &lt;/p&gt;
+     * &lt;p&gt;
+     * Very few checks that conceptually belong here are delayed until pass 3a in JustIce. JustIce does not only check for
+     * syntactical correctness but also for semantical sanity - therefore it needs access to the &quot;Code&quot; array of methods in
+     * a few cases. Please see the pass 3a documentation, too.
+     * &lt;/p&gt;
+     *
+     * @see Pass3aVerifier
+     */
+    @Override
+    public VerificationResult do_verify() {
+        try {
+<span class="fc" id="L1304">            final VerificationResult vr1 = verifier.doPass1();</span>
+<span class="pc bpc" id="L1305" title="1 of 2 branches missed.">            if (vr1.equals(VerificationResult.VR_OK)) {</span>
+
+                // For every method, we could have information about the local variables out of LocalVariableTable attributes of
+                // the Code attributes.
+<span class="fc" id="L1309">                localVariablesInfos = new LocalVariablesInfo[Repository.lookupClass(verifier.getClassName()).getMethods().length];</span>
+
+<span class="fc" id="L1311">                VerificationResult vr = VerificationResult.VR_OK; // default.</span>
+                try {
+<span class="fc" id="L1313">                    constantPoolEntriesSatisfyStaticConstraints();</span>
+<span class="fc" id="L1314">                    fieldAndMethodRefsAreValid();</span>
+<span class="fc" id="L1315">                    everyClassHasAnAccessibleSuperclass();</span>
+<span class="fc" id="L1316">                    finalMethodsAreNotOverridden();</span>
+<span class="nc" id="L1317">                } catch (final ClassConstraintException cce) {</span>
+<span class="nc" id="L1318">                    vr = new VerificationResult(VerificationResult.VERIFIED_REJECTED, cce.getMessage());</span>
+<span class="fc" id="L1319">                }</span>
+<span class="fc" id="L1320">                return vr;</span>
+            }
+<span class="nc" id="L1322">            return VerificationResult.VR_NOTYET;</span>
+
+<span class="nc" id="L1324">        } catch (final ClassNotFoundException e) {</span>
+            // FIXME: this might not be the best way to handle missing classes.
+<span class="nc" id="L1326">            throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+        }
+    }
+
+    /**
+     * Ensures that every class has a super class and that {@code final} classes are not subclassed. This means, the class
+     * this Pass2Verifier operates on has proper super classes (transitively) up to {@link Object}. The reason for really
+     * loading (and Pass1-verifying) all of those classes here is that we need them in Pass2 anyway to verify no final
+     * methods are overridden (that could be declared anywhere in the ancestor hierarchy).
+     *
+     * @throws ClassConstraintException otherwise.
+     */
+    private void everyClassHasAnAccessibleSuperclass() {
+        try {
+<span class="fc" id="L1340">            final Set&lt;String&gt; hs = new HashSet&lt;&gt;(); // save class names to detect circular inheritance</span>
+<span class="fc" id="L1341">            JavaClass jc = Repository.lookupClass(verifier.getClassName());</span>
+<span class="fc" id="L1342">            int supidx = -1;</span>
+
+<span class="fc bfc" id="L1344" title="All 2 branches covered.">            while (supidx != 0) {</span>
+<span class="fc" id="L1345">                supidx = jc.getSuperclassNameIndex();</span>
+
+<span class="fc bfc" id="L1347" title="All 2 branches covered.">                if (supidx == 0) {</span>
+<span class="pc bpc" id="L1348" title="1 of 2 branches missed.">                    if (jc != Repository.lookupClass(Type.OBJECT.getClassName())) {</span>
+<span class="nc" id="L1349">                        throw new ClassConstraintException(</span>
+<span class="nc" id="L1350">                            &quot;Superclass of '&quot; + jc.getClassName() + &quot;' missing but not &quot; + Type.OBJECT.getClassName() + &quot; itself!&quot;);</span>
+                    }
+                } else {
+<span class="fc" id="L1353">                    final String supername = jc.getSuperclassName();</span>
+<span class="pc bpc" id="L1354" title="1 of 2 branches missed.">                    if (!hs.add(supername)) { // If supername already is in the list</span>
+<span class="nc" id="L1355">                        throw new ClassConstraintException(&quot;Circular superclass hierarchy detected.&quot;);</span>
+                    }
+<span class="fc" id="L1357">                    final Verifier v = VerifierFactory.getVerifier(supername);</span>
+<span class="fc" id="L1358">                    final VerificationResult vr = v.doPass1();</span>
+
+<span class="pc bpc" id="L1360" title="1 of 2 branches missed.">                    if (vr != VerificationResult.VR_OK) {</span>
+<span class="nc" id="L1361">                        throw new ClassConstraintException(&quot;Could not load in ancestor class '&quot; + supername + &quot;'.&quot;);</span>
+                    }
+<span class="fc" id="L1363">                    jc = Repository.lookupClass(supername);</span>
+
+<span class="pc bpc" id="L1365" title="1 of 2 branches missed.">                    if (jc.isFinal()) {</span>
+<span class="nc" id="L1366">                        throw new ClassConstraintException(</span>
+                            &quot;Ancestor class '&quot; + supername + &quot;' has the FINAL access modifier and must therefore not be subclassed.&quot;);
+                    }
+<span class="fc" id="L1369">                }</span>
+            }
+
+<span class="nc" id="L1372">        } catch (final ClassNotFoundException e) {</span>
+            // FIXME: this might not be the best way to handle missing classes.
+<span class="nc" id="L1374">            throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="fc" id="L1375">        }</span>
+<span class="fc" id="L1376">    }</span>
+
+    /**
+     * Ensures that the ConstantCP-subclassed entries of the constant pool are valid. According to &quot;Yellin: Low Level
+     * Security in Java&quot;, this method does not verify the existence of referenced entities (such as classes) but only the
+     * formal correctness (such as well-formed signatures). The visitXXX() methods throw ClassConstraintException instances
+     * otherwise. &lt;B&gt;Precondition: index-style cross referencing in the constant pool must be valid. Simply invoke
+     * constant_pool_entries_satisfy_static_constraints() before.&lt;/B&gt;
+     *
+     * @throws ClassConstraintException otherwise.
+     * @see #constantPoolEntriesSatisfyStaticConstraints()
+     */
+    private void fieldAndMethodRefsAreValid() {
+        try {
+<span class="fc" id="L1390">            final JavaClass jc = Repository.lookupClass(verifier.getClassName());</span>
+<span class="fc" id="L1391">            final DescendingVisitor v = new DescendingVisitor(jc, new FAMRAV_Visitor(jc));</span>
+<span class="fc" id="L1392">            v.visit();</span>
+
+<span class="nc" id="L1394">        } catch (final ClassNotFoundException e) {</span>
+            // FIXME: this might not be the best way to handle missing classes.
+<span class="nc" id="L1396">            throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="fc" id="L1397">        }</span>
+<span class="fc" id="L1398">    }</span>
+
+    /**
+     * Ensures that {@code final} methods are not overridden. &lt;B&gt;Precondition to run this method:
+     * constant_pool_entries_satisfy_static_constraints() and every_class_has_an_accessible_superclass() have to be invoked
+     * before (in that order).&lt;/B&gt;
+     *
+     * @throws ClassConstraintException otherwise.
+     * @see #constantPoolEntriesSatisfyStaticConstraints()
+     * @see #everyClassHasAnAccessibleSuperclass()
+     */
+    private void finalMethodsAreNotOverridden() {
+        try {
+<span class="fc" id="L1411">            final Map&lt;String, String&gt; map = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L1412">            JavaClass jc = Repository.lookupClass(verifier.getClassName());</span>
+
+<span class="fc" id="L1414">            int supidx = -1;</span>
+<span class="fc bfc" id="L1415" title="All 2 branches covered.">            while (supidx != 0) {</span>
+<span class="fc" id="L1416">                supidx = jc.getSuperclassNameIndex();</span>
+
+<span class="fc" id="L1418">                final Method[] methods = jc.getMethods();</span>
+<span class="fc bfc" id="L1419" title="All 2 branches covered.">                for (final Method method : methods) {</span>
+<span class="fc" id="L1420">                    final String nameAndSig = method.getName() + method.getSignature();</span>
+
+<span class="pc bpc" id="L1422" title="1 of 4 branches missed.">                    if (map.containsKey(nameAndSig) &amp;&amp; method.isFinal()) {</span>
+<span class="nc bnc" id="L1423" title="All 2 branches missed.">                        if (!method.isPrivate()) {</span>
+<span class="nc" id="L1424">                            throw new ClassConstraintException(&quot;Method '&quot; + nameAndSig + &quot;' in class '&quot; + map.get(nameAndSig)</span>
+<span class="nc" id="L1425">                                + &quot;' overrides the final (not-overridable) definition in class '&quot; + jc.getClassName() + &quot;'.&quot;);</span>
+                        }
+<span class="nc" id="L1427">                        addMessage(&quot;Method '&quot; + nameAndSig + &quot;' in class '&quot; + map.get(nameAndSig)</span>
+<span class="nc" id="L1428">                            + &quot;' overrides the final (not-overridable) definition in class '&quot; + jc.getClassName()</span>
+                            + &quot;'. This is okay, as the original definition was private; however this constraint leverage&quot;
+                            + &quot; was introduced by JLS 8.4.6 (not vmspec2) and the behavior of the Sun verifiers.&quot;);
+<span class="fc bfc" id="L1431" title="All 2 branches covered.">                    } else if (!method.isStatic()) { // static methods don't inherit</span>
+<span class="fc" id="L1432">                        map.put(nameAndSig, jc.getClassName());</span>
+                    }
+                }
+
+<span class="fc" id="L1436">                jc = Repository.lookupClass(jc.getSuperclassName());</span>
+                // Well, for OBJECT this returns OBJECT so it works (could return anything but must not throw an Exception).
+<span class="fc" id="L1438">            }</span>
+
+<span class="nc" id="L1440">        } catch (final ClassNotFoundException e) {</span>
+            // FIXME: this might not be the best way to handle missing classes.
+<span class="nc" id="L1442">            throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="fc" id="L1443">        }</span>
+
+<span class="fc" id="L1445">    }</span>
+
+    /**
+     * Returns a LocalVariablesInfo object containing information about the usage of the local variables in the Code
+     * attribute of the said method or {@code null} if the class file this Pass2Verifier operates on could not be
+     * pass-2-verified correctly. The method number method_nr is the method you get using
+     * {@code Repository.lookupClass(myOwner.getClassname()).getMethods()[method_nr];}. You should not add own information.
+     * Leave that to JustIce.
+     *
+     * @param methodNr the method number.
+     * @return the LocalVariablesInfo object or null.
+     */
+    public LocalVariablesInfo getLocalVariablesInfo(final int methodNr) {
+<span class="nc bnc" id="L1458" title="All 2 branches missed.">        if (verify() != VerificationResult.VR_OK) {</span>
+<span class="nc" id="L1459">            return null; // It's cached, don't worry.</span>
+        }
+<span class="nc bnc" id="L1461" title="All 4 branches missed.">        if (methodNr &lt; 0 || methodNr &gt;= localVariablesInfos.length) {</span>
+<span class="nc" id="L1462">            throw new AssertionViolatedException(&quot;Method number out of range.&quot;);</span>
+        }
+<span class="nc" id="L1464">        return localVariablesInfos[methodNr];</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

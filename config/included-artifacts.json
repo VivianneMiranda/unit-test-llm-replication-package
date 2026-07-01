@@ -1,0 +1,67 @@
+{
+  "generated_at": "2026-07-01",
+  "projects": {
+    "bcel": {
+      "version": "6.13.0",
+      "included": true,
+      "base_directory": "commons-bcel",
+      "variants": {
+        "developer": {
+          "path": "commons-bcel/commons-bcel-aog",
+          "label": "Developer baseline (aog)",
+          "test_java_files": 221,
+          "metrics_status": "done"
+        },
+        "opus-4.5": {
+          "path": "commons-bcel/commons-bcel-Opus",
+          "label": "Claude Opus 4.5",
+          "test_java_files": 305,
+          "metrics_status": "done"
+        },
+        "sonnet-4.5": {
+          "path": "commons-bcel/commons-bcel-Sonnet",
+          "label": "Claude Sonnet 4.5",
+          "test_java_files": 315,
+          "metrics_status": "done"
+        },
+        "gpt-5.1-codex-max": {
+          "path": "commons-bcel/commons-bcel-GPT",
+          "label": "GPT-5.1 Codex Max",
+          "test_java_files": 23,
+          "metrics_status": "done"
+        }
+      }
+    },
+    "cli": {
+      "version": "1.11.0",
+      "included": true,
+      "base_directory": "commons-cli",
+      "variants": {
+        "developer": {
+          "path": "commons-cli/commons-cli-aog",
+          "label": "Developer baseline (aog)",
+          "test_java_files": 51,
+          "metrics_status": "done"
+        },
+        "opus-4.5": {
+          "path": "commons-cli/commons-cli-opus",
+          "label": "Claude Opus 4.5",
+          "test_java_files": 23,
+          "metrics_status": "done"
+        },
+        "sonnet-4.5": {
+          "path": "commons-cli/commons-cli-sonnet",
+          "label": "Claude Sonnet 4.5",
+          "test_java_files": 23,
+          "metrics_status": "done"
+        },
+        "gpt-5.1-codex-max": {
+          "path": "commons-cli/commons-cli-gpt",
+          "label": "GPT-5.1 Codex Max",
+          "test_java_files": 24,
+          "metrics_status": "done"
+        }
+      }
+    }
+  }
+}

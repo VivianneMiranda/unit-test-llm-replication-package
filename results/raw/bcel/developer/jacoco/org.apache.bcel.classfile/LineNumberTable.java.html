@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LineNumberTable.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">LineNumberTable.java</span></div><h1>LineNumberTable.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.classfile;
+
+import java.io.DataInput;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.stream.Stream;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.util.Args;
+import org.apache.commons.lang3.SystemProperties;
+
+/**
+ * This class represents a table of line numbers for debugging purposes. This attribute is used by the &lt;em&gt;Code&lt;/em&gt;
+ * attribute. It contains pairs of PCs and line numbers.
+ *
+ * @see Code
+ * @see LineNumber
+ */
+public final class LineNumberTable extends Attribute implements Iterable&lt;LineNumber&gt; {
+
+    private static final int MAX_LINE_LENGTH = 72;
+    private LineNumber[] lineNumberTable; // Table of line/numbers pairs
+
+    /**
+     * Constructs a new instance from a data input stream.
+     *
+     * @param nameIndex Index of name.
+     * @param length Content length in bytes.
+     * @param input Input stream.
+     * @param constantPool Array of constants.
+     * @throws IOException if an I/O Exception occurs in readUnsignedShort.
+     */
+    LineNumberTable(final int nameIndex, final int length, final DataInput input, final ConstantPool constantPool) throws IOException {
+<span class="fc" id="L54">        this(nameIndex, length, (LineNumber[]) null, constantPool);</span>
+<span class="fc" id="L55">        final int lineNumberTableLength = input.readUnsignedShort();</span>
+<span class="fc" id="L56">        lineNumberTable = new LineNumber[lineNumberTableLength];</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">        for (int i = 0; i &lt; lineNumberTableLength; i++) {</span>
+<span class="fc" id="L58">            lineNumberTable[i] = new LineNumber(input);</span>
+        }
+<span class="fc" id="L60">    }</span>
+
+    /**
+     * Constructs a new instance.
+     *
+     * @param nameIndex Index of name.
+     * @param length Content length in bytes.
+     * @param lineNumberTable Table of line/numbers pairs.
+     * @param constantPool Array of constants.
+     */
+    public LineNumberTable(final int nameIndex, final int length, final LineNumber[] lineNumberTable, final ConstantPool constantPool) {
+<span class="fc" id="L71">        super(Const.ATTR_LINE_NUMBER_TABLE, nameIndex, length, constantPool);</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">        this.lineNumberTable = lineNumberTable != null ? lineNumberTable : LineNumber.EMPTY_ARRAY;</span>
+<span class="fc" id="L73">        Args.requireU2(this.lineNumberTable.length, &quot;lineNumberTable.length&quot;);</span>
+<span class="fc" id="L74">    }</span>
+
+    /**
+     * Constructs a new instance from another.
+     * &lt;p&gt;
+     * Note that both objects use the same references (shallow copy). Use copy() for a physical copy.
+     * &lt;/p&gt;
+     *
+     * @param c the instance to copy.
+     */
+    public LineNumberTable(final LineNumberTable c) {
+<span class="nc" id="L85">        this(c.getNameIndex(), c.getLength(), c.getLineNumberTable(), c.getConstantPool());</span>
+<span class="nc" id="L86">    }</span>
+
+    /**
+     * Called by objects that are traversing the nodes of the tree implicitly defined by the contents of a Java class.
+     * I.e., the hierarchy of methods, fields, attributes, etc. spawns a tree of objects.
+     *
+     * @param v Visitor object.
+     */
+    @Override
+    public void accept(final Visitor v) {
+<span class="fc" id="L96">        v.visitLineNumberTable(this);</span>
+<span class="fc" id="L97">    }</span>
+
+    /**
+     * @return deep copy of this attribute.
+     */
+    @Override
+    public Attribute copy(final ConstantPool constantPool) {
+        // TODO could use the lower level constructor and thereby allow
+        // lineNumberTable to be made final
+<span class="fc" id="L106">        final LineNumberTable c = (LineNumberTable) clone();</span>
+<span class="fc" id="L107">        c.lineNumberTable = new LineNumber[lineNumberTable.length];</span>
+<span class="fc" id="L108">        Arrays.setAll(c.lineNumberTable, i -&gt; lineNumberTable[i].copy());</span>
+<span class="fc" id="L109">        c.setConstantPool(constantPool);</span>
+<span class="fc" id="L110">        return c;</span>
+    }
+
+    /**
+     * Dumps line number table attribute to file stream in binary format.
+     *
+     * @param file Output file stream.
+     * @throws IOException if an I/O Exception occurs in writeShort.
+     */
+    @Override
+    public void dump(final DataOutputStream file) throws IOException {
+<span class="fc" id="L121">        super.dump(file);</span>
+<span class="fc" id="L122">        file.writeShort(lineNumberTable.length);</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">        for (final LineNumber lineNumber : lineNumberTable) {</span>
+<span class="fc" id="L124">            lineNumber.dump(file);</span>
+        }
+<span class="fc" id="L126">    }</span>
+
+    /**
+     * Gets the line number table.
+     *
+     * @return Array of (pc offset, line number) pairs.
+     */
+    public LineNumber[] getLineNumberTable() {
+<span class="fc" id="L134">        return lineNumberTable;</span>
+    }
+
+    /**
+     * Map byte code positions to source code lines.
+     *
+     * @param pos byte code offset.
+     * @return corresponding line in source code.
+     */
+    public int getSourceLine(final int pos) {
+<span class="nc" id="L144">        int l = 0;</span>
+<span class="nc" id="L145">        int r = lineNumberTable.length - 1;</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">        if (r &lt; 0) {</span>
+<span class="nc" id="L147">            return -1;</span>
+        }
+<span class="nc" id="L149">        int minIndex = -1;</span>
+<span class="nc" id="L150">        int min = -1;</span>
+        /*
+         * Do a binary search since the array is ordered.
+         */
+        do {
+<span class="nc" id="L155">            final int i = l + r &gt;&gt;&gt; 1;</span>
+<span class="nc" id="L156">            final int j = lineNumberTable[i].getStartPC();</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">            if (j == pos) {</span>
+<span class="nc" id="L158">                return lineNumberTable[i].getLineNumber();</span>
+            }
+<span class="nc bnc" id="L160" title="All 2 branches missed.">            if (pos &lt; j) {</span>
+<span class="nc" id="L161">                r = i - 1;</span>
+            } else {
+<span class="nc" id="L163">                l = i + 1;</span>
+            }
+            /*
+             * If exact match can't be found (which is the most common case) return the line number that corresponds to the greatest
+             * index less than pos.
+             */
+<span class="nc bnc" id="L169" title="All 4 branches missed.">            if (j &lt; pos &amp;&amp; j &gt; min) {</span>
+<span class="nc" id="L170">                min = j;</span>
+<span class="nc" id="L171">                minIndex = i;</span>
+            }
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        } while (l &lt;= r);</span>
+        /*
+         * It's possible that we did not find any valid entry for the bytecode offset we were looking for.
+         */
+<span class="nc bnc" id="L177" title="All 2 branches missed.">        if (minIndex &lt; 0) {</span>
+<span class="nc" id="L178">            return -1;</span>
+        }
+<span class="nc" id="L180">        return lineNumberTable[minIndex].getLineNumber();</span>
+    }
+
+    /**
+     * Gets the length of the line number table.
+     *
+     * @return the length of the line number table.
+     */
+    public int getTableLength() {
+<span class="nc" id="L189">        return lineNumberTable.length;</span>
+    }
+
+    @Override
+    public Iterator&lt;LineNumber&gt; iterator() {
+<span class="fc" id="L194">        return Stream.of(lineNumberTable).iterator();</span>
+    }
+
+    /**
+     * Sets the line number table.
+     *
+     * @param lineNumberTable the line number entries for this table.
+     */
+    public void setLineNumberTable(final LineNumber[] lineNumberTable) {
+<span class="nc bnc" id="L203" title="All 2 branches missed.">        this.lineNumberTable = lineNumberTable != null ? lineNumberTable : LineNumber.EMPTY_ARRAY;</span>
+<span class="nc" id="L204">    }</span>
+
+    /**
+     * @return String representation.
+     */
+    @Override
+    public String toString() {
+<span class="fc" id="L211">        final StringBuilder buf = new StringBuilder();</span>
+<span class="fc" id="L212">        final StringBuilder line = new StringBuilder();</span>
+<span class="pc" id="L213">        final String newLine = SystemProperties.getLineSeparator(() -&gt; &quot;\n&quot;);</span>
+<span class="fc bfc" id="L214" title="All 2 branches covered.">        for (int i = 0; i &lt; lineNumberTable.length; i++) {</span>
+<span class="fc" id="L215">            line.append(lineNumberTable[i].toString());</span>
+<span class="fc bfc" id="L216" title="All 2 branches covered.">            if (i &lt; lineNumberTable.length - 1) {</span>
+<span class="fc" id="L217">                line.append(&quot;, &quot;);</span>
+            }
+<span class="fc bfc" id="L219" title="All 4 branches covered.">            if (line.length() &gt; MAX_LINE_LENGTH &amp;&amp; i &lt; lineNumberTable.length - 1) {</span>
+<span class="fc" id="L220">                line.append(newLine);</span>
+<span class="fc" id="L221">                buf.append(line);</span>
+<span class="fc" id="L222">                line.setLength(0);</span>
+            }
+        }
+<span class="fc" id="L225">        buf.append(line);</span>
+<span class="fc" id="L226">        return buf.toString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

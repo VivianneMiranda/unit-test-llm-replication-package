@@ -1,0 +1,2690 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InstConstraintVisitor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.verifier.structurals</a> &gt; <span class="el_source">InstConstraintVisitor.java</span></div><h1>InstConstraintVisitor.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.verifier.structurals;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.Repository;
+import org.apache.bcel.classfile.Constant;
+import org.apache.bcel.classfile.ConstantClass;
+import org.apache.bcel.classfile.ConstantDouble;
+import org.apache.bcel.classfile.ConstantDynamic;
+import org.apache.bcel.classfile.ConstantFieldref;
+import org.apache.bcel.classfile.ConstantFloat;
+import org.apache.bcel.classfile.ConstantInteger;
+import org.apache.bcel.classfile.ConstantLong;
+import org.apache.bcel.classfile.ConstantString;
+import org.apache.bcel.classfile.Field;
+import org.apache.bcel.classfile.JavaClass;
+import org.apache.bcel.verifier.VerificationResult;
+import org.apache.bcel.verifier.Verifier;
+import org.apache.bcel.verifier.VerifierFactory;
+import org.apache.bcel.verifier.exc.AssertionViolatedException;
+import org.apache.bcel.verifier.exc.StructuralCodeConstraintException;
+
+//CHECKSTYLE:OFF (there are lots of references!)
+import org.apache.bcel.generic.*;
+//CHECKSTYLE:ON
+
+/**
+ * A Visitor class testing for valid preconditions of JVM instructions. The instance of this class will throw a
+ * StructuralCodeConstraintException instance if an instruction is visitXXX()ed which has preconditions that are not
+ * satisfied. TODO: Currently, the JVM's behavior concerning monitors (MONITORENTER, MONITOREXIT) is not modeled in
+ * JustIce.
+ *
+ * @see StructuralCodeConstraintException
+ */
+public class InstConstraintVisitor extends EmptyVisitor {
+
+<span class="fc" id="L54">    private static final ObjectType GENERIC_ARRAY = ObjectType.getInstance(GenericArray.class.getName());</span>
+
+    /**
+     * The Execution Frame we're working on.
+     *
+     * @see #setFrame(Frame f)
+     * @see #locals()
+     * @see #stack()
+     */
+    private Frame frame;
+
+    /**
+     * The ConstantPoolGen we're working on.
+     *
+     * @see #setConstantPoolGen(ConstantPoolGen cpg)
+     */
+    private ConstantPoolGen cpg;
+
+    /**
+     * The MethodGen we're working on.
+     *
+     * @see #setMethodGen(MethodGen mg)
+     */
+    private MethodGen mg;
+
+    /**
+     * The constructor. Constructs a new instance of this class.
+     */
+<span class="fc" id="L82">    public InstConstraintVisitor() {</span>
+<span class="fc" id="L83">    }</span>
+
+    /**
+     * Assures arrayref is of ArrayType or NULL; returns true if and only if arrayref is non-NULL.
+     *
+     * @throws StructuralCodeConstraintException if the above constraint is violated.
+     */
+    private boolean arrayrefOfArrayType(final Instruction o, final Type arrayref) {
+<span class="pc bpc" id="L91" title="1 of 4 branches missed.">        if (!(arrayref instanceof ArrayType || arrayref.equals(Type.NULL))) {</span>
+<span class="nc" id="L92">            constraintViolated(o, &quot;The 'arrayref' does not refer to an array but is of type &quot; + arrayref + &quot;.&quot;);</span>
+        }
+<span class="fc" id="L94">        return arrayref instanceof ArrayType;</span>
+    }
+
+    /**
+     * This method is called by the visitXXX() to notify the acceptor of this InstConstraintVisitor that a constraint
+     * violation has occurred. This is done by throwing an instance of a StructuralCodeConstraintException.
+     *
+     * @throws StructuralCodeConstraintException always.
+     */
+    private void constraintViolated(final Instruction violator, final String description) {
+<span class="fc" id="L104">        final String fqClassName = violator.getClass().getName();</span>
+<span class="fc" id="L105">        throw new StructuralCodeConstraintException(</span>
+<span class="fc" id="L106">            &quot;Instruction &quot; + fqClassName.substring(fqClassName.lastIndexOf('.') + 1) + &quot; constraint violated: &quot; + description);</span>
+    }
+
+    private ObjectType getObjectType(final FieldInstruction o) {
+<span class="fc" id="L110">        final ReferenceType rt = o.getReferenceType(cpg);</span>
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">        if (rt instanceof ObjectType) {</span>
+<span class="fc" id="L112">            return (ObjectType) rt;</span>
+        }
+<span class="nc" id="L114">        constraintViolated(o, &quot;expecting ObjectType but got &quot; + rt);</span>
+<span class="nc" id="L115">        return null;</span>
+    }
+
+    /**
+     * Assures index is of type INT.
+     *
+     * @throws StructuralCodeConstraintException if the above constraint is not satisfied.
+     */
+    private void indexOfInt(final Instruction o, final Type index) {
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">        if (!index.equals(Type.INT)) {</span>
+<span class="nc" id="L125">            constraintViolated(o, &quot;The 'index' is not of type int but of type &quot; + index + &quot;.&quot;);</span>
+        }
+<span class="fc" id="L127">    }</span>
+
+    /**
+     * The LocalVariables we're working on.
+     *
+     * @see #setFrame(Frame f)
+     */
+    private LocalVariables locals() {
+<span class="fc" id="L135">        return frame.getLocals();</span>
+    }
+
+    /**
+     * Assures the ReferenceType r is initialized (or Type.NULL). Formally, this means (!(r instanceof
+     * UninitializedObjectType)), because there are no uninitialized array types.
+     *
+     * @throws StructuralCodeConstraintException if the above constraint is not satisfied.
+     */
+    private void referenceTypeIsInitialized(final Instruction o, final ReferenceType r) {
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">        if (r instanceof UninitializedObjectType) {</span>
+<span class="nc" id="L146">            constraintViolated(o, &quot;Working on an uninitialized object '&quot; + r + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L148">    }</span>
+
+    /**
+     * Sets the ConstantPoolGen instance needed for constraint checking prior to execution.
+     *
+     * @param cpg the constant pool generator.
+     */
+    public void setConstantPoolGen(final ConstantPoolGen cpg) { // TODO could be package-protected?
+<span class="fc" id="L156">        this.cpg = cpg;</span>
+<span class="fc" id="L157">    }</span>
+
+    /**
+     * This returns the single instance of the InstConstraintVisitor class. To operate correctly, other values must have
+     * been set before actually using the instance. Use this method for performance reasons.
+     *
+     * @param f the frame to set.
+     * @see #setConstantPoolGen(ConstantPoolGen cpg)
+     * @see #setMethodGen(MethodGen mg)
+     */
+    public void setFrame(final Frame f) { // TODO could be package-protected?
+<span class="fc" id="L168">        this.frame = f;</span>
+        // if (singleInstance.mg == null || singleInstance.cpg == null)
+        // throw new AssertionViolatedException(&quot;Forgot to set important values first.&quot;);
+<span class="fc" id="L171">    }</span>
+
+    /**
+     * Sets the MethodGen instance needed for constraint checking prior to execution.
+     *
+     * @param mg the method generator.
+     */
+    public void setMethodGen(final MethodGen mg) {
+<span class="fc" id="L179">        this.mg = mg;</span>
+<span class="fc" id="L180">    }</span>
+
+    /**
+     * The OperandStack we're working on.
+     *
+     * @see #setFrame(Frame f)
+     */
+    private OperandStack stack() {
+<span class="fc" id="L188">        return frame.getStack();</span>
+    }
+
+    /** Assures value is of type INT. */
+    private void valueOfInt(final Instruction o, final Type value) {
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">        if (!value.equals(Type.INT)) {</span>
+<span class="nc" id="L194">            constraintViolated(o, &quot;The 'value' is not of type int but of type &quot; + value + &quot;.&quot;);</span>
+        }
+<span class="fc" id="L196">    }</span>
+
+    /*
+     * &quot;generic&quot;visitXXXX methods where XXXX is an interface therefore, we don't know the order of visiting; but we know these methods are called before the
+     * visitYYYY methods below
+     */
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitAALOAD(final AALOAD o) {
+<span class="fc" id="L208">        final Type arrayref = stack().peek(1);</span>
+<span class="fc" id="L209">        final Type index = stack().peek(0);</span>
+
+<span class="fc" id="L211">        indexOfInt(o, index);</span>
+<span class="pc bpc" id="L212" title="2 of 4 branches missed.">        if (arrayrefOfArrayType(o, arrayref) &amp;&amp; !(((ArrayType) arrayref).getElementType() instanceof ReferenceType)) {</span>
+<span class="nc" id="L213">            constraintViolated(o, &quot;The 'arrayref' does not refer to an array with elements of a ReferenceType but to an array of &quot;</span>
+<span class="nc" id="L214">                + ((ArrayType) arrayref).getElementType() + &quot;.&quot;);</span>
+        }
+        // referenceTypeIsInitialized(o, (ReferenceType) (((ArrayType) arrayref).getElementType()));
+<span class="fc" id="L217">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitAASTORE(final AASTORE o) {
+<span class="fc" id="L224">        final Type arrayref = stack().peek(2);</span>
+<span class="fc" id="L225">        final Type index = stack().peek(1);</span>
+<span class="fc" id="L226">        final Type value = stack().peek(0);</span>
+
+<span class="fc" id="L228">        indexOfInt(o, index);</span>
+<span class="fc bfc" id="L229" title="All 2 branches covered.">        if (!(value instanceof ReferenceType)) {</span>
+<span class="nc" id="L230">            constraintViolated(o, &quot;The 'value' is not of a ReferenceType but of type &quot; + value + &quot;.&quot;);</span>
+        }
+        // } else {
+            // referenceTypeIsInitialized(o, (ReferenceType) value);
+        // }
+        //
+        // Don't bother further with &quot;referenceTypeIsInitialized()&quot;, there are no arrays
+        // of an uninitialized object type.
+<span class="pc bpc" id="L238" title="2 of 4 branches missed.">        if (arrayrefOfArrayType(o, arrayref) &amp;&amp; !(((ArrayType) arrayref).getElementType() instanceof ReferenceType)) {</span>
+<span class="nc" id="L239">            constraintViolated(o, &quot;The 'arrayref' does not refer to an array with elements of a ReferenceType but to an array of &quot;</span>
+<span class="nc" id="L240">                + ((ArrayType) arrayref).getElementType() + &quot;.&quot;);</span>
+        }
+        // No check for array element assignment compatibility. This is done at runtime.
+<span class="fc" id="L243">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitACONST_NULL(final ACONST_NULL o) {
+        // Nothing needs to be done here.
+<span class="fc" id="L251">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitALOAD(final ALOAD o) {
+        // visitLoadInstruction(LoadInstruction) is called before.
+
+        // Nothing else needs to be done here.
+<span class="fc" id="L261">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitANEWARRAY(final ANEWARRAY o) {
+<span class="pc bpc" id="L268" title="1 of 2 branches missed.">        if (!stack().peek().equals(Type.INT)) {</span>
+<span class="nc" id="L269">            constraintViolated(o, &quot;The 'count' at the stack top is not of type '&quot; + Type.INT + &quot;' but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+            // The runtime constant pool item at that index must be a symbolic reference to a class,
+            // array, or interface type. See Pass 3a.
+        }
+<span class="fc" id="L273">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitARETURN(final ARETURN o) {
+<span class="pc bpc" id="L280" title="1 of 2 branches missed.">        if (!(stack().peek() instanceof ReferenceType)) {</span>
+<span class="nc" id="L281">            constraintViolated(o, &quot;The 'objectref' at the stack top is not of a ReferenceType but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L283">        final ReferenceType objectref = (ReferenceType) stack().peek();</span>
+<span class="fc" id="L284">        referenceTypeIsInitialized(o, objectref);</span>
+
+        // The check below should already done via visitReturnInstruction(ReturnInstruction), see there.
+        // It cannot be done using Staerk-et-al's &quot;set of object types&quot; instead of a
+        // &quot;wider cast object type&quot;, anyway.
+        // if (! objectref.isAssignmentCompatibleWith(mg.getReturnType() )) {
+        // constraintViolated(o, &quot;The 'objectref' type &quot;+objectref+
+        // &quot; at the stack top is not assignment compatible with the return type '&quot;+mg.getReturnType()+&quot;' of the method.&quot;);
+        // }
+<span class="fc" id="L293">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitARRAYLENGTH(final ARRAYLENGTH o) {
+<span class="fc" id="L300">        final Type arrayref = stack().peek(0);</span>
+<span class="fc" id="L301">        arrayrefOfArrayType(o, arrayref);</span>
+<span class="fc" id="L302">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitASTORE(final ASTORE o) {
+<span class="pc bpc" id="L309" title="3 of 4 branches missed.">        if (!(stack().peek() instanceof ReferenceType || stack().peek() instanceof ReturnaddressType)) {</span>
+<span class="nc" id="L310">            constraintViolated(o, &quot;The 'objectref' is not of a ReferenceType or of ReturnaddressType but of &quot; + stack().peek() + &quot;.&quot;);</span>
+        }
+        // if (stack().peek() instanceof ReferenceType) {
+        // referenceTypeIsInitialized(o, (ReferenceType) (stack().peek()) );
+        // }
+<span class="fc" id="L315">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitATHROW(final ATHROW o) {
+        try {
+            // It's stated that 'objectref' must be of a ReferenceType --- but since Throwable is
+            // not derived from an ArrayType, it follows that 'objectref' must be of an ObjectType or Type.NULL.
+<span class="pc bpc" id="L325" title="3 of 4 branches missed.">            if (!(stack().peek() instanceof ObjectType || stack().peek().equals(Type.NULL))) {</span>
+<span class="nc" id="L326">                constraintViolated(o, &quot;The 'objectref' is not of an (initialized) ObjectType but of type &quot; + stack().peek() + &quot;.&quot;);</span>
+            }
+
+            // NULL is a subclass of every class, so to speak.
+<span class="pc bpc" id="L330" title="1 of 2 branches missed.">            if (stack().peek().equals(Type.NULL)) {</span>
+<span class="nc" id="L331">                return;</span>
+            }
+
+<span class="fc" id="L334">            final ObjectType exc = (ObjectType) stack().peek();</span>
+<span class="fc" id="L335">            final ObjectType throwable = (ObjectType) Type.getType(&quot;Ljava/lang/Throwable;&quot;);</span>
+<span class="pc bpc" id="L336" title="3 of 4 branches missed.">            if (!exc.subclassOf(throwable) &amp;&amp; !exc.equals(throwable)) {</span>
+<span class="nc" id="L337">                constraintViolated(o, &quot;The 'objectref' is not of class Throwable or of a subclass of Throwable, but of '&quot; + stack().peek() + &quot;'.&quot;);</span>
+            }
+<span class="nc" id="L339">        } catch (final ClassNotFoundException e) {</span>
+            // FIXME: maybe not the best way to handle this
+<span class="nc" id="L341">            throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="fc" id="L342">        }</span>
+<span class="fc" id="L343">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitBALOAD(final BALOAD o) {
+<span class="fc" id="L350">        final Type arrayref = stack().peek(1);</span>
+<span class="fc" id="L351">        final Type index = stack().peek(0);</span>
+<span class="fc" id="L352">        indexOfInt(o, index);</span>
+<span class="pc bpc" id="L353" title="1 of 2 branches missed.">        if (arrayrefOfArrayType(o, arrayref)</span>
+<span class="pc bpc" id="L354" title="1 of 4 branches missed.">            &amp;&amp; !(((ArrayType) arrayref).getElementType().equals(Type.BOOLEAN) || ((ArrayType) arrayref).getElementType().equals(Type.BYTE))) {</span>
+<span class="nc" id="L355">            constraintViolated(o, &quot;The 'arrayref' does not refer to an array with elements of a Type.BYTE or Type.BOOLEAN but to an array of '&quot;</span>
+<span class="nc" id="L356">                + ((ArrayType) arrayref).getElementType() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L358">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitBASTORE(final BASTORE o) {
+<span class="fc" id="L365">        final Type arrayref = stack().peek(2);</span>
+<span class="fc" id="L366">        final Type index = stack().peek(1);</span>
+<span class="fc" id="L367">        final Type value = stack().peek(0);</span>
+
+<span class="fc" id="L369">        indexOfInt(o, index);</span>
+<span class="fc" id="L370">        valueOfInt(o, value);</span>
+<span class="pc bpc" id="L371" title="1 of 2 branches missed.">        if (arrayrefOfArrayType(o, arrayref)</span>
+<span class="pc bpc" id="L372" title="3 of 4 branches missed.">            &amp;&amp; !(((ArrayType) arrayref).getElementType().equals(Type.BOOLEAN) || ((ArrayType) arrayref).getElementType().equals(Type.BYTE))) {</span>
+<span class="nc" id="L373">            constraintViolated(o, &quot;The 'arrayref' does not refer to an array with elements of a Type.BYTE or Type.BOOLEAN but to an array of '&quot;</span>
+<span class="nc" id="L374">                + ((ArrayType) arrayref).getElementType() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L376">    }</span>
+
+    /*
+    /* &quot;special&quot;visitXXXX methods for one type of instruction each.
+     */
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitBIPUSH(final BIPUSH o) {
+        // Nothing to do...
+<span class="fc" id="L388">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitBREAKPOINT(final BREAKPOINT o) {
+<span class="nc" id="L395">        throw new AssertionViolatedException(&quot;In this JustIce verification pass there should not occur an illegal instruction such as BREAKPOINT.&quot;);</span>
+    }
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitCALOAD(final CALOAD o) {
+<span class="fc" id="L403">        final Type arrayref = stack().peek(1);</span>
+<span class="fc" id="L404">        final Type index = stack().peek(0);</span>
+
+<span class="fc" id="L406">        indexOfInt(o, index);</span>
+<span class="fc" id="L407">        arrayrefOfArrayType(o, arrayref);</span>
+<span class="fc" id="L408">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitCASTORE(final CASTORE o) {
+<span class="fc" id="L415">        final Type arrayref = stack().peek(2);</span>
+<span class="fc" id="L416">        final Type index = stack().peek(1);</span>
+<span class="fc" id="L417">        final Type value = stack().peek(0);</span>
+
+<span class="fc" id="L419">        indexOfInt(o, index);</span>
+<span class="fc" id="L420">        valueOfInt(o, value);</span>
+<span class="pc bpc" id="L421" title="2 of 4 branches missed.">        if (arrayrefOfArrayType(o, arrayref) &amp;&amp; !((ArrayType) arrayref).getElementType().equals(Type.CHAR)) {</span>
+<span class="nc" id="L422">            constraintViolated(o, &quot;The 'arrayref' does not refer to an array with elements of type char but to an array of type &quot;</span>
+<span class="nc" id="L423">                + ((ArrayType) arrayref).getElementType() + &quot;.&quot;);</span>
+        }
+<span class="fc" id="L425">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitCHECKCAST(final CHECKCAST o) {
+        // The objectref must be of type reference.
+<span class="fc" id="L433">        final Type objectref = stack().peek(0);</span>
+<span class="pc bpc" id="L434" title="1 of 2 branches missed.">        if (!(objectref instanceof ReferenceType)) {</span>
+<span class="nc" id="L435">            constraintViolated(o, &quot;The 'objectref' is not of a ReferenceType but of type &quot; + objectref + &quot;.&quot;);</span>
+        }
+        // else{
+        // referenceTypeIsInitialized(o, (ReferenceType) objectref);
+        // }
+        // The unsigned indexbyte1 and indexbyte2 are used to construct an index into the runtime constant pool of the
+        // current class (�3.6), where the value of the index is (indexbyte1 &lt;&lt; 8) | indexbyte2. The runtime constant
+        // pool item at the index must be a symbolic reference to a class, array, or interface type.
+<span class="fc" id="L443">        final Constant c = cpg.getConstant(o.getIndex());</span>
+<span class="pc bpc" id="L444" title="1 of 2 branches missed.">        if (!(c instanceof ConstantClass)) {</span>
+<span class="nc" id="L445">            constraintViolated(o, &quot;The Constant at 'index' is not a ConstantClass, but '&quot; + c + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L447">    }</span>
+
+    /*
+     * &quot;generic&quot; visitYYYY methods where YYYY is a superclass.
+     * therefore, we know the order of visiting; we know
+     * these methods are called after the visitXXXX methods above.
+     */
+
+    /**
+     * Ensures the general preconditions of a CPInstruction instance.
+     */
+    @Override
+    public void visitCPInstruction(final CPInstruction o) {
+<span class="fc" id="L460">        final int idx = o.getIndex();</span>
+<span class="pc bpc" id="L461" title="2 of 4 branches missed.">        if (idx &lt; 0 || idx &gt;= cpg.getSize()) {</span>
+<span class="nc" id="L462">            throw new AssertionViolatedException(&quot;Huh?! Constant pool index of instruction '&quot; + o + &quot;' illegal? Pass 3a should have checked this.&quot;);</span>
+        }
+<span class="fc" id="L464">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitD2F(final D2F o) {
+<span class="pc bpc" id="L471" title="1 of 2 branches missed.">        if (stack().peek() != Type.DOUBLE) {</span>
+<span class="nc" id="L472">            constraintViolated(o, &quot;The value at the stack top is not of type 'double', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L474">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitD2I(final D2I o) {
+<span class="pc bpc" id="L481" title="1 of 2 branches missed.">        if (stack().peek() != Type.DOUBLE) {</span>
+<span class="nc" id="L482">            constraintViolated(o, &quot;The value at the stack top is not of type 'double', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L484">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitD2L(final D2L o) {
+<span class="pc bpc" id="L491" title="1 of 2 branches missed.">        if (stack().peek() != Type.DOUBLE) {</span>
+<span class="nc" id="L492">            constraintViolated(o, &quot;The value at the stack top is not of type 'double', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L494">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDADD(final DADD o) {
+<span class="pc bpc" id="L501" title="1 of 2 branches missed.">        if (stack().peek() != Type.DOUBLE) {</span>
+<span class="nc" id="L502">            constraintViolated(o, &quot;The value at the stack top is not of type 'double', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L504" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.DOUBLE) {</span>
+<span class="nc" id="L505">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'double', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L507">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDALOAD(final DALOAD o) {
+<span class="fc" id="L514">        indexOfInt(o, stack().peek());</span>
+<span class="pc bpc" id="L515" title="1 of 2 branches missed.">        if (stack().peek(1) == Type.NULL) {</span>
+<span class="nc" id="L516">            return;</span>
+        }
+<span class="pc bpc" id="L518" title="1 of 2 branches missed.">        if (!(stack().peek(1) instanceof ArrayType)) {</span>
+<span class="nc" id="L519">            constraintViolated(o, &quot;Stack next-to-top must be of type double[] but is '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L521">        final Type t = ((ArrayType) stack().peek(1)).getBasicType();</span>
+<span class="pc bpc" id="L522" title="1 of 2 branches missed.">        if (t != Type.DOUBLE) {</span>
+<span class="nc" id="L523">            constraintViolated(o, &quot;Stack next-to-top must be of type double[] but is '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L525">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDASTORE(final DASTORE o) {
+<span class="nc bnc" id="L532" title="All 2 branches missed.">        if (stack().peek() != Type.DOUBLE) {</span>
+<span class="nc" id="L533">            constraintViolated(o, &quot;The value at the stack top is not of type 'double', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="nc" id="L535">        indexOfInt(o, stack().peek(1));</span>
+<span class="nc bnc" id="L536" title="All 2 branches missed.">        if (stack().peek(2) == Type.NULL) {</span>
+<span class="nc" id="L537">            return;</span>
+        }
+<span class="nc bnc" id="L539" title="All 2 branches missed.">        if (!(stack().peek(2) instanceof ArrayType)) {</span>
+<span class="nc" id="L540">            constraintViolated(o, &quot;Stack next-to-next-to-top must be of type double[] but is '&quot; + stack().peek(2) + &quot;'.&quot;);</span>
+        }
+<span class="nc" id="L542">        final Type t = ((ArrayType) stack().peek(2)).getBasicType();</span>
+<span class="nc bnc" id="L543" title="All 2 branches missed.">        if (t != Type.DOUBLE) {</span>
+<span class="nc" id="L544">            constraintViolated(o, &quot;Stack next-to-next-to-top must be of type double[] but is '&quot; + stack().peek(2) + &quot;'.&quot;);</span>
+        }
+<span class="nc" id="L546">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDCMPG(final DCMPG o) {
+<span class="pc bpc" id="L553" title="1 of 2 branches missed.">        if (stack().peek() != Type.DOUBLE) {</span>
+<span class="nc" id="L554">            constraintViolated(o, &quot;The value at the stack top is not of type 'double', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L556" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.DOUBLE) {</span>
+<span class="nc" id="L557">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'double', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L559">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDCMPL(final DCMPL o) {
+<span class="pc bpc" id="L566" title="1 of 2 branches missed.">        if (stack().peek() != Type.DOUBLE) {</span>
+<span class="nc" id="L567">            constraintViolated(o, &quot;The value at the stack top is not of type 'double', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L569" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.DOUBLE) {</span>
+<span class="nc" id="L570">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'double', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L572">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDCONST(final DCONST o) {
+        // There's nothing to be done here.
+<span class="fc" id="L580">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDDIV(final DDIV o) {
+<span class="pc bpc" id="L587" title="1 of 2 branches missed.">        if (stack().peek() != Type.DOUBLE) {</span>
+<span class="nc" id="L588">            constraintViolated(o, &quot;The value at the stack top is not of type 'double', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L590" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.DOUBLE) {</span>
+<span class="nc" id="L591">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'double', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L593">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDLOAD(final DLOAD o) {
+        // visitLoadInstruction(LoadInstruction) is called before.
+
+        // Nothing else needs to be done here.
+<span class="fc" id="L603">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDMUL(final DMUL o) {
+<span class="pc bpc" id="L610" title="1 of 2 branches missed.">        if (stack().peek() != Type.DOUBLE) {</span>
+<span class="nc" id="L611">            constraintViolated(o, &quot;The value at the stack top is not of type 'double', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L613" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.DOUBLE) {</span>
+<span class="nc" id="L614">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'double', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L616">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDNEG(final DNEG o) {
+<span class="pc bpc" id="L623" title="1 of 2 branches missed.">        if (stack().peek() != Type.DOUBLE) {</span>
+<span class="nc" id="L624">            constraintViolated(o, &quot;The value at the stack top is not of type 'double', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L626">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDREM(final DREM o) {
+<span class="pc bpc" id="L633" title="1 of 2 branches missed.">        if (stack().peek() != Type.DOUBLE) {</span>
+<span class="nc" id="L634">            constraintViolated(o, &quot;The value at the stack top is not of type 'double', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L636" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.DOUBLE) {</span>
+<span class="nc" id="L637">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'double', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L639">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDRETURN(final DRETURN o) {
+<span class="pc bpc" id="L646" title="1 of 2 branches missed.">        if (stack().peek() != Type.DOUBLE) {</span>
+<span class="nc" id="L647">            constraintViolated(o, &quot;The value at the stack top is not of type 'double', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L649">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDSTORE(final DSTORE o) {
+        // visitStoreInstruction(StoreInstruction) is called before.
+
+        // Nothing else needs to be done here.
+<span class="fc" id="L659">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDSUB(final DSUB o) {
+<span class="pc bpc" id="L666" title="1 of 2 branches missed.">        if (stack().peek() != Type.DOUBLE) {</span>
+<span class="nc" id="L667">            constraintViolated(o, &quot;The value at the stack top is not of type 'double', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L669" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.DOUBLE) {</span>
+<span class="nc" id="L670">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'double', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L672">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDUP(final DUP o) {
+<span class="pc bpc" id="L679" title="1 of 2 branches missed.">        if (stack().peek().getSize() != 1) {</span>
+<span class="nc" id="L680">            constraintViolated(o,</span>
+<span class="nc" id="L681">                &quot;Won't DUP type on stack top '&quot; + stack().peek() + &quot;' because it must occupy exactly one slot, not '&quot; + stack().peek().getSize() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L683">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDUP_X1(final DUP_X1 o) {
+<span class="pc bpc" id="L690" title="1 of 2 branches missed.">        if (stack().peek().getSize() != 1) {</span>
+<span class="nc" id="L691">            constraintViolated(o, &quot;Type on stack top '&quot; + stack().peek() + &quot;' should occupy exactly one slot, not '&quot; + stack().peek().getSize() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L693" title="1 of 2 branches missed.">        if (stack().peek(1).getSize() != 1) {</span>
+<span class="nc" id="L694">            constraintViolated(o,</span>
+<span class="nc" id="L695">                &quot;Type on stack next-to-top '&quot; + stack().peek(1) + &quot;' should occupy exactly one slot, not '&quot; + stack().peek(1).getSize() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L697">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDUP_X2(final DUP_X2 o) {
+<span class="pc bpc" id="L704" title="1 of 2 branches missed.">        if (stack().peek().getSize() != 1) {</span>
+<span class="nc" id="L705">            constraintViolated(o, &quot;Stack top type must be of size 1, but is '&quot; + stack().peek() + &quot;' of size '&quot; + stack().peek().getSize() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L707" title="1 of 2 branches missed.">        if (stack().peek(1).getSize() == 2) {</span>
+<span class="nc" id="L708">            return; // Form 2, okay.</span>
+        }
+        // stack().peek(1).getSize == 1.
+<span class="pc bpc" id="L711" title="1 of 2 branches missed.">        if (stack().peek(2).getSize() != 1) {</span>
+<span class="nc" id="L712">            constraintViolated(o, &quot;If stack top's size is 1 and stack next-to-top's size is 1, stack next-to-next-to-top's size must also be 1, but is: '&quot;</span>
+<span class="nc" id="L713">                + stack().peek(2) + &quot;' of size '&quot; + stack().peek(2).getSize() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L715">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDUP2(final DUP2 o) {
+<span class="pc bpc" id="L722" title="1 of 2 branches missed.">        if (stack().peek().getSize() == 2) {</span>
+<span class="fc" id="L723">            return; // Form 2, okay.</span>
+        }
+        // stack().peek().getSize() == 1.
+<span class="nc bnc" id="L726" title="All 2 branches missed.">        if (stack().peek(1).getSize() != 1) {</span>
+<span class="nc" id="L727">            constraintViolated(o, &quot;If stack top's size is 1, then stack next-to-top's size must also be 1. But it is '&quot; + stack().peek(1) + &quot;' of size '&quot;</span>
+<span class="nc" id="L728">                + stack().peek(1).getSize() + &quot;'.&quot;);</span>
+        }
+<span class="nc" id="L730">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDUP2_X1(final DUP2_X1 o) {
+<span class="fc bfc" id="L737" title="All 2 branches covered.">        if (stack().peek().getSize() == 2) {</span>
+<span class="pc bpc" id="L738" title="1 of 2 branches missed.">            if (stack().peek(1).getSize() != 1) {</span>
+<span class="nc" id="L739">                constraintViolated(o, &quot;If stack top's size is 2, then stack next-to-top's size must be 1. But it is '&quot; + stack().peek(1) + &quot;' of size '&quot;</span>
+<span class="nc" id="L740">                    + stack().peek(1).getSize() + &quot;'.&quot;);</span>
+            }
+        } else { // stack top is of size 1
+<span class="pc bpc" id="L743" title="1 of 2 branches missed.">            if (stack().peek(1).getSize() != 1) {</span>
+<span class="nc" id="L744">                constraintViolated(o, &quot;If stack top's size is 1, then stack next-to-top's size must also be 1. But it is '&quot; + stack().peek(1) + &quot;' of size '&quot;</span>
+<span class="nc" id="L745">                    + stack().peek(1).getSize() + &quot;'.&quot;);</span>
+            }
+<span class="pc bpc" id="L747" title="1 of 2 branches missed.">            if (stack().peek(2).getSize() != 1) {</span>
+<span class="nc" id="L748">                constraintViolated(o, &quot;If stack top's size is 1, then stack next-to-next-to-top's size must also be 1. But it is '&quot; + stack().peek(2)</span>
+<span class="nc" id="L749">                    + &quot;' of size '&quot; + stack().peek(2).getSize() + &quot;'.&quot;);</span>
+            }
+        }
+<span class="fc" id="L752">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitDUP2_X2(final DUP2_X2 o) {
+
+<span class="pc bpc" id="L760" title="1 of 2 branches missed.">        if (stack().peek(0).getSize() == 2) {</span>
+            // stack top size is 2, next-to-top's size is 1
+<span class="pc bpc" id="L762" title="2 of 4 branches missed.">            if (stack().peek(1).getSize() == 2 || stack().peek(2).getSize() == 1) {</span>
+<span class="fc" id="L763">                return; // Form 2</span>
+            }
+<span class="nc" id="L765">            constraintViolated(o, &quot;If stack top's size is 2 and stack-next-to-top's size is 1,&quot;</span>
+<span class="nc" id="L766">                + &quot; then stack next-to-next-to-top's size must also be 1. But it is '&quot; + stack().peek(2) + &quot;' of size '&quot; + stack().peek(2).getSize() + &quot;'.&quot;);</span>
+<span class="nc bnc" id="L767" title="All 6 branches missed.">        } else if (stack().peek(1).getSize() == 1 &amp;&amp; (stack().peek(2).getSize() == 2 || stack().peek(3).getSize() == 1)) {</span>
+<span class="nc" id="L768">            return; // Form 1</span>
+        }
+<span class="nc" id="L770">        constraintViolated(o, &quot;The operand sizes on the stack do not match any of the four forms of usage of this instruction.&quot;);</span>
+<span class="nc" id="L771">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitF2D(final F2D o) {
+<span class="pc bpc" id="L778" title="1 of 2 branches missed.">        if (stack().peek() != Type.FLOAT) {</span>
+<span class="nc" id="L779">            constraintViolated(o, &quot;The value at the stack top is not of type 'float', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L781">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitF2I(final F2I o) {
+<span class="pc bpc" id="L788" title="1 of 2 branches missed.">        if (stack().peek() != Type.FLOAT) {</span>
+<span class="nc" id="L789">            constraintViolated(o, &quot;The value at the stack top is not of type 'float', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L791">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitF2L(final F2L o) {
+<span class="pc bpc" id="L798" title="1 of 2 branches missed.">        if (stack().peek() != Type.FLOAT) {</span>
+<span class="nc" id="L799">            constraintViolated(o, &quot;The value at the stack top is not of type 'float', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L801">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitFADD(final FADD o) {
+<span class="pc bpc" id="L808" title="1 of 2 branches missed.">        if (stack().peek() != Type.FLOAT) {</span>
+<span class="nc" id="L809">            constraintViolated(o, &quot;The value at the stack top is not of type 'float', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L811" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.FLOAT) {</span>
+<span class="nc" id="L812">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'float', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L814">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitFALOAD(final FALOAD o) {
+<span class="fc" id="L821">        indexOfInt(o, stack().peek());</span>
+<span class="pc bpc" id="L822" title="1 of 2 branches missed.">        if (stack().peek(1) == Type.NULL) {</span>
+<span class="nc" id="L823">            return;</span>
+        }
+<span class="pc bpc" id="L825" title="1 of 2 branches missed.">        if (!(stack().peek(1) instanceof ArrayType)) {</span>
+<span class="nc" id="L826">            constraintViolated(o, &quot;Stack next-to-top must be of type float[] but is '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L828">        final Type t = ((ArrayType) stack().peek(1)).getBasicType();</span>
+<span class="pc bpc" id="L829" title="1 of 2 branches missed.">        if (t != Type.FLOAT) {</span>
+<span class="nc" id="L830">            constraintViolated(o, &quot;Stack next-to-top must be of type float[] but is '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L832">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitFASTORE(final FASTORE o) {
+<span class="nc bnc" id="L839" title="All 2 branches missed.">        if (stack().peek() != Type.FLOAT) {</span>
+<span class="nc" id="L840">            constraintViolated(o, &quot;The value at the stack top is not of type 'float', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="nc" id="L842">        indexOfInt(o, stack().peek(1));</span>
+<span class="nc bnc" id="L843" title="All 2 branches missed.">        if (stack().peek(2) == Type.NULL) {</span>
+<span class="nc" id="L844">            return;</span>
+        }
+<span class="nc bnc" id="L846" title="All 2 branches missed.">        if (!(stack().peek(2) instanceof ArrayType)) {</span>
+<span class="nc" id="L847">            constraintViolated(o, &quot;Stack next-to-next-to-top must be of type float[] but is '&quot; + stack().peek(2) + &quot;'.&quot;);</span>
+        }
+<span class="nc" id="L849">        final Type t = ((ArrayType) stack().peek(2)).getBasicType();</span>
+<span class="nc bnc" id="L850" title="All 2 branches missed.">        if (t != Type.FLOAT) {</span>
+<span class="nc" id="L851">            constraintViolated(o, &quot;Stack next-to-next-to-top must be of type float[] but is '&quot; + stack().peek(2) + &quot;'.&quot;);</span>
+        }
+<span class="nc" id="L853">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitFCMPG(final FCMPG o) {
+<span class="pc bpc" id="L860" title="1 of 2 branches missed.">        if (stack().peek() != Type.FLOAT) {</span>
+<span class="nc" id="L861">            constraintViolated(o, &quot;The value at the stack top is not of type 'float', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L863" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.FLOAT) {</span>
+<span class="nc" id="L864">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'float', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L866">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitFCMPL(final FCMPL o) {
+<span class="pc bpc" id="L873" title="1 of 2 branches missed.">        if (stack().peek() != Type.FLOAT) {</span>
+<span class="nc" id="L874">            constraintViolated(o, &quot;The value at the stack top is not of type 'float', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L876" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.FLOAT) {</span>
+<span class="nc" id="L877">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'float', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L879">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitFCONST(final FCONST o) {
+        // nothing to do here.
+<span class="fc" id="L887">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitFDIV(final FDIV o) {
+<span class="pc bpc" id="L894" title="1 of 2 branches missed.">        if (stack().peek() != Type.FLOAT) {</span>
+<span class="nc" id="L895">            constraintViolated(o, &quot;The value at the stack top is not of type 'float', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L897" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.FLOAT) {</span>
+<span class="nc" id="L898">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'float', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L900">    }</span>
+
+    /**
+     * Ensures the general preconditions of a FieldInstruction instance.
+     */
+    @Override
+    public void visitFieldInstruction(final FieldInstruction o) {
+        // visitLoadClass(o) has been called before: Every FieldOrMethod
+        // implements LoadClass.
+        // visitCPInstruction(o) has been called before.
+        // A FieldInstruction may be: GETFIELD, GETSTATIC, PUTFIELD, PUTSTATIC
+<span class="fc" id="L911">        final Constant c = cpg.getConstant(o.getIndex());</span>
+<span class="pc bpc" id="L912" title="1 of 2 branches missed.">        if (!(c instanceof ConstantFieldref)) {</span>
+<span class="nc" id="L913">            constraintViolated(o, &quot;Index '&quot; + o.getIndex() + &quot;' should refer to a CONSTANT_Fieldref_info structure, but refers to '&quot; + c + &quot;'.&quot;);</span>
+        }
+        // the o.getClassType(cpg) type has passed pass 2; see visitLoadClass(o).
+<span class="fc" id="L916">        final Type t = o.getType(cpg);</span>
+<span class="fc bfc" id="L917" title="All 2 branches covered.">        if (t instanceof ObjectType) {</span>
+<span class="fc" id="L918">            final String name = ((ObjectType) t).getClassName();</span>
+<span class="fc" id="L919">            final Verifier v = VerifierFactory.getVerifier(name);</span>
+<span class="fc" id="L920">            final VerificationResult vr = v.doPass2();</span>
+<span class="pc bpc" id="L921" title="1 of 2 branches missed.">            if (vr.getStatus() != VerificationResult.VERIFIED_OK) {</span>
+<span class="nc" id="L922">                constraintViolated(o, &quot;Class '&quot; + name + &quot;' is referenced, but cannot be loaded and resolved: '&quot; + vr + &quot;'.&quot;);</span>
+            }
+        }
+<span class="fc" id="L925">    }</span>
+
+    private Field visitFieldInstructionInternals(final FieldInstruction o) throws ClassNotFoundException {
+<span class="fc" id="L928">        final String fieldName = o.getFieldName(cpg);</span>
+<span class="fc" id="L929">        final JavaClass jc = Repository.lookupClass(getObjectType(o).getClassName());</span>
+<span class="fc" id="L930">        final Field f = jc.findField(fieldName, o.getType(cpg));</span>
+<span class="pc bpc" id="L931" title="1 of 2 branches missed.">        if (f == null) {</span>
+<span class="nc" id="L932">            throw new AssertionViolatedException(&quot;Field '&quot; + fieldName + &quot;' not found in &quot; + jc.getClassName());</span>
+        }
+<span class="fc" id="L934">        final Type value = stack().peek();</span>
+<span class="fc" id="L935">        final Type t = Type.getType(f.getSignature());</span>
+<span class="fc" id="L936">        Type shouldBe = t;</span>
+<span class="pc bpc" id="L937" title="2 of 8 branches missed.">        if (shouldBe == Type.BOOLEAN || shouldBe == Type.BYTE || shouldBe == Type.CHAR || shouldBe == Type.SHORT) {</span>
+<span class="fc" id="L938">            shouldBe = Type.INT;</span>
+        }
+<span class="fc bfc" id="L940" title="All 2 branches covered.">        if (t instanceof ReferenceType) {</span>
+<span class="pc bpc" id="L941" title="1 of 2 branches missed.">            if (value instanceof ReferenceType) {</span>
+<span class="fc" id="L942">                final ReferenceType rValue = (ReferenceType) value;</span>
+<span class="fc" id="L943">                referenceTypeIsInitialized(o, rValue);</span>
+                // TODO: This can possibly only be checked using Staerk-et-al's &quot;set-of-object types&quot;, not
+                // using &quot;wider cast object types&quot; created during verification.
+                // Comment it out if you encounter problems. See also the analogon at visitPUTFIELD|visitPUTSTATIC.
+<span class="pc bpc" id="L947" title="1 of 2 branches missed.">                if (!rValue.isAssignmentCompatibleWith(shouldBe)) {</span>
+<span class="nc" id="L948">                    constraintViolated(o, &quot;The stack top type '&quot; + value + &quot;' is not assignment compatible with '&quot; + shouldBe + &quot;'.&quot;);</span>
+                }
+<span class="fc" id="L950">            } else {</span>
+<span class="nc" id="L951">                constraintViolated(o, &quot;The stack top type '&quot; + value + &quot;' is not of a reference type as expected.&quot;);</span>
+            }
+<span class="pc bpc" id="L953" title="1 of 2 branches missed.">        } else if (shouldBe != value) {</span>
+<span class="nc" id="L954">            constraintViolated(o, &quot;The stack top type '&quot; + value + &quot;' is not of type '&quot; + shouldBe + &quot;' as expected.&quot;);</span>
+        }
+<span class="fc" id="L956">        return f;</span>
+    }
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitFLOAD(final FLOAD o) {
+        // visitLoadInstruction(LoadInstruction) is called before.
+
+        // Nothing else needs to be done here.
+<span class="fc" id="L967">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitFMUL(final FMUL o) {
+<span class="pc bpc" id="L974" title="1 of 2 branches missed.">        if (stack().peek() != Type.FLOAT) {</span>
+<span class="nc" id="L975">            constraintViolated(o, &quot;The value at the stack top is not of type 'float', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L977" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.FLOAT) {</span>
+<span class="nc" id="L978">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'float', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L980">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitFNEG(final FNEG o) {
+<span class="pc bpc" id="L987" title="1 of 2 branches missed.">        if (stack().peek() != Type.FLOAT) {</span>
+<span class="nc" id="L988">            constraintViolated(o, &quot;The value at the stack top is not of type 'float', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L990">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitFREM(final FREM o) {
+<span class="pc bpc" id="L997" title="1 of 2 branches missed.">        if (stack().peek() != Type.FLOAT) {</span>
+<span class="nc" id="L998">            constraintViolated(o, &quot;The value at the stack top is not of type 'float', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1000" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.FLOAT) {</span>
+<span class="nc" id="L1001">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'float', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1003">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitFRETURN(final FRETURN o) {
+<span class="pc bpc" id="L1010" title="1 of 2 branches missed.">        if (stack().peek() != Type.FLOAT) {</span>
+<span class="nc" id="L1011">            constraintViolated(o, &quot;The value at the stack top is not of type 'float', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1013">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitFSTORE(final FSTORE o) {
+        // visitStoreInstruction(StoreInstruction) is called before.
+
+        // Nothing else needs to be done here.
+<span class="fc" id="L1023">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitFSUB(final FSUB o) {
+<span class="pc bpc" id="L1030" title="1 of 2 branches missed.">        if (stack().peek() != Type.FLOAT) {</span>
+<span class="nc" id="L1031">            constraintViolated(o, &quot;The value at the stack top is not of type 'float', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1033" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.FLOAT) {</span>
+<span class="nc" id="L1034">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'float', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1036">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitGETFIELD(final GETFIELD o) {
+        try {
+<span class="fc" id="L1044">            final Type objectref = stack().peek();</span>
+<span class="pc bpc" id="L1045" title="3 of 4 branches missed.">            if (!(objectref instanceof ObjectType || objectref == Type.NULL)) {</span>
+<span class="nc" id="L1046">                constraintViolated(o, &quot;Stack top should be an object reference that's not an array reference, but is '&quot; + objectref + &quot;'.&quot;);</span>
+            }
+
+<span class="fc" id="L1049">            final String fieldName = o.getFieldName(cpg);</span>
+
+<span class="fc" id="L1051">            final JavaClass jc = Repository.lookupClass(getObjectType(o).getClassName());</span>
+<span class="fc" id="L1052">            final Field f = jc.findField(fieldName, o.getType(cpg));</span>
+<span class="pc bpc" id="L1053" title="1 of 2 branches missed.">            if (f == null) {</span>
+<span class="nc" id="L1054">                throw new AssertionViolatedException(&quot;Field '&quot; + fieldName + &quot;' not found in &quot; + jc.getClassName());</span>
+            }
+
+<span class="fc bfc" id="L1057" title="All 2 branches covered.">            if (f.isProtected()) {</span>
+<span class="fc" id="L1058">                final ObjectType classtype = getObjectType(o);</span>
+<span class="fc" id="L1059">                final ObjectType curr = ObjectType.getInstance(mg.getClassName());</span>
+
+<span class="pc bpc" id="L1061" title="1 of 4 branches missed.">                if (classtype.equals(curr) || curr.subclassOf(classtype)) {</span>
+<span class="fc" id="L1062">                    final Type t = stack().peek();</span>
+<span class="pc bpc" id="L1063" title="1 of 2 branches missed.">                    if (t == Type.NULL) {</span>
+<span class="nc" id="L1064">                        return;</span>
+                    }
+<span class="pc bpc" id="L1066" title="1 of 2 branches missed.">                    if (!(t instanceof ObjectType)) {</span>
+<span class="nc" id="L1067">                        constraintViolated(o, &quot;The 'objectref' must refer to an object that's not an array. Found instead: '&quot; + t + &quot;'.&quot;);</span>
+                    }
+                    // final ObjectType objreftype = (ObjectType) t;
+                    // if (!(objreftype.equals(curr) || objreftype.subclassOf(curr))) {
+                        // TODO: One day move to Staerk-et-al's &quot;Set of object types&quot; instead of &quot;wider&quot; object types
+                        // created during the verification.
+                        // &quot;Wider&quot; object types don't allow us to check for things like that below.
+                        // constraintViolated(o, &quot;The referenced field has the ACC_PROTECTED modifier, &quot;+
+                        // &quot;and it's a member of the current class or a superclass of the current class.&quot;+
+                        // &quot; However, the referenced object type '&quot;+stack().peek()+
+                        // &quot;' is not the current class or a subclass of the current class.&quot;);
+                    //}
+                }
+            }
+
+            // TODO: Could go into Pass 3a.
+<span class="pc bpc" id="L1083" title="1 of 2 branches missed.">            if (f.isStatic()) {</span>
+<span class="nc" id="L1084">                constraintViolated(o, &quot;Referenced field '&quot; + f + &quot;' is static which it shouldn't be.&quot;);</span>
+            }
+
+<span class="nc" id="L1087">        } catch (final ClassNotFoundException e) {</span>
+            // FIXME: maybe not the best way to handle this
+<span class="nc" id="L1089">            throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="fc" id="L1090">        }</span>
+<span class="fc" id="L1091">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitGETSTATIC(final GETSTATIC o) {
+        // Field must be static: see Pass 3a.
+<span class="fc" id="L1099">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitGOTO(final GOTO o) {
+        // nothing to do here.
+<span class="fc" id="L1107">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitGOTO_W(final GOTO_W o) {
+        // nothing to do here.
+<span class="nc" id="L1115">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitI2B(final I2B o) {
+<span class="pc bpc" id="L1122" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1123">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1125">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitI2C(final I2C o) {
+<span class="pc bpc" id="L1132" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1133">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1135">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitI2D(final I2D o) {
+<span class="pc bpc" id="L1142" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1143">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1145">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitI2F(final I2F o) {
+<span class="pc bpc" id="L1152" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1153">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1155">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitI2L(final I2L o) {
+<span class="pc bpc" id="L1162" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1163">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1165">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitI2S(final I2S o) {
+<span class="pc bpc" id="L1172" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1173">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1175">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIADD(final IADD o) {
+<span class="pc bpc" id="L1182" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1183">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1185" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.INT) {</span>
+<span class="nc" id="L1186">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'int', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1188">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIALOAD(final IALOAD o) {
+<span class="fc" id="L1195">        indexOfInt(o, stack().peek());</span>
+<span class="pc bpc" id="L1196" title="1 of 2 branches missed.">        if (stack().peek(1) == Type.NULL) {</span>
+<span class="nc" id="L1197">            return;</span>
+        }
+<span class="pc bpc" id="L1199" title="1 of 2 branches missed.">        if (!(stack().peek(1) instanceof ArrayType)) {</span>
+<span class="nc" id="L1200">            constraintViolated(o, &quot;Stack next-to-top must be of type int[] but is '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1202">        final Type t = ((ArrayType) stack().peek(1)).getBasicType();</span>
+<span class="pc bpc" id="L1203" title="1 of 2 branches missed.">        if (t != Type.INT) {</span>
+<span class="nc" id="L1204">            constraintViolated(o, &quot;Stack next-to-top must be of type int[] but is '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1206">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIAND(final IAND o) {
+<span class="pc bpc" id="L1213" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1214">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1216" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.INT) {</span>
+<span class="nc" id="L1217">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'int', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1219">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIASTORE(final IASTORE o) {
+<span class="pc bpc" id="L1226" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1227">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1229">        indexOfInt(o, stack().peek(1));</span>
+<span class="pc bpc" id="L1230" title="1 of 2 branches missed.">        if (stack().peek(2) == Type.NULL) {</span>
+<span class="nc" id="L1231">            return;</span>
+        }
+<span class="pc bpc" id="L1233" title="1 of 2 branches missed.">        if (!(stack().peek(2) instanceof ArrayType)) {</span>
+<span class="nc" id="L1234">            constraintViolated(o, &quot;Stack next-to-next-to-top must be of type int[] but is '&quot; + stack().peek(2) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1236">        final Type t = ((ArrayType) stack().peek(2)).getBasicType();</span>
+<span class="pc bpc" id="L1237" title="1 of 2 branches missed.">        if (t != Type.INT) {</span>
+<span class="nc" id="L1238">            constraintViolated(o, &quot;Stack next-to-next-to-top must be of type int[] but is '&quot; + stack().peek(2) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1240">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitICONST(final ICONST o) {
+        // nothing to do here.
+<span class="fc" id="L1248">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIDIV(final IDIV o) {
+<span class="pc bpc" id="L1255" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1256">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1258" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.INT) {</span>
+<span class="nc" id="L1259">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'int', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1261">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIF_ACMPEQ(final IF_ACMPEQ o) {
+<span class="pc bpc" id="L1268" title="1 of 2 branches missed.">        if (!(stack().peek() instanceof ReferenceType)) {</span>
+<span class="nc" id="L1269">            constraintViolated(o, &quot;The value at the stack top is not of a ReferenceType, but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+        // referenceTypeIsInitialized(o, (ReferenceType) (stack().peek()) );
+
+<span class="pc bpc" id="L1273" title="1 of 2 branches missed.">        if (!(stack().peek(1) instanceof ReferenceType)) {</span>
+<span class="nc" id="L1274">            constraintViolated(o, &quot;The value at the stack next-to-top is not of a ReferenceType, but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+        // referenceTypeIsInitialized(o, (ReferenceType) (stack().peek(1)) );
+
+<span class="fc" id="L1278">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIF_ACMPNE(final IF_ACMPNE o) {
+<span class="pc bpc" id="L1285" title="1 of 2 branches missed.">        if (!(stack().peek() instanceof ReferenceType)) {</span>
+<span class="nc" id="L1286">            constraintViolated(o, &quot;The value at the stack top is not of a ReferenceType, but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+            // referenceTypeIsInitialized(o, (ReferenceType) (stack().peek()) );
+        }
+<span class="pc bpc" id="L1289" title="1 of 2 branches missed.">        if (!(stack().peek(1) instanceof ReferenceType)) {</span>
+<span class="nc" id="L1290">            constraintViolated(o, &quot;The value at the stack next-to-top is not of a ReferenceType, but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+            // referenceTypeIsInitialized(o, (ReferenceType) (stack().peek(1)) );
+        }
+<span class="fc" id="L1293">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIF_ICMPEQ(final IF_ICMPEQ o) {
+<span class="pc bpc" id="L1300" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1301">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1303" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.INT) {</span>
+<span class="nc" id="L1304">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'int', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1306">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIF_ICMPGE(final IF_ICMPGE o) {
+<span class="pc bpc" id="L1313" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1314">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1316" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.INT) {</span>
+<span class="nc" id="L1317">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'int', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1319">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIF_ICMPGT(final IF_ICMPGT o) {
+<span class="pc bpc" id="L1326" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1327">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1329" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.INT) {</span>
+<span class="nc" id="L1330">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'int', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1332">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIF_ICMPLE(final IF_ICMPLE o) {
+<span class="pc bpc" id="L1339" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1340">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1342" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.INT) {</span>
+<span class="nc" id="L1343">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'int', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1345">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIF_ICMPLT(final IF_ICMPLT o) {
+<span class="pc bpc" id="L1352" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1353">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1355" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.INT) {</span>
+<span class="nc" id="L1356">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'int', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1358">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIF_ICMPNE(final IF_ICMPNE o) {
+<span class="pc bpc" id="L1365" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1366">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1368" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.INT) {</span>
+<span class="nc" id="L1369">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'int', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1371">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIFEQ(final IFEQ o) {
+<span class="pc bpc" id="L1378" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1379">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1381">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIFGE(final IFGE o) {
+<span class="pc bpc" id="L1388" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1389">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1391">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIFGT(final IFGT o) {
+<span class="pc bpc" id="L1398" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1399">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1401">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIFLE(final IFLE o) {
+<span class="pc bpc" id="L1408" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1409">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1411">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIFLT(final IFLT o) {
+<span class="pc bpc" id="L1418" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1419">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1421">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIFNE(final IFNE o) {
+<span class="pc bpc" id="L1428" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1429">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1431">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIFNONNULL(final IFNONNULL o) {
+<span class="pc bpc" id="L1438" title="1 of 2 branches missed.">        if (!(stack().peek() instanceof ReferenceType)) {</span>
+<span class="nc" id="L1439">            constraintViolated(o, &quot;The value at the stack top is not of a ReferenceType, but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1441">        referenceTypeIsInitialized(o, (ReferenceType) stack().peek());</span>
+<span class="fc" id="L1442">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIFNULL(final IFNULL o) {
+<span class="pc bpc" id="L1449" title="1 of 2 branches missed.">        if (!(stack().peek() instanceof ReferenceType)) {</span>
+<span class="nc" id="L1450">            constraintViolated(o, &quot;The value at the stack top is not of a ReferenceType, but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1452">        referenceTypeIsInitialized(o, (ReferenceType) stack().peek());</span>
+<span class="fc" id="L1453">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIINC(final IINC o) {
+        // Mhhh. In BCEL, at this time &quot;IINC&quot; is not a LocalVariableInstruction.
+<span class="pc bpc" id="L1461" title="2 of 4 branches missed.">        if (locals().maxLocals() &lt;= (o.getType(cpg).getSize() == 1 ? o.getIndex() : o.getIndex() + 1)) {</span>
+<span class="nc" id="L1462">            constraintViolated(o, &quot;The 'index' is not a valid index into the local variable array.&quot;);</span>
+        }
+
+<span class="fc" id="L1465">        indexOfInt(o, locals().get(o.getIndex()));</span>
+<span class="fc" id="L1466">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitILOAD(final ILOAD o) {
+        // All done by visitLocalVariableInstruction(), visitLoadInstruction()
+<span class="fc" id="L1474">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIMPDEP1(final IMPDEP1 o) {
+<span class="nc" id="L1481">        throw new AssertionViolatedException(&quot;In this JustIce verification pass there should not occur an illegal instruction such as IMPDEP1.&quot;);</span>
+    }
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIMPDEP2(final IMPDEP2 o) {
+<span class="nc" id="L1489">        throw new AssertionViolatedException(&quot;In this JustIce verification pass there should not occur an illegal instruction such as IMPDEP2.&quot;);</span>
+    }
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIMUL(final IMUL o) {
+<span class="pc bpc" id="L1497" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1498">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1500" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.INT) {</span>
+<span class="nc" id="L1501">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'int', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1503">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitINEG(final INEG o) {
+<span class="pc bpc" id="L1510" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1511">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1513">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitINSTANCEOF(final INSTANCEOF o) {
+        // The objectref must be of type reference.
+<span class="fc" id="L1521">        final Type objectref = stack().peek(0);</span>
+<span class="pc bpc" id="L1522" title="1 of 2 branches missed.">        if (!(objectref instanceof ReferenceType)) {</span>
+<span class="nc" id="L1523">            constraintViolated(o, &quot;The 'objectref' is not of a ReferenceType but of type &quot; + objectref + &quot;.&quot;);</span>
+        }
+        // else{
+        // referenceTypeIsInitialized(o, (ReferenceType) objectref);
+        // }
+        // The unsigned indexbyte1 and indexbyte2 are used to construct an index into the runtime constant pool of the
+        // current class (�3.6), where the value of the index is (indexbyte1 &lt;&lt; 8) | indexbyte2. The runtime constant
+        // pool item at the index must be a symbolic reference to a class, array, or interface type.
+<span class="fc" id="L1531">        final Constant c = cpg.getConstant(o.getIndex());</span>
+<span class="pc bpc" id="L1532" title="1 of 2 branches missed.">        if (!(c instanceof ConstantClass)) {</span>
+<span class="nc" id="L1533">            constraintViolated(o, &quot;The Constant at 'index' is not a ConstantClass, but '&quot; + c + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1535">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     *
+     * @since 6.0
+     */
+    @Override
+    public void visitINVOKEDYNAMIC(final INVOKEDYNAMIC o) {
+<span class="nc" id="L1544">        throw new UnsupportedOperationException(&quot;INVOKEDYNAMIC instruction is not supported at this time&quot;);</span>
+    }
+
+    /**
+     * Ensures the general preconditions of an InvokeInstruction instance.
+     */
+    @Override
+    public void visitInvokeInstruction(final InvokeInstruction o) {
+        // visitLoadClass(o) has been called before: Every FieldOrMethod
+        // implements LoadClass.
+        // visitCPInstruction(o) has been called before.
+        // TODO
+<span class="fc" id="L1556">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitINVOKEINTERFACE(final INVOKEINTERFACE o) {
+        // Method is not native, otherwise pass 3 would not happen.
+
+<span class="fc" id="L1565">        final int count = o.getCount();</span>
+<span class="pc bpc" id="L1566" title="1 of 2 branches missed.">        if (count == 0) {</span>
+<span class="nc" id="L1567">            constraintViolated(o, &quot;The 'count' argument must not be 0.&quot;);</span>
+        }
+        // It is a ConstantInterfaceMethodref, Pass 3a made it sure.
+        // TODO: Do we want to do anything with it?
+        // ConstantInterfaceMethodref cimr = (ConstantInterfaceMethodref) (cpg.getConstant(o.getIndex()));
+
+        // the o.getClassType(cpg) type has passed pass 2; see visitLoadClass(o).
+
+<span class="fc" id="L1575">        final Type t = o.getType(cpg);</span>
+<span class="fc bfc" id="L1576" title="All 2 branches covered.">        if (t instanceof ObjectType) {</span>
+<span class="fc" id="L1577">            final String name = ((ObjectType) t).getClassName();</span>
+<span class="fc" id="L1578">            final Verifier v = VerifierFactory.getVerifier(name);</span>
+<span class="fc" id="L1579">            final VerificationResult vr = v.doPass2();</span>
+<span class="pc bpc" id="L1580" title="1 of 2 branches missed.">            if (vr.getStatus() != VerificationResult.VERIFIED_OK) {</span>
+<span class="nc" id="L1581">                constraintViolated(o, &quot;Class '&quot; + name + &quot;' is referenced, but cannot be loaded and resolved: '&quot; + vr + &quot;'.&quot;);</span>
+            }
+        }
+
+<span class="fc" id="L1585">        final Type[] argTypes = o.getArgumentTypes(cpg);</span>
+<span class="fc" id="L1586">        final int argCount = argTypes.length;</span>
+
+<span class="fc bfc" id="L1588" title="All 2 branches covered.">        for (int i = argCount - 1; i &gt;= 0; i--) {</span>
+<span class="fc" id="L1589">            final Type fromStack = stack().peek(argCount - 1 - i); // 0 to argCount - 1</span>
+<span class="fc" id="L1590">            Type fromDesc = argTypes[i];</span>
+<span class="pc bpc" id="L1591" title="4 of 8 branches missed.">            if (fromDesc == Type.BOOLEAN || fromDesc == Type.BYTE || fromDesc == Type.CHAR || fromDesc == Type.SHORT) {</span>
+<span class="nc" id="L1592">                fromDesc = Type.INT;</span>
+            }
+<span class="fc bfc" id="L1594" title="All 2 branches covered.">            if (!fromStack.equals(fromDesc)) {</span>
+<span class="pc bpc" id="L1595" title="2 of 4 branches missed.">                if (fromStack instanceof ReferenceType &amp;&amp; fromDesc instanceof ReferenceType) {</span>
+<span class="fc" id="L1596">                    final ReferenceType rFromStack = (ReferenceType) fromStack;</span>
+                    // ReferenceType rFromDesc = (ReferenceType) fromDesc;
+                    // TODO: This can only be checked when using Staerk-et-al's &quot;set of object types&quot;
+                    // instead of a &quot;wider cast object type&quot; created during verification.
+                    // if ( ! rFromStack.isAssignmentCompatibleWith(rFromDesc) ) {
+                    // constraintViolated(o, &quot;Expecting a '&quot;+fromDesc+&quot;' but found a '&quot;+fromStack+
+                    // &quot;' on the stack (which is not assignment compatible).&quot;);
+                    // }
+<span class="fc" id="L1604">                    referenceTypeIsInitialized(o, rFromStack);</span>
+<span class="fc" id="L1605">                } else {</span>
+<span class="nc" id="L1606">                    constraintViolated(o, &quot;Expecting a '&quot; + fromDesc + &quot;' but found a '&quot; + fromStack + &quot;' on the stack.&quot;);</span>
+                }
+            }
+        }
+
+<span class="fc" id="L1611">        Type objRef = stack().peek(argCount);</span>
+<span class="pc bpc" id="L1612" title="1 of 2 branches missed.">        if (objRef == Type.NULL) {</span>
+<span class="nc" id="L1613">            return;</span>
+        }
+<span class="pc bpc" id="L1615" title="1 of 2 branches missed.">        if (!(objRef instanceof ReferenceType)) {</span>
+<span class="nc" id="L1616">            constraintViolated(o, &quot;Expecting a reference type as 'objectref' on the stack, not a '&quot; + objRef + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1618">        referenceTypeIsInitialized(o, (ReferenceType) objRef);</span>
+<span class="pc bpc" id="L1619" title="1 of 2 branches missed.">        if (!(objRef instanceof ObjectType)) {</span>
+<span class="nc bnc" id="L1620" title="All 2 branches missed.">            if (!(objRef instanceof ArrayType)) { // could be a ReturnaddressType</span>
+<span class="nc" id="L1621">                constraintViolated(o, &quot;Expecting an ObjectType as 'objectref' on the stack, not a '&quot; + objRef + &quot;'.&quot;);</span>
+            } else {
+<span class="nc" id="L1623">                objRef = GENERIC_ARRAY;</span>
+            }
+        }
+
+        // String objRefClassName = ((ObjectType) objRef).getClassName();
+        // String theInterface = o.getClassName(cpg);
+        // TODO: This can only be checked if we're using Staerk-et-al's &quot;set of object types&quot;
+        // instead of &quot;wider cast object types&quot; generated during verification.
+        // if ( ! Repository.implementationOf(objRefClassName, theInterface) ) {
+        // constraintViolated(o, &quot;The 'objRef' item '&quot; + objRef + &quot;' does not implement '&quot; + theInterface + &quot;' as expected.&quot;);
+        // }
+
+<span class="fc" id="L1635">        int countedCount = 1; // 1 for the objectref</span>
+<span class="fc bfc" id="L1636" title="All 2 branches covered.">        for (int i = 0; i &lt; argCount; i++) {</span>
+<span class="fc" id="L1637">            countedCount += argTypes[i].getSize();</span>
+        }
+<span class="pc bpc" id="L1639" title="1 of 2 branches missed.">        if (count != countedCount) {</span>
+<span class="nc" id="L1640">            constraintViolated(o, &quot;The 'count' argument should probably read '&quot; + countedCount + &quot;' but is '&quot; + count + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1642">    }</span>
+
+    private int visitInvokeInternals(final InvokeInstruction o) throws ClassNotFoundException {
+<span class="fc" id="L1645">        final Type t = o.getType(cpg);</span>
+<span class="fc bfc" id="L1646" title="All 2 branches covered.">        if (t instanceof ObjectType) {</span>
+<span class="fc" id="L1647">            final String name = ((ObjectType) t).getClassName();</span>
+<span class="fc" id="L1648">            final Verifier v = VerifierFactory.getVerifier(name);</span>
+<span class="fc" id="L1649">            final VerificationResult vr = v.doPass2();</span>
+<span class="pc bpc" id="L1650" title="1 of 2 branches missed.">            if (vr.getStatus() != VerificationResult.VERIFIED_OK) {</span>
+<span class="nc" id="L1651">                constraintViolated(o, &quot;Class '&quot; + name + &quot;' is referenced, but cannot be loaded and resolved: '&quot; + vr + &quot;'.&quot;);</span>
+            }
+        }
+
+<span class="fc" id="L1655">        final Type[] argtypes = o.getArgumentTypes(cpg);</span>
+<span class="fc" id="L1656">        final int nargs = argtypes.length;</span>
+
+<span class="fc bfc" id="L1658" title="All 2 branches covered.">        for (int i = nargs - 1; i &gt;= 0; i--) {</span>
+<span class="fc" id="L1659">            final Type fromStack = stack().peek(nargs - 1 - i); // 0 to nargs-1</span>
+<span class="fc" id="L1660">            Type fromDesc = argtypes[i];</span>
+<span class="fc bfc" id="L1661" title="All 8 branches covered.">            if (fromDesc == Type.BOOLEAN || fromDesc == Type.BYTE || fromDesc == Type.CHAR || fromDesc == Type.SHORT) {</span>
+<span class="fc" id="L1662">                fromDesc = Type.INT;</span>
+            }
+<span class="fc bfc" id="L1664" title="All 2 branches covered.">            if (!fromStack.equals(fromDesc)) {</span>
+<span class="pc bpc" id="L1665" title="2 of 4 branches missed.">                if (fromStack instanceof ReferenceType &amp;&amp; fromDesc instanceof ReferenceType) {</span>
+<span class="fc" id="L1666">                    final ReferenceType rFromStack = (ReferenceType) fromStack;</span>
+<span class="fc" id="L1667">                    final ReferenceType rFromDesc = (ReferenceType) fromDesc;</span>
+                    // TODO: This can possibly only be checked when using Staerk-et-al's &quot;set of object types&quot; instead
+                    // of a single &quot;wider cast object type&quot; created during verification.
+<span class="pc bpc" id="L1670" title="1 of 2 branches missed.">                    if (!rFromStack.isAssignmentCompatibleWith(rFromDesc)) {</span>
+<span class="nc" id="L1671">                        constraintViolated(o,</span>
+                            &quot;Expecting a '&quot; + fromDesc + &quot;' but found a '&quot; + fromStack + &quot;' on the stack (which is not assignment compatible).&quot;);
+                    }
+<span class="fc" id="L1674">                    referenceTypeIsInitialized(o, rFromStack);</span>
+<span class="fc" id="L1675">                } else {</span>
+<span class="nc" id="L1676">                    constraintViolated(o, &quot;Expecting a '&quot; + fromDesc + &quot;' but found a '&quot; + fromStack + &quot;' on the stack.&quot;);</span>
+                }
+            }
+        }
+<span class="fc" id="L1680">        return nargs;</span>
+    }
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitINVOKESPECIAL(final INVOKESPECIAL o) {
+        try {
+            // Don't init an object twice.
+<span class="pc bpc" id="L1690" title="1 of 4 branches missed.">            if (o.getMethodName(cpg).equals(Const.CONSTRUCTOR_NAME) &amp;&amp; !(stack().peek(o.getArgumentTypes(cpg).length) instanceof UninitializedObjectType)) {</span>
+<span class="nc" id="L1691">                constraintViolated(o,</span>
+                    &quot;Possibly initializing object twice.&quot;
+                        + &quot; A valid instruction sequence must not have an uninitialized object on the operand stack or in a local variable&quot;
+                        + &quot; during a backwards branch, or in a local variable in code protected by an exception handler.&quot;
+                        + &quot; Please see The Java Virtual Machine Specification, Second Edition, 4.9.4 (pages 147 and 148) for details.&quot;);
+            }
+
+            // the o.getClassType(cpg) type has passed pass 2; see visitLoadClass(o).
+
+<span class="fc" id="L1700">            final int nargs = visitInvokeInternals(o);</span>
+<span class="fc" id="L1701">            Type objref = stack().peek(nargs);</span>
+<span class="pc bpc" id="L1702" title="1 of 2 branches missed.">            if (objref == Type.NULL) {</span>
+<span class="nc" id="L1703">                return;</span>
+            }
+<span class="pc bpc" id="L1705" title="1 of 2 branches missed.">            if (!(objref instanceof ReferenceType)) {</span>
+<span class="nc" id="L1706">                constraintViolated(o, &quot;Expecting a reference type as 'objectref' on the stack, not a '&quot; + objref + &quot;'.&quot;);</span>
+            }
+<span class="fc" id="L1708">            String objRefClassName = null;</span>
+<span class="fc bfc" id="L1709" title="All 2 branches covered.">            if (!o.getMethodName(cpg).equals(Const.CONSTRUCTOR_NAME)) {</span>
+<span class="fc" id="L1710">                referenceTypeIsInitialized(o, (ReferenceType) objref);</span>
+<span class="pc bpc" id="L1711" title="1 of 2 branches missed.">                if (!(objref instanceof ObjectType)) {</span>
+<span class="nc bnc" id="L1712" title="All 2 branches missed.">                    if (!(objref instanceof ArrayType)) { // could be a ReturnaddressType</span>
+<span class="nc" id="L1713">                        constraintViolated(o, &quot;Expecting an ObjectType as 'objectref' on the stack, not a '&quot; + objref + &quot;'.&quot;);</span>
+                    } else {
+<span class="nc" id="L1715">                        objref = GENERIC_ARRAY;</span>
+                    }
+                }
+
+<span class="fc" id="L1719">                objRefClassName = ((ObjectType) objref).getClassName();</span>
+            } else {
+<span class="pc bpc" id="L1721" title="1 of 2 branches missed.">                if (!(objref instanceof UninitializedObjectType)) {</span>
+<span class="nc" id="L1722">                    constraintViolated(o, &quot;Expecting an UninitializedObjectType as 'objectref' on the stack, not a '&quot; + objref</span>
+                        + &quot;'. Otherwise, you couldn't invoke a method since an array has no methods (not to speak of a return address).&quot;);
+                }
+<span class="fc" id="L1725">                objRefClassName = ((UninitializedObjectType) objref).getInitialized().getClassName();</span>
+            }
+
+<span class="fc" id="L1728">            final String theClass = o.getClassName(cpg);</span>
+<span class="pc bpc" id="L1729" title="1 of 2 branches missed.">            if (!Repository.instanceOf(objRefClassName, theClass)) {</span>
+<span class="nc" id="L1730">                constraintViolated(o, &quot;The 'objref' item '&quot; + objref + &quot;' does not implement '&quot; + theClass + &quot;' as expected.&quot;);</span>
+            }
+
+<span class="nc" id="L1733">        } catch (final ClassNotFoundException e) {</span>
+            // FIXME: maybe not the best way to handle this
+<span class="nc" id="L1735">            throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="fc" id="L1736">        }</span>
+<span class="fc" id="L1737">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitINVOKESTATIC(final INVOKESTATIC o) {
+        try {
+            // Method is not native, otherwise pass 3 would not happen.
+<span class="fc" id="L1746">            visitInvokeInternals(o);</span>
+<span class="nc" id="L1747">        } catch (final ClassNotFoundException e) {</span>
+            // FIXME: maybe not the best way to handle this
+<span class="nc" id="L1749">            throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="fc" id="L1750">        }</span>
+<span class="fc" id="L1751">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitINVOKEVIRTUAL(final INVOKEVIRTUAL o) {
+        try {
+            // the o.getClassType(cpg) type has passed pass 2; see visitLoadClass(o).
+
+<span class="fc" id="L1761">            final int nargs = visitInvokeInternals(o);</span>
+<span class="fc" id="L1762">            Type objref = stack().peek(nargs);</span>
+<span class="fc bfc" id="L1763" title="All 2 branches covered.">            if (objref == Type.NULL) {</span>
+<span class="fc" id="L1764">                return;</span>
+            }
+<span class="pc bpc" id="L1766" title="1 of 2 branches missed.">            if (!(objref instanceof ReferenceType)) {</span>
+<span class="nc" id="L1767">                constraintViolated(o, &quot;Expecting a reference type as 'objectref' on the stack, not a '&quot; + objref + &quot;'.&quot;);</span>
+            }
+<span class="fc" id="L1769">            referenceTypeIsInitialized(o, (ReferenceType) objref);</span>
+<span class="fc bfc" id="L1770" title="All 2 branches covered.">            if (!(objref instanceof ObjectType)) {</span>
+<span class="pc bpc" id="L1771" title="1 of 2 branches missed.">                if (!(objref instanceof ArrayType)) { // could be a ReturnaddressType</span>
+<span class="nc" id="L1772">                    constraintViolated(o, &quot;Expecting an ObjectType as 'objectref' on the stack, not a '&quot; + objref + &quot;'.&quot;);</span>
+                } else {
+<span class="fc" id="L1774">                    objref = GENERIC_ARRAY;</span>
+                }
+            }
+
+<span class="fc" id="L1778">            final String objRefClassName = ((ObjectType) objref).getClassName();</span>
+
+<span class="fc" id="L1780">            final String theClass = o.getClassName(cpg);</span>
+
+<span class="pc bpc" id="L1782" title="1 of 4 branches missed.">            if (objref != GENERIC_ARRAY &amp;&amp; !Repository.instanceOf(objRefClassName, theClass)) {</span>
+<span class="nc" id="L1783">                constraintViolated(o, &quot;The 'objref' item '&quot; + objref + &quot;' does not implement '&quot; + theClass + &quot;' as expected.&quot;);</span>
+            }
+<span class="nc" id="L1785">        } catch (final ClassNotFoundException e) {</span>
+            // FIXME: maybe not the best way to handle this
+<span class="nc" id="L1787">            throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="fc" id="L1788">        }</span>
+<span class="fc" id="L1789">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIOR(final IOR o) {
+<span class="pc bpc" id="L1796" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1797">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1799" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.INT) {</span>
+<span class="nc" id="L1800">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'int', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1802">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIREM(final IREM o) {
+<span class="pc bpc" id="L1809" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1810">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1812" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.INT) {</span>
+<span class="nc" id="L1813">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'int', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1815">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIRETURN(final IRETURN o) {
+<span class="pc bpc" id="L1822" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1823">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1825">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitISHL(final ISHL o) {
+<span class="pc bpc" id="L1832" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1833">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1835" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.INT) {</span>
+<span class="nc" id="L1836">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'int', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1838">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitISHR(final ISHR o) {
+<span class="pc bpc" id="L1845" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1846">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1848" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.INT) {</span>
+<span class="nc" id="L1849">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'int', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1851">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitISTORE(final ISTORE o) {
+        // visitStoreInstruction(StoreInstruction) is called before.
+
+        // Nothing else needs to be done here.
+<span class="fc" id="L1861">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitISUB(final ISUB o) {
+<span class="pc bpc" id="L1868" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1869">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1871" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.INT) {</span>
+<span class="nc" id="L1872">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'int', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1874">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIUSHR(final IUSHR o) {
+<span class="pc bpc" id="L1881" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1882">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1884" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.INT) {</span>
+<span class="nc" id="L1885">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'int', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1887">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitIXOR(final IXOR o) {
+<span class="pc bpc" id="L1894" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L1895">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1897" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.INT) {</span>
+<span class="nc" id="L1898">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'int', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1900">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitJSR(final JSR o) {
+        // nothing to do here.
+<span class="nc" id="L1908">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitJSR_W(final JSR_W o) {
+        // nothing to do here.
+<span class="nc" id="L1916">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitL2D(final L2D o) {
+<span class="pc bpc" id="L1923" title="1 of 2 branches missed.">        if (stack().peek() != Type.LONG) {</span>
+<span class="nc" id="L1924">            constraintViolated(o, &quot;The value at the stack top is not of type 'long', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1926">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitL2F(final L2F o) {
+<span class="pc bpc" id="L1933" title="1 of 2 branches missed.">        if (stack().peek() != Type.LONG) {</span>
+<span class="nc" id="L1934">            constraintViolated(o, &quot;The value at the stack top is not of type 'long', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1936">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitL2I(final L2I o) {
+<span class="pc bpc" id="L1943" title="1 of 2 branches missed.">        if (stack().peek() != Type.LONG) {</span>
+<span class="nc" id="L1944">            constraintViolated(o, &quot;The value at the stack top is not of type 'long', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1946">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLADD(final LADD o) {
+<span class="pc bpc" id="L1953" title="1 of 2 branches missed.">        if (stack().peek() != Type.LONG) {</span>
+<span class="nc" id="L1954">            constraintViolated(o, &quot;The value at the stack top is not of type 'long', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1956" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.LONG) {</span>
+<span class="nc" id="L1957">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'long', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1959">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLALOAD(final LALOAD o) {
+<span class="fc" id="L1966">        indexOfInt(o, stack().peek());</span>
+<span class="pc bpc" id="L1967" title="1 of 2 branches missed.">        if (stack().peek(1) == Type.NULL) {</span>
+<span class="nc" id="L1968">            return;</span>
+        }
+<span class="pc bpc" id="L1970" title="1 of 2 branches missed.">        if (!(stack().peek(1) instanceof ArrayType)) {</span>
+<span class="nc" id="L1971">            constraintViolated(o, &quot;Stack next-to-top must be of type long[] but is '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1973">        final Type t = ((ArrayType) stack().peek(1)).getBasicType();</span>
+<span class="pc bpc" id="L1974" title="1 of 2 branches missed.">        if (t != Type.LONG) {</span>
+<span class="nc" id="L1975">            constraintViolated(o, &quot;Stack next-to-top must be of type long[] but is '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1977">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLAND(final LAND o) {
+<span class="pc bpc" id="L1984" title="1 of 2 branches missed.">        if (stack().peek() != Type.LONG) {</span>
+<span class="nc" id="L1985">            constraintViolated(o, &quot;The value at the stack top is not of type 'long', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L1987" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.LONG) {</span>
+<span class="nc" id="L1988">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'long', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L1990">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLASTORE(final LASTORE o) {
+<span class="pc bpc" id="L1997" title="1 of 2 branches missed.">        if (stack().peek() != Type.LONG) {</span>
+<span class="nc" id="L1998">            constraintViolated(o, &quot;The value at the stack top is not of type 'long', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2000">        indexOfInt(o, stack().peek(1));</span>
+<span class="pc bpc" id="L2001" title="1 of 2 branches missed.">        if (stack().peek(2) == Type.NULL) {</span>
+<span class="nc" id="L2002">            return;</span>
+        }
+<span class="pc bpc" id="L2004" title="1 of 2 branches missed.">        if (!(stack().peek(2) instanceof ArrayType)) {</span>
+<span class="nc" id="L2005">            constraintViolated(o, &quot;Stack next-to-next-to-top must be of type long[] but is '&quot; + stack().peek(2) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2007">        final Type t = ((ArrayType) stack().peek(2)).getBasicType();</span>
+<span class="pc bpc" id="L2008" title="1 of 2 branches missed.">        if (t != Type.LONG) {</span>
+<span class="nc" id="L2009">            constraintViolated(o, &quot;Stack next-to-next-to-top must be of type long[] but is '&quot; + stack().peek(2) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2011">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLCMP(final LCMP o) {
+<span class="pc bpc" id="L2018" title="1 of 2 branches missed.">        if (stack().peek() != Type.LONG) {</span>
+<span class="nc" id="L2019">            constraintViolated(o, &quot;The value at the stack top is not of type 'long', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L2021" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.LONG) {</span>
+<span class="nc" id="L2022">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'long', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2024">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLCONST(final LCONST o) {
+        // Nothing to do here.
+<span class="fc" id="L2032">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLDC(final LDC o) {
+        // visitCPInstruction is called first.
+
+<span class="fc" id="L2041">        final Constant c = cpg.getConstant(o.getIndex());</span>
+<span class="pc bpc" id="L2042" title="1 of 10 branches missed.">        if (!(c instanceof ConstantInteger</span>
+                || c instanceof ConstantFloat
+                || c instanceof ConstantString
+                || c instanceof ConstantClass
+                || c instanceof ConstantDynamic)) {
+<span class="nc" id="L2047">            constraintViolated(o,</span>
+                &quot;Referenced constant should be a CONSTANT_Integer, a CONSTANT_Float, a CONSTANT_String, a CONSTANT_Class, or a CONSTANT_Dynamic but is '&quot;
+                        + c + &quot;'.&quot;);
+        }
+<span class="fc" id="L2051">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     *
+     * @param o the instruction to visit.
+     */
+    public void visitLDC_W(final LDC_W o) {
+        // visitCPInstruction is called first.
+
+<span class="nc" id="L2061">        final Constant c = cpg.getConstant(o.getIndex());</span>
+<span class="nc bnc" id="L2062" title="All 8 branches missed.">        if (!(c instanceof ConstantInteger || c instanceof ConstantFloat || c instanceof ConstantString || c instanceof ConstantClass)) {</span>
+<span class="nc" id="L2063">            constraintViolated(o,</span>
+                &quot;Referenced constant should be a CONSTANT_Integer, a CONSTANT_Float, a CONSTANT_String or a CONSTANT_Class, but is '&quot; + c + &quot;'.&quot;);
+        }
+<span class="nc" id="L2066">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLDC2_W(final LDC2_W o) {
+        // visitCPInstruction is called first.
+
+<span class="fc" id="L2075">        final Constant c = cpg.getConstant(o.getIndex());</span>
+<span class="pc bpc" id="L2076" title="1 of 4 branches missed.">        if (!(c instanceof ConstantLong || c instanceof ConstantDouble)) {</span>
+<span class="nc" id="L2077">            constraintViolated(o, &quot;Referenced constant should be a CONSTANT_Integer, a CONSTANT_Float or a CONSTANT_String, but is '&quot; + c + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2079">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLDIV(final LDIV o) {
+<span class="pc bpc" id="L2086" title="1 of 2 branches missed.">        if (stack().peek() != Type.LONG) {</span>
+<span class="nc" id="L2087">            constraintViolated(o, &quot;The value at the stack top is not of type 'long', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L2089" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.LONG) {</span>
+<span class="nc" id="L2090">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'long', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2092">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLLOAD(final LLOAD o) {
+        // visitLoadInstruction(LoadInstruction) is called before.
+
+        // Nothing else needs to be done here.
+<span class="fc" id="L2102">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLMUL(final LMUL o) {
+<span class="pc bpc" id="L2109" title="1 of 2 branches missed.">        if (stack().peek() != Type.LONG) {</span>
+<span class="nc" id="L2110">            constraintViolated(o, &quot;The value at the stack top is not of type 'long', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L2112" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.LONG) {</span>
+<span class="nc" id="L2113">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'long', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2115">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLNEG(final LNEG o) {
+<span class="pc bpc" id="L2122" title="1 of 2 branches missed.">        if (stack().peek() != Type.LONG) {</span>
+<span class="nc" id="L2123">            constraintViolated(o, &quot;The value at the stack top is not of type 'long', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2125">    }</span>
+
+    /**
+     * Assures the generic preconditions of a LoadClass instance. The referenced class is loaded and pass2-verified.
+     */
+    @Override
+    public void visitLoadClass(final LoadClass o) {
+<span class="fc" id="L2132">        final ObjectType t = o.getLoadClassType(cpg);</span>
+<span class="fc bfc" id="L2133" title="All 2 branches covered.">        if (t != null) { // null means &quot;no class is loaded&quot;</span>
+<span class="fc" id="L2134">            final Verifier v = VerifierFactory.getVerifier(t.getClassName());</span>
+<span class="fc" id="L2135">            final VerificationResult vr = v.doPass2();</span>
+<span class="pc bpc" id="L2136" title="1 of 2 branches missed.">            if (vr.getStatus() != VerificationResult.VERIFIED_OK) {</span>
+<span class="nc" id="L2137">                constraintViolated((Instruction) o,</span>
+<span class="nc" id="L2138">                    &quot;Class '&quot; + o.getLoadClassType(cpg).getClassName() + &quot;' is referenced, but cannot be loaded and resolved: '&quot; + vr + &quot;'.&quot;);</span>
+            }
+        }
+<span class="fc" id="L2141">    }</span>
+
+    /**
+     * Assures the generic preconditions of a LoadInstruction instance.
+     */
+    @Override
+    public void visitLoadInstruction(final LoadInstruction o) {
+        // visitLocalVariableInstruction(o) is called before, because it is more generic.
+
+        // LOAD instructions must not read Type.UNKNOWN
+<span class="pc bpc" id="L2151" title="1 of 2 branches missed.">        if (locals().get(o.getIndex()) == Type.UNKNOWN) {</span>
+<span class="nc" id="L2152">            constraintViolated(o, &quot;Read-Access on local variable &quot; + o.getIndex() + &quot; with unknown content.&quot;);</span>
+        }
+
+        // LOAD instructions, two-slot-values at index N must have Type.UNKNOWN
+        // as a symbol for the higher halve at index N+1
+        // [suppose some instruction put an int at N+1--- our double at N is defective]
+<span class="pc bpc" id="L2158" title="1 of 4 branches missed.">        if (o.getType(cpg).getSize() == 2 &amp;&amp; locals().get(o.getIndex() + 1) != Type.UNKNOWN) {</span>
+<span class="nc" id="L2159">            constraintViolated(o,</span>
+<span class="nc" id="L2160">                &quot;Reading a two-locals value from local variables &quot; + o.getIndex() + &quot; and &quot; + (o.getIndex() + 1) + &quot; where the latter one is destroyed.&quot;);</span>
+        }
+
+        // LOAD instructions must read the correct type.
+<span class="fc bfc" id="L2164" title="All 2 branches covered.">        if (!(o instanceof ALOAD)) {</span>
+<span class="pc bpc" id="L2165" title="1 of 2 branches missed.">            if (locals().get(o.getIndex()) != o.getType(cpg)) {</span>
+<span class="nc" id="L2166">                constraintViolated(o, &quot;Local Variable type and LOADing Instruction type mismatch: Local Variable: '&quot; + locals().get(o.getIndex())</span>
+<span class="nc" id="L2167">                    + &quot;'; Instruction type: '&quot; + o.getType(cpg) + &quot;'.&quot;);</span>
+            }
+<span class="pc bpc" id="L2169" title="1 of 2 branches missed.">        } else if (!(locals().get(o.getIndex()) instanceof ReferenceType)) {</span>
+<span class="nc" id="L2170">            constraintViolated(o, &quot;Local Variable type and LOADing Instruction type mismatch: Local Variable: '&quot; + locals().get(o.getIndex())</span>
+                + &quot;'; Instruction expects a ReferenceType.&quot;);
+        }
+        // ALOAD __IS ALLOWED__ to put uninitialized objects onto the stack!
+        // referenceTypeIsInitialized(o, (ReferenceType) (locals().get(o.getIndex())));
+
+        // LOAD instructions must have enough free stack slots.
+<span class="pc bpc" id="L2177" title="1 of 2 branches missed.">        if (stack().maxStack() - stack().slotsUsed() &lt; o.getType(cpg).getSize()) {</span>
+<span class="nc" id="L2178">            constraintViolated(o, &quot;Not enough free stack slots to load a '&quot; + o.getType(cpg) + &quot;' onto the OperandStack.&quot;);</span>
+        }
+<span class="fc" id="L2180">    }</span>
+
+    /**
+     * Assures the generic preconditions of a LocalVariableInstruction instance. That is, the index of the local variable
+     * must be valid.
+     */
+    @Override
+    public void visitLocalVariableInstruction(final LocalVariableInstruction o) {
+<span class="pc bpc" id="L2188" title="1 of 4 branches missed.">        if (locals().maxLocals() &lt;= (o.getType(cpg).getSize() == 1 ? o.getIndex() : o.getIndex() + 1)) {</span>
+<span class="nc" id="L2189">            constraintViolated(o, &quot;The 'index' is not a valid index into the local variable array.&quot;);</span>
+        }
+<span class="fc" id="L2191">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLOOKUPSWITCH(final LOOKUPSWITCH o) {
+<span class="pc bpc" id="L2198" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L2199">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+        // See also pass 3a.
+<span class="fc" id="L2202">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLOR(final LOR o) {
+<span class="pc bpc" id="L2209" title="1 of 2 branches missed.">        if (stack().peek() != Type.LONG) {</span>
+<span class="nc" id="L2210">            constraintViolated(o, &quot;The value at the stack top is not of type 'long', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L2212" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.LONG) {</span>
+<span class="nc" id="L2213">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'long', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2215">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLREM(final LREM o) {
+<span class="pc bpc" id="L2222" title="1 of 2 branches missed.">        if (stack().peek() != Type.LONG) {</span>
+<span class="nc" id="L2223">            constraintViolated(o, &quot;The value at the stack top is not of type 'long', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L2225" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.LONG) {</span>
+<span class="nc" id="L2226">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'long', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2228">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLRETURN(final LRETURN o) {
+<span class="pc bpc" id="L2235" title="1 of 2 branches missed.">        if (stack().peek() != Type.LONG) {</span>
+<span class="nc" id="L2236">            constraintViolated(o, &quot;The value at the stack top is not of type 'long', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2238">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLSHL(final LSHL o) {
+<span class="pc bpc" id="L2245" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L2246">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L2248" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.LONG) {</span>
+<span class="nc" id="L2249">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'long', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2251">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLSHR(final LSHR o) {
+<span class="pc bpc" id="L2258" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L2259">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L2261" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.LONG) {</span>
+<span class="nc" id="L2262">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'long', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2264">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLSTORE(final LSTORE o) {
+        // visitStoreInstruction(StoreInstruction) is called before.
+
+        // Nothing else needs to be done here.
+<span class="fc" id="L2274">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLSUB(final LSUB o) {
+<span class="pc bpc" id="L2281" title="1 of 2 branches missed.">        if (stack().peek() != Type.LONG) {</span>
+<span class="nc" id="L2282">            constraintViolated(o, &quot;The value at the stack top is not of type 'long', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L2284" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.LONG) {</span>
+<span class="nc" id="L2285">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'long', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2287">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLUSHR(final LUSHR o) {
+<span class="pc bpc" id="L2294" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L2295">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L2297" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.LONG) {</span>
+<span class="nc" id="L2298">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'long', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2300">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitLXOR(final LXOR o) {
+<span class="pc bpc" id="L2307" title="1 of 2 branches missed.">        if (stack().peek() != Type.LONG) {</span>
+<span class="nc" id="L2308">            constraintViolated(o, &quot;The value at the stack top is not of type 'long', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="pc bpc" id="L2310" title="1 of 2 branches missed.">        if (stack().peek(1) != Type.LONG) {</span>
+<span class="nc" id="L2311">            constraintViolated(o, &quot;The value at the stack next-to-top is not of type 'long', but of type '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2313">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitMONITORENTER(final MONITORENTER o) {
+<span class="pc bpc" id="L2320" title="1 of 2 branches missed.">        if (!(stack().peek() instanceof ReferenceType)) {</span>
+<span class="nc" id="L2321">            constraintViolated(o, &quot;The stack top should be of a ReferenceType, but is '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+        // referenceTypeIsInitialized(o, (ReferenceType) (stack().peek()) );
+<span class="fc" id="L2324">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitMONITOREXIT(final MONITOREXIT o) {
+<span class="pc bpc" id="L2331" title="1 of 2 branches missed.">        if (!(stack().peek() instanceof ReferenceType)) {</span>
+<span class="nc" id="L2332">            constraintViolated(o, &quot;The stack top should be of a ReferenceType, but is '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+        // referenceTypeIsInitialized(o, (ReferenceType) (stack().peek()) );
+<span class="fc" id="L2335">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitMULTIANEWARRAY(final MULTIANEWARRAY o) {
+<span class="fc" id="L2342">        final int dimensions = o.getDimensions();</span>
+        // Dimensions argument is okay: see Pass 3a.
+<span class="fc bfc" id="L2344" title="All 2 branches covered.">        for (int i = 0; i &lt; dimensions; i++) {</span>
+<span class="pc bpc" id="L2345" title="1 of 2 branches missed.">            if (stack().peek(i) != Type.INT) {</span>
+<span class="nc" id="L2346">                constraintViolated(o, &quot;The '&quot; + dimensions + &quot;' upper stack types should be 'int' but aren't.&quot;);</span>
+            }
+        }
+        // The runtime constant pool item at that index must be a symbolic reference to a class,
+        // array, or interface type. See Pass 3a.
+<span class="fc" id="L2351">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitNEW(final NEW o) {
+        // visitCPInstruction(CPInstruction) has been called before.
+        // visitLoadClass(LoadClass) has been called before.
+
+<span class="fc" id="L2361">        final Type t = o.getType(cpg);</span>
+<span class="pc bpc" id="L2362" title="1 of 2 branches missed.">        if (!(t instanceof ReferenceType)) {</span>
+<span class="nc" id="L2363">            throw new AssertionViolatedException(&quot;NEW.getType() returning a non-reference type?.&quot;);</span>
+        }
+<span class="pc bpc" id="L2365" title="1 of 2 branches missed.">        if (!(t instanceof ObjectType)) {</span>
+<span class="nc" id="L2366">            constraintViolated(o, &quot;Expecting a class type (ObjectType) to work on. Found: '&quot; + t + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2368">        final ObjectType obj = (ObjectType) t;</span>
+
+        // for example: Don't instantiate interfaces
+        try {
+<span class="pc bpc" id="L2372" title="1 of 2 branches missed.">            if (!obj.referencesClassExact()) {</span>
+<span class="nc" id="L2373">                constraintViolated(o, &quot;Expecting a class type (ObjectType) to work on. Found: '&quot; + obj + &quot;'.&quot;);</span>
+            }
+<span class="nc" id="L2375">        } catch (final ClassNotFoundException e) {</span>
+<span class="nc" id="L2376">            constraintViolated(o, &quot;Expecting a class type (ObjectType) to work on. Found: '&quot; + obj + &quot;'. which threw &quot; + e);</span>
+<span class="fc" id="L2377">        }</span>
+<span class="fc" id="L2378">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitNEWARRAY(final NEWARRAY o) {
+<span class="pc bpc" id="L2385" title="1 of 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L2386">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2388">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitNOP(final NOP o) {
+        // nothing is to be done here.
+<span class="fc" id="L2396">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitPOP(final POP o) {
+<span class="pc bpc" id="L2403" title="1 of 2 branches missed.">        if (stack().peek().getSize() != 1) {</span>
+<span class="nc" id="L2404">            constraintViolated(o, &quot;Stack top size should be 1 but stack top is '&quot; + stack().peek() + &quot;' of size '&quot; + stack().peek().getSize() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2406">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitPOP2(final POP2 o) {
+<span class="pc bpc" id="L2413" title="1 of 2 branches missed.">        if (stack().peek().getSize() != 2) {</span>
+<span class="nc" id="L2414">            constraintViolated(o, &quot;Stack top size should be 2 but stack top is '&quot; + stack().peek() + &quot;' of size '&quot; + stack().peek().getSize() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2416">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitPUTFIELD(final PUTFIELD o) {
+        try {
+
+<span class="fc" id="L2425">            final Type objectref = stack().peek(1);</span>
+<span class="pc bpc" id="L2426" title="1 of 4 branches missed.">            if (!(objectref instanceof ObjectType || objectref == Type.NULL)) {</span>
+<span class="nc" id="L2427">                constraintViolated(o, &quot;Stack next-to-top should be an object reference that's not an array reference, but is '&quot; + objectref + &quot;'.&quot;);</span>
+            }
+
+<span class="fc" id="L2430">            final Field f = visitFieldInstructionInternals(o);</span>
+
+<span class="fc bfc" id="L2432" title="All 2 branches covered.">            if (f.isProtected()) {</span>
+<span class="fc" id="L2433">                final ObjectType classtype = getObjectType(o);</span>
+<span class="fc" id="L2434">                final ObjectType curr = ObjectType.getInstance(mg.getClassName());</span>
+
+<span class="pc bpc" id="L2436" title="1 of 4 branches missed.">                if (classtype.equals(curr) || curr.subclassOf(classtype)) {</span>
+<span class="fc" id="L2437">                    final Type tp = stack().peek(1);</span>
+<span class="pc bpc" id="L2438" title="1 of 2 branches missed.">                    if (tp == Type.NULL) {</span>
+<span class="nc" id="L2439">                        return;</span>
+                    }
+<span class="pc bpc" id="L2441" title="1 of 2 branches missed.">                    if (!(tp instanceof ObjectType)) {</span>
+<span class="nc" id="L2442">                        constraintViolated(o, &quot;The 'objectref' must refer to an object that's not an array. Found instead: '&quot; + tp + &quot;'.&quot;);</span>
+                    }
+<span class="fc" id="L2444">                    final ObjectType objreftype = (ObjectType) tp;</span>
+<span class="pc bpc" id="L2445" title="3 of 4 branches missed.">                    if (!(objreftype.equals(curr) || objreftype.subclassOf(curr))) {</span>
+<span class="nc" id="L2446">                        constraintViolated(o,</span>
+                            &quot;The referenced field has the ACC_PROTECTED modifier, and it's a member of the current class or&quot;
+<span class="nc" id="L2448">                                + &quot; a superclass of the current class. However, the referenced object type '&quot; + stack().peek()</span>
+                                + &quot;' is not the current class or a subclass of the current class.&quot;);
+                    }
+                }
+            }
+
+            // TODO: Could go into Pass 3a.
+<span class="pc bpc" id="L2455" title="1 of 2 branches missed.">            if (f.isStatic()) {</span>
+<span class="nc" id="L2456">                constraintViolated(o, &quot;Referenced field '&quot; + f + &quot;' is static which it shouldn't be.&quot;);</span>
+            }
+
+<span class="nc" id="L2459">        } catch (final ClassNotFoundException e) {</span>
+            // FIXME: maybe not the best way to handle this
+<span class="nc" id="L2461">            throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="fc" id="L2462">        }</span>
+<span class="fc" id="L2463">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitPUTSTATIC(final PUTSTATIC o) {
+        try {
+<span class="fc" id="L2471">            visitFieldInstructionInternals(o);</span>
+<span class="nc" id="L2472">        } catch (final ClassNotFoundException e) {</span>
+            // FIXME: maybe not the best way to handle this
+<span class="nc" id="L2474">            throw new AssertionViolatedException(&quot;Missing class: &quot; + e, e);</span>
+<span class="fc" id="L2475">        }</span>
+<span class="fc" id="L2476">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitRET(final RET o) {
+<span class="nc bnc" id="L2483" title="All 2 branches missed.">        if (!(locals().get(o.getIndex()) instanceof ReturnaddressType)) {</span>
+<span class="nc" id="L2484">            constraintViolated(o, &quot;Expecting a ReturnaddressType in local variable &quot; + o.getIndex() + &quot;.&quot;);</span>
+        }
+<span class="nc bnc" id="L2486" title="All 2 branches missed.">        if (locals().get(o.getIndex()) == ReturnaddressType.NO_TARGET) {</span>
+<span class="nc" id="L2487">            throw new AssertionViolatedException(&quot;RET expecting a target.&quot;);</span>
+        }
+        // Other constraints such as non-allowed overlapping subroutines are enforced
+        // while building the Subroutines data structure.
+<span class="nc" id="L2491">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitRETURN(final RETURN o) {
+<span class="pc bpc" id="L2498" title="3 of 6 branches missed.">        if (mg.getName().equals(Const.CONSTRUCTOR_NAME) &amp;&amp; Frame.getThis() != null &amp;&amp; !mg.getClassName().equals(Type.OBJECT.getClassName())) {</span>
+<span class="nc" id="L2499">            constraintViolated(o, &quot;Leaving a constructor that itself did not call a constructor.&quot;);</span>
+        }
+<span class="fc" id="L2501">    }</span>
+
+    /**
+     * Assures the generic preconditions of a ReturnInstruction instance.
+     */
+    @Override
+    public void visitReturnInstruction(final ReturnInstruction o) {
+<span class="fc" id="L2508">        Type methodType = mg.getType();</span>
+<span class="fc bfc" id="L2509" title="All 8 branches covered.">        if (methodType == Type.BOOLEAN || methodType == Type.BYTE || methodType == Type.SHORT || methodType == Type.CHAR) {</span>
+<span class="fc" id="L2510">            methodType = Type.INT;</span>
+        }
+
+<span class="fc bfc" id="L2513" title="All 2 branches covered.">        if (o instanceof RETURN) {</span>
+<span class="pc bpc" id="L2514" title="1 of 2 branches missed.">            if (methodType == Type.VOID) {</span>
+<span class="fc" id="L2515">                return;</span>
+            }
+<span class="nc" id="L2517">            constraintViolated(o, &quot;RETURN instruction in non-void method.&quot;);</span>
+        }
+<span class="fc bfc" id="L2519" title="All 2 branches covered.">        if (o instanceof ARETURN) {</span>
+<span class="fc bfc" id="L2520" title="All 2 branches covered.">            if (methodType == Type.VOID) {</span>
+<span class="nc" id="L2521">                constraintViolated(o, &quot;ARETURN instruction in void method.&quot;);</span>
+            }
+<span class="fc bfc" id="L2523" title="All 2 branches covered.">            if (stack().peek() == Type.NULL) {</span>
+<span class="fc" id="L2524">                return;</span>
+            }
+<span class="pc bpc" id="L2526" title="1 of 2 branches missed.">            if (!(stack().peek() instanceof ReferenceType)) {</span>
+<span class="nc" id="L2527">                constraintViolated(o, &quot;Reference type expected on top of stack, but is: '&quot; + stack().peek() + &quot;'.&quot;);</span>
+            }
+<span class="fc" id="L2529">            referenceTypeIsInitialized(o, (ReferenceType) stack().peek());</span>
+            // ReferenceType objectref = (ReferenceType) (stack().peek());
+            // TODO: This can only be checked if using Staerk-et-al's &quot;set of object types&quot; instead of a
+            // &quot;wider cast object type&quot; created during verification.
+            // if (! (objectref.isAssignmentCompatibleWith(mg.getType())) ) {
+            // constraintViolated(o, &quot;Type on stack top which should be returned is a '&quot;+stack().peek()+
+            // &quot;' which is not assignment compatible with the return type of this method, '&quot;+mg.getType()+&quot;'.&quot;);
+            // }
+<span class="fc bfc" id="L2537" title="All 2 branches covered.">        } else if (!methodType.equals(stack().peek())) {</span>
+<span class="pc" id="L2538">            constraintViolated(o, &quot;Current method has return type of '&quot; + mg.getType() + &quot;' expecting a '&quot; + methodType</span>
+<span class="fc" id="L2539">                + &quot;' on top of the stack. But stack top is a '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2541">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitSALOAD(final SALOAD o) {
+<span class="fc" id="L2548">        indexOfInt(o, stack().peek());</span>
+<span class="pc bpc" id="L2549" title="1 of 2 branches missed.">        if (stack().peek(1) == Type.NULL) {</span>
+<span class="nc" id="L2550">            return;</span>
+        }
+<span class="pc bpc" id="L2552" title="1 of 2 branches missed.">        if (!(stack().peek(1) instanceof ArrayType)) {</span>
+<span class="nc" id="L2553">            constraintViolated(o, &quot;Stack next-to-top must be of type short[] but is '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2555">        final Type t = ((ArrayType) stack().peek(1)).getBasicType();</span>
+<span class="pc bpc" id="L2556" title="1 of 2 branches missed.">        if (t != Type.SHORT) {</span>
+<span class="nc" id="L2557">            constraintViolated(o, &quot;Stack next-to-top must be of type short[] but is '&quot; + stack().peek(1) + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L2559">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitSASTORE(final SASTORE o) {
+<span class="nc bnc" id="L2566" title="All 2 branches missed.">        if (stack().peek() != Type.INT) {</span>
+<span class="nc" id="L2567">            constraintViolated(o, &quot;The value at the stack top is not of type 'int', but of type '&quot; + stack().peek() + &quot;'.&quot;);</span>
+        }
+<span class="nc" id="L2569">        indexOfInt(o, stack().peek(1));</span>
+<span class="nc bnc" id="L2570" title="All 2 branches missed.">        if (stack().peek(2) == Type.NULL) {</span>
+<span class="nc" id="L2571">            return;</span>
+        }
+<span class="nc bnc" id="L2573" title="All 2 branches missed.">        if (!(stack().peek(2) instanceof ArrayType)) {</span>
+<span class="nc" id="L2574">            constraintViolated(o, &quot;Stack next-to-next-to-top must be of type short[] but is '&quot; + stack().peek(2) + &quot;'.&quot;);</span>
+        }
+<span class="nc" id="L2576">        final Type t = ((ArrayType) stack().peek(2)).getBasicType();</span>
+<span class="nc bnc" id="L2577" title="All 2 branches missed.">        if (t != Type.SHORT) {</span>
+<span class="nc" id="L2578">            constraintViolated(o, &quot;Stack next-to-next-to-top must be of type short[] but is '&quot; + stack().peek(2) + &quot;'.&quot;);</span>
+        }
+<span class="nc" id="L2580">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitSIPUSH(final SIPUSH o) {
+        // nothing to do here. Generic visitXXX() methods did the trick before.
+<span class="fc" id="L2588">    }</span>
+
+    /**
+     * Ensures the general preconditions of an instruction that accesses the stack. This method is here because BCEL has no
+     * such superinterface for the stack accessing instructions; and there are funny unexpected exceptions in the semantices
+     * of the superinterfaces and superclasses provided. E.g. SWAP is a StackConsumer, but DUP_X1 is not a StackProducer.
+     * Therefore, this method is called by all StackProducer, StackConsumer, and StackInstruction instances via their
+     * visitXXX() method. Unfortunately, as the superclasses and superinterfaces overlap, some instructions cause this
+     * method to be called two or three times. [TODO: Fix this.]
+     *
+     * @see #visitStackConsumer(StackConsumer o)
+     * @see #visitStackProducer(StackProducer o)
+     * @see #visitStackInstruction(StackInstruction o)
+     */
+    private void visitStackAccessor(final Instruction o) {
+<span class="fc" id="L2603">        final int consume = o.consumeStack(cpg); // Stack values are always consumed first; then produced.</span>
+<span class="fc bfc" id="L2604" title="All 2 branches covered.">        if (consume &gt; stack().slotsUsed()) {</span>
+<span class="nc" id="L2605">            constraintViolated(o, &quot;Cannot consume &quot; + consume + &quot; stack slots: only &quot; + stack().slotsUsed() + &quot; slot(s) left on stack!\nStack:\n&quot; + stack());</span>
+        }
+
+<span class="fc" id="L2608">        final int produce = o.produceStack(cpg) - o.consumeStack(cpg); // Stack values are always consumed first; then produced.</span>
+<span class="pc bpc" id="L2609" title="1 of 2 branches missed.">        if (produce + stack().slotsUsed() &gt; stack().maxStack()) {</span>
+<span class="nc" id="L2610">            constraintViolated(o, &quot;Cannot produce &quot; + produce + &quot; stack slots: only &quot; + (stack().maxStack() - stack().slotsUsed())</span>
+<span class="nc" id="L2611">                + &quot; free stack slot(s) left.\nStack:\n&quot; + stack());</span>
+        }
+<span class="fc" id="L2613">    }</span>
+
+    /**
+     * Ensures the general preconditions of a StackConsumer instance.
+     */
+    @Override
+    public void visitStackConsumer(final StackConsumer o) {
+<span class="fc" id="L2620">        visitStackAccessor((Instruction) o);</span>
+<span class="fc" id="L2621">    }</span>
+
+    /**
+     * Ensures the general preconditions of a StackInstruction instance.
+     */
+    @Override
+    public void visitStackInstruction(final StackInstruction o) {
+<span class="fc" id="L2628">        visitStackAccessor(o);</span>
+<span class="fc" id="L2629">    }</span>
+
+    /**
+     * Ensures the general preconditions of a StackProducer instance.
+     */
+    @Override
+    public void visitStackProducer(final StackProducer o) {
+<span class="fc" id="L2636">        visitStackAccessor((Instruction) o);</span>
+<span class="fc" id="L2637">    }</span>
+
+    /**
+     * Assures the generic preconditions of a StoreInstruction instance.
+     */
+    @Override
+    public void visitStoreInstruction(final StoreInstruction o) {
+        // visitLocalVariableInstruction(o) is called before, because it is more generic.
+
+<span class="pc bpc" id="L2646" title="1 of 2 branches missed.">        if (stack().isEmpty()) { // Don't bother about 1 or 2 stack slots used. This check is implicitly done below while type checking.</span>
+<span class="nc" id="L2647">            constraintViolated(o, &quot;Cannot STORE: Stack to read from is empty.&quot;);</span>
+        }
+
+<span class="fc bfc" id="L2650" title="All 2 branches covered.">        if (!(o instanceof ASTORE)) {</span>
+<span class="fc bfc" id="L2651" title="All 2 branches covered.">            if (!(stack().peek() == o.getType(cpg))) { // the other xSTORE types are singletons in BCEL.</span>
+<span class="pc" id="L2652">                constraintViolated(o,</span>
+<span class="fc" id="L2653">                    &quot;Stack top type and STOREing Instruction type mismatch: Stack top: '&quot; + stack().peek() + &quot;'; Instruction type: '&quot; + o.getType(cpg) + &quot;'.&quot;);</span>
+            }
+        } else { // we deal with ASTORE
+<span class="fc" id="L2656">            final Type stacktop = stack().peek();</span>
+<span class="pc bpc" id="L2657" title="3 of 4 branches missed.">            if (!(stacktop instanceof ReferenceType) &amp;&amp; !(stacktop instanceof ReturnaddressType)) {</span>
+<span class="nc" id="L2658">                constraintViolated(o, &quot;Stack top type and STOREing Instruction type mismatch: Stack top: '&quot; + stack().peek()</span>
+                    + &quot;'; Instruction expects a ReferenceType or a ReturnadressType.&quot;);
+            }
+            // if (stacktop instanceof ReferenceType) {
+            // referenceTypeIsInitialized(o, (ReferenceType) stacktop);
+            // }
+        }
+<span class="fc" id="L2665">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitSWAP(final SWAP o) {
+<span class="nc bnc" id="L2672" title="All 2 branches missed.">        if (stack().peek().getSize() != 1) {</span>
+<span class="nc" id="L2673">            constraintViolated(o, &quot;The value at the stack top is not of size '1', but of size '&quot; + stack().peek().getSize() + &quot;'.&quot;);</span>
+        }
+<span class="nc bnc" id="L2675" title="All 2 branches missed.">        if (stack().peek(1).getSize() != 1) {</span>
+<span class="nc" id="L2676">            constraintViolated(o, &quot;The value at the stack next-to-top is not of size '1', but of size '&quot; + stack().peek(1).getSize() + &quot;'.&quot;);</span>
+        }
+<span class="nc" id="L2678">    }</span>
+
+    /**
+     * Ensures the specific preconditions of the said instruction.
+     */
+    @Override
+    public void visitTABLESWITCH(final TABLESWITCH o) {
+<span class="fc" id="L2685">        indexOfInt(o, stack().peek());</span>
+        // See Pass 3a.
+<span class="fc" id="L2687">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

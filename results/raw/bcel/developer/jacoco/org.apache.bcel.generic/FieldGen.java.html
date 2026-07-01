@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FieldGen.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">FieldGen.java</span></div><h1>FieldGen.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.classfile.Annotations;
+import org.apache.bcel.classfile.Attribute;
+import org.apache.bcel.classfile.Constant;
+import org.apache.bcel.classfile.ConstantObject;
+import org.apache.bcel.classfile.ConstantPool;
+import org.apache.bcel.classfile.ConstantValue;
+import org.apache.bcel.classfile.Field;
+import org.apache.bcel.classfile.Utility;
+import org.apache.bcel.util.BCELComparator;
+
+/**
+ * Template class for building up a field. The only extraordinary thing one can do is to add a constant value attribute
+ * to a field (which must of course be compatible with to the declared type).
+ *
+ * @see Field
+ */
+public class FieldGen extends FieldGenOrMethodGen {
+
+<span class="fc" id="L45">    private static BCELComparator&lt;FieldGen&gt; bcelComparator = new BCELComparator&lt;FieldGen&gt;() {</span>
+
+        @Override
+        public boolean equals(final FieldGen a, final FieldGen b) {
+<span class="nc bnc" id="L49" title="All 10 branches missed.">            return a == b || a != null &amp;&amp; b != null &amp;&amp; Objects.equals(a.getName(), b.getName()) &amp;&amp; Objects.equals(a.getSignature(), b.getSignature());</span>
+        }
+
+        @Override
+        public int hashCode(final FieldGen o) {
+<span class="nc bnc" id="L54" title="All 2 branches missed.">            return o != null ? Objects.hash(o.getSignature(), o.getName()) : 0;</span>
+        }
+    };
+
+    /**
+     * Gets the comparison strategy object.
+     *
+     * @return Comparison strategy object.
+     */
+    public static BCELComparator&lt;FieldGen&gt; getComparator() {
+<span class="nc" id="L64">        return bcelComparator;</span>
+    }
+
+    /**
+     * Sets the comparison strategy object.
+     *
+     * @param comparator Comparison strategy object.
+     */
+    public static void setComparator(final BCELComparator&lt;FieldGen&gt; comparator) {
+<span class="nc" id="L73">        bcelComparator = comparator;</span>
+<span class="nc" id="L74">    }</span>
+
+    private Object value;
+
+    private List&lt;FieldObserver&gt; observers;
+
+    /**
+     * Instantiate from existing field.
+     *
+     * @param field Field object.
+     * @param cp constant pool (must contain the same entries as the field's constant pool).
+     */
+    public FieldGen(final Field field, final ConstantPoolGen cp) {
+<span class="fc" id="L87">        this(field.getAccessFlags(), Type.getType(field.getSignature()), field.getName(), cp);</span>
+<span class="fc" id="L88">        final Attribute[] attrs = field.getAttributes();</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        for (final Attribute attr : attrs) {</span>
+<span class="pc bpc" id="L90" title="1 of 2 branches missed.">            if (attr instanceof ConstantValue) {</span>
+<span class="nc" id="L91">                setValue(((ConstantValue) attr).getConstantValueIndex());</span>
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">            } else if (attr instanceof Annotations) {</span>
+<span class="fc" id="L93">                final Annotations runtimeAnnotations = (Annotations) attr;</span>
+<span class="fc" id="L94">                runtimeAnnotations.forEach(element -&gt; addAnnotationEntry(new AnnotationEntryGen(element, cp, false)));</span>
+<span class="fc" id="L95">            } else {</span>
+<span class="nc" id="L96">                addAttribute(attr);</span>
+            }
+        }
+<span class="fc" id="L99">    }</span>
+
+    /**
+     * Declare a field. If it is static (isStatic() == true) and has a basic type like int or String it may have an initial
+     * value associated with it as defined by setInitValue().
+     *
+     * @param accessFlags access qualifiers.
+     * @param type field type.
+     * @param name field name.
+     * @param cp constant pool.
+     */
+    public FieldGen(final int accessFlags, final Type type, final String name, final ConstantPoolGen cp) {
+<span class="fc" id="L111">        super(accessFlags);</span>
+<span class="fc" id="L112">        setType(type);</span>
+<span class="fc" id="L113">        setName(name);</span>
+<span class="fc" id="L114">        setConstantPool(cp);</span>
+<span class="fc" id="L115">    }</span>
+
+    private void addAnnotationsAsAttribute(final ConstantPoolGen cp) {
+<span class="fc" id="L118">        Stream.of(AnnotationEntryGen.getAnnotationAttributes(cp, super.getAnnotationEntries())).forEach(this::addAttribute);</span>
+<span class="fc" id="L119">    }</span>
+
+    private int addConstant() {
+<span class="nc bnc" id="L122" title="All 6 branches missed.">        switch (super.getType().getType()) { // sic</span>
+        case Const.T_INT:
+        case Const.T_CHAR:
+        case Const.T_BYTE:
+        case Const.T_BOOLEAN:
+        case Const.T_SHORT:
+<span class="nc" id="L128">            return super.getConstantPool().addInteger(((Integer) value).intValue());</span>
+        case Const.T_FLOAT:
+<span class="nc" id="L130">            return super.getConstantPool().addFloat(((Float) value).floatValue());</span>
+        case Const.T_DOUBLE:
+<span class="nc" id="L132">            return super.getConstantPool().addDouble(((Double) value).doubleValue());</span>
+        case Const.T_LONG:
+<span class="nc" id="L134">            return super.getConstantPool().addLong(((Long) value).longValue());</span>
+        case Const.T_REFERENCE:
+<span class="nc" id="L136">            return super.getConstantPool().addString((String) value);</span>
+        default:
+<span class="nc" id="L138">            throw new IllegalStateException(&quot;Unhandled : &quot; + super.getType().getType()); // sic</span>
+        }
+    }
+
+    /**
+     * Add observer for this object.
+     *
+     * @param o the observer to add.
+     */
+    public void addObserver(final FieldObserver o) {
+<span class="nc bnc" id="L148" title="All 2 branches missed.">        if (observers == null) {</span>
+<span class="nc" id="L149">            observers = new ArrayList&lt;&gt;();</span>
+        }
+<span class="nc" id="L151">        observers.add(o);</span>
+<span class="nc" id="L152">    }</span>
+
+    /**
+     * Remove any initial value.
+     */
+    public void cancelInitValue() {
+<span class="nc" id="L158">        value = null;</span>
+<span class="nc" id="L159">    }</span>
+
+    private void checkType(final Type atype) {
+<span class="nc" id="L162">        final Type superType = super.getType();</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">        if (superType == null) {</span>
+<span class="nc" id="L164">            throw new ClassGenException(&quot;You haven't defined the type of the field yet&quot;);</span>
+        }
+<span class="nc bnc" id="L166" title="All 2 branches missed.">        if (!isFinal()) {</span>
+<span class="nc" id="L167">            throw new ClassGenException(&quot;Only final fields may have an initial value.&quot;);</span>
+        }
+<span class="nc bnc" id="L169" title="All 2 branches missed.">        if (!superType.equals(atype)) {</span>
+<span class="nc" id="L170">            throw new ClassGenException(&quot;Types are not compatible: &quot; + superType + &quot; vs. &quot; + atype);</span>
+        }
+<span class="nc" id="L172">    }</span>
+
+    /**
+     * Creates a deep copy of this field.
+     *
+     * @param cp the constant pool.
+     * @return deep copy of this field.
+     */
+    public FieldGen copy(final ConstantPoolGen cp) {
+<span class="nc" id="L181">        final FieldGen fg = (FieldGen) clone();</span>
+<span class="nc" id="L182">        fg.setConstantPool(cp);</span>
+<span class="nc" id="L183">        return fg;</span>
+    }
+
+    /**
+     * Return value as defined by given BCELComparator strategy. By default two FieldGen objects are said to be equal when
+     * their names and signatures are equal.
+     *
+     * @see Object#equals(Object)
+     */
+    @Override
+    public boolean equals(final Object obj) {
+<span class="nc bnc" id="L194" title="All 4 branches missed.">        return obj instanceof FieldGen &amp;&amp; bcelComparator.equals(this, (FieldGen) obj);</span>
+    }
+
+    /**
+     * Gets field object after having set up all necessary values.
+     *
+     * @return the field object.
+     */
+    public Field getField() {
+<span class="fc" id="L203">        final String signature = getSignature();</span>
+<span class="fc" id="L204">        final int nameIndex = super.getConstantPool().addUtf8(super.getName());</span>
+<span class="fc" id="L205">        final int signatureIndex = super.getConstantPool().addUtf8(signature);</span>
+<span class="pc bpc" id="L206" title="1 of 2 branches missed.">        if (value != null) {</span>
+<span class="nc" id="L207">            checkType(super.getType());</span>
+<span class="nc" id="L208">            final int index = addConstant();</span>
+<span class="nc" id="L209">            addAttribute(new ConstantValue(super.getConstantPool().addUtf8(&quot;ConstantValue&quot;), 2, index, super.getConstantPool().getConstantPool())); // sic</span>
+        }
+<span class="fc" id="L211">        addAnnotationsAsAttribute(super.getConstantPool());</span>
+<span class="fc" id="L212">        return new Field(super.getAccessFlags(), nameIndex, signatureIndex, getAttributes(), super.getConstantPool().getConstantPool()); // sic</span>
+    }
+
+    /**
+     * Gets the initial value.
+     *
+     * @return the initial value.
+     */
+    public String getInitValue() {
+<span class="nc" id="L221">        return Objects.toString(value, null);</span>
+    }
+
+    @Override
+    public String getSignature() {
+<span class="fc" id="L226">        return super.getType().getSignature();</span>
+    }
+
+    /**
+     * Return value as defined by given BCELComparator strategy. By default return the hash code of the field's name XOR
+     * signature.
+     *
+     * @see Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+<span class="nc" id="L237">        return bcelComparator.hashCode(this);</span>
+    }
+
+    /**
+     * Remove observer for this object.
+     *
+     * @param o the observer to remove.
+     */
+    public void removeObserver(final FieldObserver o) {
+<span class="nc bnc" id="L246" title="All 2 branches missed.">        if (observers != null) {</span>
+<span class="nc" id="L247">            observers.remove(o);</span>
+        }
+<span class="nc" id="L249">    }</span>
+
+    /**
+     * Sets the initial value.
+     *
+     * @param b the boolean value.
+     */
+    public void setInitValue(final boolean b) {
+<span class="nc" id="L257">        checkType(Type.BOOLEAN);</span>
+<span class="nc bnc" id="L258" title="All 2 branches missed.">        if (b) {</span>
+<span class="nc" id="L259">            value = Integer.valueOf(1);</span>
+        }
+<span class="nc" id="L261">    }</span>
+
+    /**
+     * Sets the initial value.
+     *
+     * @param b the byte value.
+     */
+    public void setInitValue(final byte b) {
+<span class="nc" id="L269">        checkType(Type.BYTE);</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">        if (b != 0) {</span>
+<span class="nc" id="L271">            value = Integer.valueOf(b);</span>
+        }
+<span class="nc" id="L273">    }</span>
+
+    /**
+     * Sets the initial value.
+     *
+     * @param c the char value.
+     */
+    public void setInitValue(final char c) {
+<span class="nc" id="L281">        checkType(Type.CHAR);</span>
+<span class="nc bnc" id="L282" title="All 2 branches missed.">        if (c != 0) {</span>
+<span class="nc" id="L283">            value = Integer.valueOf(c);</span>
+        }
+<span class="nc" id="L285">    }</span>
+
+    /**
+     * Sets the initial value.
+     *
+     * @param d the double value.
+     */
+    public void setInitValue(final double d) {
+<span class="nc" id="L293">        checkType(Type.DOUBLE);</span>
+<span class="nc bnc" id="L294" title="All 2 branches missed.">        if (d != 0.0) {</span>
+<span class="nc" id="L295">            value = Double.valueOf(d);</span>
+        }
+<span class="nc" id="L297">    }</span>
+
+    /**
+     * Sets the initial value.
+     *
+     * @param f the float value.
+     */
+    public void setInitValue(final float f) {
+<span class="nc" id="L305">        checkType(Type.FLOAT);</span>
+<span class="nc bnc" id="L306" title="All 2 branches missed.">        if (f != 0.0) {</span>
+<span class="nc" id="L307">            value = Float.valueOf(f);</span>
+        }
+<span class="nc" id="L309">    }</span>
+
+    /**
+     * Sets the initial value.
+     *
+     * @param i the int value.
+     */
+    public void setInitValue(final int i) {
+<span class="nc" id="L317">        checkType(Type.INT);</span>
+<span class="nc bnc" id="L318" title="All 2 branches missed.">        if (i != 0) {</span>
+<span class="nc" id="L319">            value = Integer.valueOf(i);</span>
+        }
+<span class="nc" id="L321">    }</span>
+
+    /**
+     * Sets the initial value.
+     *
+     * @param l the long value.
+     */
+    public void setInitValue(final long l) {
+<span class="nc" id="L329">        checkType(Type.LONG);</span>
+<span class="nc bnc" id="L330" title="All 2 branches missed.">        if (l != 0L) {</span>
+<span class="nc" id="L331">            value = Long.valueOf(l);</span>
+        }
+<span class="nc" id="L333">    }</span>
+
+    /**
+     * Sets the initial value.
+     *
+     * @param s the short value.
+     */
+    public void setInitValue(final short s) {
+<span class="nc" id="L341">        checkType(Type.SHORT);</span>
+<span class="nc bnc" id="L342" title="All 2 branches missed.">        if (s != 0) {</span>
+<span class="nc" id="L343">            value = Integer.valueOf(s);</span>
+        }
+<span class="nc" id="L345">    }</span>
+
+    /**
+     * Sets (optional) initial value of field, otherwise it will be set to null/0/false by the JVM automatically.
+     *
+     * @param str the string value.
+     */
+    public void setInitValue(final String str) {
+<span class="nc" id="L353">        checkType(ObjectType.getInstance(&quot;java.lang.String&quot;));</span>
+<span class="nc bnc" id="L354" title="All 2 branches missed.">        if (str != null) {</span>
+<span class="nc" id="L355">            value = str;</span>
+        }
+<span class="nc" id="L357">    }</span>
+
+    private void setValue(final int index) {
+<span class="nc" id="L360">        final ConstantPool cp = super.getConstantPool().getConstantPool();</span>
+<span class="nc" id="L361">        final Constant c = cp.getConstant(index);</span>
+<span class="nc" id="L362">        value = ((ConstantObject) c).getConstantValue(cp);</span>
+<span class="nc" id="L363">    }</span>
+
+    /**
+     * Return string representation close to declaration format, for example: 'public static final short MAX = 100'.
+     *
+     * @return String representation of field.
+     */
+    @Override
+    public final String toString() {
+        // Short cuts to constant pool
+<span class="nc" id="L373">        String access = Utility.accessToString(super.getAccessFlags());</span>
+<span class="nc bnc" id="L374" title="All 2 branches missed.">        access = access.isEmpty() ? &quot;&quot; : access + &quot; &quot;;</span>
+<span class="nc" id="L375">        final String signature = super.getType().toString();</span>
+<span class="nc" id="L376">        final String name = getName();</span>
+<span class="nc" id="L377">        final StringBuilder buf = new StringBuilder(32); // CHECKSTYLE IGNORE MagicNumber</span>
+<span class="nc" id="L378">        buf.append(access).append(signature).append(&quot; &quot;).append(name);</span>
+<span class="nc" id="L379">        final String value = getInitValue();</span>
+<span class="nc bnc" id="L380" title="All 2 branches missed.">        if (value != null) {</span>
+<span class="nc" id="L381">            buf.append(&quot; = &quot;).append(value);</span>
+        }
+<span class="nc" id="L383">        return buf.toString();</span>
+    }
+
+    /**
+     * Call notify() method on all observers. This method is not called automatically whenever the state has changed, but
+     * has to be called by the user after they have finished editing the object.
+     */
+    public void update() {
+<span class="nc bnc" id="L391" title="All 2 branches missed.">        if (observers != null) {</span>
+<span class="nc bnc" id="L392" title="All 2 branches missed.">            for (final FieldObserver observer : observers) {</span>
+<span class="nc" id="L393">                observer.notify(this);</span>
+<span class="nc" id="L394">            }</span>
+        }
+<span class="nc" id="L396">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

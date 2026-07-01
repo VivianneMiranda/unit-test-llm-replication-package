@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NEWARRAY.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">NEWARRAY.java</span></div><h1>NEWARRAY.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import java.io.DataOutputStream;
+import java.io.IOException;
+
+import org.apache.bcel.ExceptionConst;
+import org.apache.bcel.util.ByteSequence;
+
+/**
+ * NEWARRAY - Create new array of basic type (int, short, ...)
+ *
+ * &lt;pre&gt;
+ * Stack: ..., count -&amp;gt; ..., arrayref
+ * &lt;/pre&gt;
+ *
+ * type must be one of T_INT, T_SHORT, ...
+ */
+public class NEWARRAY extends Instruction implements AllocationInstruction, ExceptionThrower, StackProducer {
+
+    private byte type;
+
+    /**
+     * Empty constructor needed for Instruction.readInstruction. Not to be used otherwise.
+     */
+<span class="fc" id="L43">    NEWARRAY() {</span>
+<span class="fc" id="L44">    }</span>
+
+    /**
+     * Constructs a NEWARRAY instruction.
+     *
+     * @param type element type of array.
+     */
+    public NEWARRAY(final BasicType type) {
+<span class="nc" id="L52">        this(type.getType());</span>
+<span class="nc" id="L53">    }</span>
+
+    /**
+     * Constructs a NEWARRAY instruction.
+     *
+     * @param type element type code.
+     */
+    public NEWARRAY(final byte type) {
+<span class="nc" id="L61">        super(org.apache.bcel.Const.NEWARRAY, (short) 2);</span>
+<span class="nc" id="L62">        this.type = type;</span>
+<span class="nc" id="L63">    }</span>
+
+    /**
+     * Call corresponding visitor method(s). The order is: Call visitor methods of implemented interfaces first, then call
+     * methods according to the class hierarchy in descending order, that is, the most specific visitXXX() call comes last.
+     *
+     * @param v Visitor object.
+     */
+    @Override
+    public void accept(final Visitor v) {
+<span class="fc" id="L73">        v.visitAllocationInstruction(this);</span>
+<span class="fc" id="L74">        v.visitExceptionThrower(this);</span>
+<span class="fc" id="L75">        v.visitStackProducer(this);</span>
+<span class="fc" id="L76">        v.visitNEWARRAY(this);</span>
+<span class="fc" id="L77">    }</span>
+
+    /**
+     * Dumps instruction as byte code to stream out.
+     *
+     * @param out Output stream.
+     */
+    @Override
+    public void dump(final DataOutputStream out) throws IOException {
+<span class="fc" id="L86">        out.writeByte(super.getOpcode());</span>
+<span class="fc" id="L87">        out.writeByte(type);</span>
+<span class="fc" id="L88">    }</span>
+
+    @Override
+    public Class&lt;?&gt;[] getExceptions() {
+<span class="nc" id="L92">        return new Class[] {ExceptionConst.NEGATIVE_ARRAY_SIZE_EXCEPTION};</span>
+    }
+
+    /**
+     * Gets the type of the constructed array.
+     *
+     * @return type of constructed array.
+     */
+    public final Type getType() {
+<span class="fc" id="L101">        return new ArrayType(BasicType.getType(type), 1);</span>
+    }
+
+    /**
+     * Gets the type code.
+     *
+     * @return numeric code for basic element type.
+     */
+    public final byte getTypecode() {
+<span class="fc" id="L110">        return type;</span>
+    }
+
+    /**
+     * Reads needed data (for example index) from file.
+     */
+    @Override
+    protected void initFromFile(final ByteSequence bytes, final boolean wide) throws IOException {
+<span class="fc" id="L118">        type = bytes.readByte();</span>
+<span class="fc" id="L119">        super.setLength(2);</span>
+<span class="fc" id="L120">    }</span>
+
+    /**
+     * @return mnemonic for instruction.
+     */
+    @Override
+    public String toString(final boolean verbose) {
+<span class="nc" id="L127">        return super.toString(verbose) + &quot; &quot; + org.apache.bcel.Const.getTypeName(type);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

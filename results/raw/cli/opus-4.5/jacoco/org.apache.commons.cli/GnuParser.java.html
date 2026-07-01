@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GnuParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons CLI</a> &gt; <a href="index.source.html" class="el_package">org.apache.commons.cli</a> &gt; <span class="el_source">GnuParser.java</span></div><h1>GnuParser.java</h1><pre class="source lang-java linenums">/*
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the &quot;License&quot;); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+ */
+
+package org.apache.commons.cli;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.cli.help.OptionFormatter;
+
+/**
+ * The class GnuParser provides an implementation of the {@link Parser#flatten(Options, String[], boolean) flatten}
+ * method.
+ *
+ * @deprecated Since 1.3, use the {@link DefaultParser} instead.
+ */
+@Deprecated
+public class GnuParser extends Parser {
+
+    /**
+     * Constructs a new instance.
+     */
+<span class="fc" id="L37">    public GnuParser() {</span>
+        // empty
+<span class="fc" id="L39">    }</span>
+
+    /**
+     * This flatten method does so using the following rules:
+     * &lt;ol&gt;
+     * &lt;li&gt;If an {@link Option} exists for the first character of the {@code arguments} entry &lt;strong&gt;AND&lt;/strong&gt; an
+     * {@link Option} does not exist for the whole {@code argument} then add the first character as an option to the
+     * processed tokens list for example &quot;-D&quot; and add the rest of the entry to the also.&lt;/li&gt;
+     * &lt;li&gt;Otherwise just add the token to the processed tokens list.&lt;/li&gt;
+     * &lt;/ol&gt;
+     *
+     * @param options The Options to parse the arguments by.
+     * @param arguments The arguments that have to be flattened.
+     * @param stopAtNonOption specifies whether to stop flattening when a non option has been encountered.
+     * @return a String array of the flattened arguments.
+     */
+    @Override
+    protected String[] flatten(final Options options, final String[] arguments, final boolean stopAtNonOption) {
+<span class="fc" id="L57">        final List&lt;String&gt; tokens = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L58">        boolean eatTheRest = false;</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">        for (int i = 0; i &lt; arguments.length; i++) {</span>
+<span class="fc" id="L60">            final String arg = arguments[i];</span>
+<span class="pc bpc" id="L61" title="1 of 2 branches missed.">            if (arg != null) {</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">                if (OptionFormatter.DEFAULT_LONG_OPT_PREFIX.equals(arg)) {</span>
+<span class="fc" id="L63">                    eatTheRest = true;</span>
+<span class="fc" id="L64">                    tokens.add(OptionFormatter.DEFAULT_LONG_OPT_PREFIX);</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">                } else if (OptionFormatter.DEFAULT_OPT_PREFIX.equals(arg)) {</span>
+<span class="fc" id="L66">                    tokens.add(OptionFormatter.DEFAULT_OPT_PREFIX);</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">                } else if (arg.startsWith(OptionFormatter.DEFAULT_OPT_PREFIX)) {</span>
+<span class="fc" id="L68">                    final String opt = Util.stripLeadingHyphens(arg);</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">                    if (options.hasOption(opt)) {</span>
+<span class="fc" id="L70">                        tokens.add(arg);</span>
+                    } else {
+<span class="fc" id="L72">                        final int equalPos = DefaultParser.indexOfEqual(opt);</span>
+<span class="fc bfc" id="L73" title="All 4 branches covered.">                        if (equalPos != -1 &amp;&amp; options.hasOption(opt.substring(0, equalPos))) {</span>
+                            // the format is --foo=value or -foo=value
+<span class="fc" id="L75">                            tokens.add(arg.substring(0, arg.indexOf(Char.EQUAL))); // --foo</span>
+<span class="fc" id="L76">                            tokens.add(arg.substring(arg.indexOf(Char.EQUAL) + 1)); // value</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">                        } else if (options.hasOption(arg.substring(0, 2))) {</span>
+                            // the format is a special properties option (-Dproperty=value)
+<span class="fc" id="L79">                            tokens.add(arg.substring(0, 2)); // -D</span>
+<span class="fc" id="L80">                            tokens.add(arg.substring(2)); // property=value</span>
+                        } else {
+<span class="fc" id="L82">                            eatTheRest = stopAtNonOption;</span>
+<span class="fc" id="L83">                            tokens.add(arg);</span>
+                        }
+                    }
+<span class="fc" id="L86">                } else {</span>
+<span class="fc" id="L87">                    tokens.add(arg);</span>
+                }
+<span class="fc bfc" id="L89" title="All 2 branches covered.">                if (eatTheRest) {</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">                    for (i++; i &lt; arguments.length; i++) { // NOPMD</span>
+<span class="fc" id="L91">                        tokens.add(arguments[i]);</span>
+                    }
+                }
+            }
+        }
+<span class="fc" id="L96">        return tokens.toArray(Util.EMPTY_STRING_ARRAY);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

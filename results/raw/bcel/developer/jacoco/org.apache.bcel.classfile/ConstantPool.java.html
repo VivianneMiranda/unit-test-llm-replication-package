@@ -1,0 +1,455 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConstantPool.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">ConstantPool.java</span></div><h1>ConstantPool.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.classfile;
+
+import java.io.DataInput;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Iterator;
+
+import org.apache.bcel.Const;
+
+/**
+ * This class represents the constant pool, that is, a table of constants, of a parsed classfile. It may contain null references, due to the JVM specification that
+ * skips an entry after an 8-byte constant (double, long) entry. Those interested in generating constant pools programmatically should see
+ * &lt;a href=&quot;../generic/ConstantPoolGen.html&quot;&gt; ConstantPoolGen&lt;/a&gt;.
+ *
+ * @see Constant
+ * @see org.apache.bcel.generic.ConstantPoolGen
+ */
+public class ConstantPool implements Cloneable, Node, Iterable&lt;Constant&gt; {
+
+    private static String escape(final String str) {
+<span class="fc" id="L40">        final int len = str.length();</span>
+<span class="fc" id="L41">        final StringBuilder buf = new StringBuilder(len + 5);</span>
+<span class="fc" id="L42">        final char[] ch = str.toCharArray();</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">        for (int i = 0; i &lt; len; i++) {</span>
+<span class="pc bpc" id="L44" title="3 of 6 branches missed.">            switch (ch[i]) {</span>
+            case '\n':
+<span class="fc" id="L46">                buf.append(&quot;\\n&quot;);</span>
+<span class="fc" id="L47">                break;</span>
+            case '\r':
+<span class="nc" id="L49">                buf.append(&quot;\\r&quot;);</span>
+<span class="nc" id="L50">                break;</span>
+            case '\t':
+<span class="nc" id="L52">                buf.append(&quot;\\t&quot;);</span>
+<span class="nc" id="L53">                break;</span>
+            case '\b':
+<span class="nc" id="L55">                buf.append(&quot;\\b&quot;);</span>
+<span class="nc" id="L56">                break;</span>
+            case '&quot;':
+<span class="fc" id="L58">                buf.append(&quot;\\\&quot;&quot;);</span>
+<span class="fc" id="L59">                break;</span>
+            default:
+<span class="fc" id="L61">                buf.append(ch[i]);</span>
+            }
+        }
+<span class="fc" id="L64">        return buf.toString();</span>
+    }
+
+    private Constant[] constantPool;
+
+    /**
+     * Constructs a ConstantPool.
+     *
+     * @param constantPool Array of constants.
+     */
+<span class="fc" id="L74">    public ConstantPool(final Constant... constantPool) {</span>
+<span class="fc" id="L75">        setConstantPool(constantPool);</span>
+<span class="fc" id="L76">    }</span>
+
+    /**
+     * Reads constants from given input stream.
+     *
+     * @param input Input stream.
+     * @throws IOException if problem in readUnsignedShort or readConstant.
+     */
+<span class="fc" id="L84">    public ConstantPool(final DataInput input) throws IOException {</span>
+        byte tag;
+<span class="fc" id="L86">        final int constantPoolCount = input.readUnsignedShort();</span>
+<span class="fc" id="L87">        constantPool = new Constant[constantPoolCount];</span>
+        /*
+         * constantPool[0] is unused by the compiler and may be used freely by the implementation.
+         * constantPool[0] is currently unused by the implementation.
+         */
+<span class="fc bfc" id="L92" title="All 2 branches covered.">        for (int i = 1; i &lt; constantPoolCount; i++) {</span>
+<span class="fc" id="L93">            constantPool[i] = Constant.readConstant(input);</span>
+            /*
+             * Quote from the JVM specification: &quot;All eight byte constants take up two spots in the constant pool. If this is the n'th byte in the constant
+             * pool, then the next item will be numbered n+2&quot;
+             *
+             * Thus we have to increment the index counter.
+             */
+<span class="fc" id="L100">            tag = constantPool[i].getTag();</span>
+<span class="fc bfc" id="L101" title="All 4 branches covered.">            if (tag == Const.CONSTANT_Double || tag == Const.CONSTANT_Long) {</span>
+<span class="fc" id="L102">                i++;</span>
+            }
+        }
+<span class="fc" id="L105">    }</span>
+
+    /**
+     * Called by objects that are traversing the nodes of the tree implicitly defined by the contents of a Java class. I.e., the hierarchy of methods, fields,
+     * attributes, etc. spawns a tree of objects.
+     *
+     * @param v Visitor object.
+     */
+    @Override
+    public void accept(final Visitor v) {
+<span class="fc" id="L115">        v.visitConstantPool(this);</span>
+<span class="fc" id="L116">    }</span>
+
+    /**
+     * Resolves constant to a string representation.
+     *
+     * @param c Constant to be printed.
+     * @return String representation.
+     * @throws IllegalArgumentException if c is unknown constant type.
+     */
+    public String constantToString(Constant c) throws IllegalArgumentException {
+        final String str;
+        final int i;
+<span class="fc" id="L128">        final byte tag = c.getTag();</span>
+<span class="pc bpc" id="L129" title="2 of 16 branches missed.">        switch (tag) {</span>
+        case Const.CONSTANT_Class:
+<span class="fc" id="L131">            i = ((ConstantClass) c).getNameIndex();</span>
+<span class="fc" id="L132">            c = getConstantUtf8(i);</span>
+<span class="fc" id="L133">            str = Utility.compactClassName(((ConstantUtf8) c).getBytes(), false);</span>
+<span class="fc" id="L134">            break;</span>
+        case Const.CONSTANT_String:
+<span class="fc" id="L136">            i = ((ConstantString) c).getStringIndex();</span>
+<span class="fc" id="L137">            c = getConstantUtf8(i);</span>
+<span class="fc" id="L138">            str = &quot;\&quot;&quot; + escape(((ConstantUtf8) c).getBytes()) + &quot;\&quot;&quot;;</span>
+<span class="fc" id="L139">            break;</span>
+        case Const.CONSTANT_Utf8:
+<span class="fc" id="L141">            str = ((ConstantUtf8) c).getBytes();</span>
+<span class="fc" id="L142">            break;</span>
+        case Const.CONSTANT_Double:
+<span class="fc" id="L144">            str = String.valueOf(((ConstantDouble) c).getBytes());</span>
+<span class="fc" id="L145">            break;</span>
+        case Const.CONSTANT_Float:
+<span class="fc" id="L147">            str = String.valueOf(((ConstantFloat) c).getBytes());</span>
+<span class="fc" id="L148">            break;</span>
+        case Const.CONSTANT_Long:
+<span class="fc" id="L150">            str = String.valueOf(((ConstantLong) c).getBytes());</span>
+<span class="fc" id="L151">            break;</span>
+        case Const.CONSTANT_Integer:
+<span class="fc" id="L153">            str = String.valueOf(((ConstantInteger) c).getBytes());</span>
+<span class="fc" id="L154">            break;</span>
+        case Const.CONSTANT_NameAndType:
+<span class="fc" id="L156">            str = constantToString(((ConstantNameAndType) c).getNameIndex(), Const.CONSTANT_Utf8) + &quot; &quot;</span>
+<span class="fc" id="L157">                    + constantToString(((ConstantNameAndType) c).getSignatureIndex(), Const.CONSTANT_Utf8);</span>
+<span class="fc" id="L158">            break;</span>
+        case Const.CONSTANT_InterfaceMethodref:
+        case Const.CONSTANT_Methodref:
+        case Const.CONSTANT_Fieldref:
+<span class="fc" id="L162">            str = constantToString(((ConstantCP) c).getClassIndex(), Const.CONSTANT_Class) + &quot;.&quot;</span>
+<span class="fc" id="L163">                    + constantToString(((ConstantCP) c).getNameAndTypeIndex(), Const.CONSTANT_NameAndType);</span>
+<span class="fc" id="L164">            break;</span>
+        case Const.CONSTANT_MethodHandle:
+            // Note that the ReferenceIndex may point to a Fieldref, Methodref or
+            // InterfaceMethodref - so we need to peek ahead to get the actual type.
+<span class="fc" id="L168">            final ConstantMethodHandle cmh = (ConstantMethodHandle) c;</span>
+<span class="fc" id="L169">            str = Const.getMethodHandleName(cmh.getReferenceKind()) + &quot; &quot;</span>
+<span class="fc" id="L170">                    + constantToString(cmh.getReferenceIndex(), getConstant(cmh.getReferenceIndex()).getTag());</span>
+<span class="fc" id="L171">            break;</span>
+        case Const.CONSTANT_MethodType:
+<span class="fc" id="L173">            final ConstantMethodType cmt = (ConstantMethodType) c;</span>
+<span class="fc" id="L174">            str = constantToString(cmt.getDescriptorIndex(), Const.CONSTANT_Utf8);</span>
+<span class="fc" id="L175">            break;</span>
+        case Const.CONSTANT_InvokeDynamic:
+<span class="fc" id="L177">            final ConstantInvokeDynamic cid = (ConstantInvokeDynamic) c;</span>
+<span class="fc" id="L178">            str = cid.getBootstrapMethodAttrIndex() + &quot;:&quot; + constantToString(cid.getNameAndTypeIndex(), Const.CONSTANT_NameAndType);</span>
+<span class="fc" id="L179">            break;</span>
+        case Const.CONSTANT_Dynamic:
+<span class="nc" id="L181">            final ConstantDynamic cd = (ConstantDynamic) c;</span>
+<span class="nc" id="L182">            str = cd.getBootstrapMethodAttrIndex() + &quot;:&quot; + constantToString(cd.getNameAndTypeIndex(), Const.CONSTANT_NameAndType);</span>
+<span class="nc" id="L183">            break;</span>
+        case Const.CONSTANT_Module:
+<span class="fc" id="L185">            i = ((ConstantModule) c).getNameIndex();</span>
+<span class="fc" id="L186">            c = getConstantUtf8(i);</span>
+<span class="fc" id="L187">            str = Utility.compactClassName(((ConstantUtf8) c).getBytes(), false);</span>
+<span class="fc" id="L188">            break;</span>
+        case Const.CONSTANT_Package:
+<span class="fc" id="L190">            i = ((ConstantPackage) c).getNameIndex();</span>
+<span class="fc" id="L191">            c = getConstantUtf8(i);</span>
+<span class="fc" id="L192">            str = Utility.compactClassName(((ConstantUtf8) c).getBytes(), false);</span>
+<span class="fc" id="L193">            break;</span>
+        default: // Never reached
+<span class="nc" id="L195">            throw new IllegalArgumentException(&quot;Unknown constant type &quot; + tag);</span>
+        }
+<span class="fc" id="L197">        return str;</span>
+    }
+
+    /**
+     * Retrieves constant at 'index' from constant pool and resolve it to a string representation.
+     *
+     * @param index of constant in constant pool.
+     * @param tag   expected type.
+     * @return String representation.
+     */
+    public String constantToString(final int index, final byte tag) {
+<span class="fc" id="L208">        return constantToString(getConstant(index, tag));</span>
+    }
+
+    /**
+     * Creates a deep copy of this constant pool.
+     *
+     * @return deep copy of this constant pool.
+     */
+    public ConstantPool copy() {
+<span class="fc" id="L217">        ConstantPool c = null;</span>
+        try {
+<span class="fc" id="L219">            c = (ConstantPool) clone();</span>
+<span class="fc" id="L220">            c.constantPool = new Constant[constantPool.length];</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">            for (int i = 1; i &lt; constantPool.length; i++) {</span>
+<span class="pc bpc" id="L222" title="1 of 2 branches missed.">                if (constantPool[i] != null) {</span>
+<span class="fc" id="L223">                    c.constantPool[i] = constantPool[i].copy();</span>
+                }
+            }
+<span class="nc" id="L226">        } catch (final CloneNotSupportedException e) {</span>
+            // TODO should this throw?
+<span class="fc" id="L228">        }</span>
+<span class="fc" id="L229">        return c;</span>
+    }
+
+    /**
+     * Dumps constant pool to file stream in binary format.
+     *
+     * @param file Output file stream.
+     * @throws IOException if problem in writeShort or dump
+     */
+    public void dump(final DataOutputStream file) throws IOException {
+        /*
+         * Constants over the size of the constant pool shall not be written out. This is a redundant measure as the ConstantPoolGen should have already
+         * reported an error back in the situation.
+         */
+<span class="fc" id="L243">        final int size = Math.min(constantPool.length, Const.MAX_CP_ENTRIES);</span>
+
+<span class="fc" id="L245">        file.writeShort(size);</span>
+<span class="fc bfc" id="L246" title="All 2 branches covered.">        for (int i = 1; i &lt; size; i++) {</span>
+<span class="fc bfc" id="L247" title="All 2 branches covered.">            if (constantPool[i] != null) {</span>
+<span class="fc" id="L248">                constantPool[i].dump(file);</span>
+            }
+        }
+<span class="fc" id="L251">    }</span>
+
+    /**
+     * Gets constant from constant pool.
+     *
+     * @param &lt;T&gt; the type of the constant.
+     * @param index Index in constant pool.
+     * @return Constant value.
+     * @see Constant
+     * @throws ClassFormatException if index is invalid.
+     */
+    @SuppressWarnings(&quot;unchecked&quot;)
+    public &lt;T extends Constant&gt; T getConstant(final int index) throws ClassFormatException {
+<span class="fc" id="L264">        return (T) getConstant(index, Constant.class);</span>
+    }
+
+    /**
+     * Gets constant from constant pool and check whether it has the expected type.
+     *
+     * @param &lt;T&gt; the type of the constant.
+     * @param index Index in constant pool.
+     * @param tag   Tag of expected constant, that is, its type.
+     * @return Constant value.
+     * @see Constant
+     * @throws ClassFormatException if constant type does not match tag.
+     */
+    @SuppressWarnings(&quot;unchecked&quot;)
+    public &lt;T extends Constant&gt; T getConstant(final int index, final byte tag) throws ClassFormatException {
+<span class="fc" id="L279">        return (T) getConstant(index, tag, Constant.class);</span>
+    }
+
+    /**
+     * Gets constant from constant pool and check whether it has the expected type.
+     *
+     * @param &lt;T&gt; the type of the constant.
+     * @param index Index in constant pool.
+     * @param tag   Tag of expected constant, that is, its type.
+     * @param castTo the class to cast to.
+     * @return Constant value.
+     * @see Constant
+     * @throws ClassFormatException if constant type does not match tag.
+     * @since 6.6.0
+     */
+    public &lt;T extends Constant&gt; T getConstant(final int index, final byte tag, final Class&lt;T&gt; castTo) throws ClassFormatException {
+<span class="fc" id="L295">        final T c = getConstant(index);</span>
+<span class="pc bpc" id="L296" title="2 of 4 branches missed.">        if (c == null || c.getTag() != tag) {</span>
+<span class="nc" id="L297">            throw new ClassFormatException(&quot;Expected class '&quot; + Const.getConstantName(tag) + &quot;' at index &quot; + index + &quot; and got &quot; + c);</span>
+        }
+<span class="fc" id="L299">        return c;</span>
+    }
+
+    /**
+     * Gets constant from constant pool.
+     *
+     * @param &lt;T&gt; A {@link Constant} subclass.
+     * @param index Index in constant pool.
+     * @param castTo The {@link Constant} subclass to cast to.
+     * @return Constant value.
+     * @throws ClassFormatException if index is invalid.
+     * @see Constant
+     * @since 6.6.0
+     */
+    public &lt;T extends Constant&gt; T getConstant(final int index, final Class&lt;T&gt; castTo) throws ClassFormatException {
+<span class="pc bpc" id="L314" title="1 of 4 branches missed.">        if (index &gt;= constantPool.length || index &lt; 1) {</span>
+<span class="fc" id="L315">            throw new ClassFormatException(&quot;Invalid constant pool reference using index: &quot; + index + &quot;. Constant pool size is: &quot; + constantPool.length);</span>
+        }
+<span class="fc bfc" id="L317" title="All 4 branches covered.">        if (constantPool[index] != null &amp;&amp; !castTo.isAssignableFrom(constantPool[index].getClass())) {</span>
+<span class="fc" id="L318">            throw new ClassFormatException(&quot;Invalid constant pool reference at index: &quot; + index +</span>
+<span class="fc" id="L319">                    &quot;. Expected &quot; + castTo + &quot; but was &quot; + constantPool[index].getClass());</span>
+        }
+<span class="fc bfc" id="L321" title="All 2 branches covered.">        if (index &gt; 1) {</span>
+<span class="fc" id="L322">            final Constant prev = constantPool[index - 1];</span>
+<span class="pc bpc" id="L323" title="1 of 6 branches missed.">            if (prev != null &amp;&amp; (prev.getTag() == Const.CONSTANT_Double || prev.getTag() == Const.CONSTANT_Long)) {</span>
+<span class="fc" id="L324">                throw new ClassFormatException(&quot;Constant pool at index &quot; + index + &quot; is invalid. The index is unused due to the preceeding &quot;</span>
+<span class="fc" id="L325">                        + Const.getConstantName(prev.getTag()) + &quot;.&quot;);</span>
+            }
+        }
+        // Previous check ensures this won't throw a ClassCastException
+<span class="fc" id="L329">        final T c = castTo.cast(constantPool[index]);</span>
+<span class="pc bpc" id="L330" title="1 of 2 branches missed.">        if (c == null) {</span>
+<span class="nc" id="L331">            throw new ClassFormatException(&quot;Constant pool at index &quot; + index + &quot; is null.&quot;);</span>
+        }
+<span class="fc" id="L333">        return c;</span>
+    }
+
+    /**
+     * Gets constant from constant pool and check whether it has the expected type.
+     *
+     * @param index Index in constant pool.
+     * @return ConstantInteger value.
+     * @throws ClassFormatException if constant type does not match tag.
+     * @see ConstantInteger
+     */
+    public ConstantInteger getConstantInteger(final int index) {
+<span class="fc" id="L345">        return getConstant(index, Const.CONSTANT_Integer, ConstantInteger.class);</span>
+    }
+
+    /**
+     * Gets the array of constants.
+     *
+     * @return Array of constants.
+     * @see Constant
+     */
+    public Constant[] getConstantPool() {
+<span class="fc" id="L355">        return constantPool;</span>
+    }
+
+    /**
+     * Gets string from constant pool and bypass the indirection of 'ConstantClass' and 'ConstantString' objects. I.e. these classes have an index field that
+     * points to another entry of the constant pool of type 'ConstantUtf8' which contains the real data.
+     *
+     * @param index Index in constant pool.
+     * @param tag   Tag of expected constant, either ConstantClass or ConstantString.
+     * @return Contents of string reference.
+     * @throws IllegalArgumentException if tag is invalid.
+     * @see ConstantClass
+     * @see ConstantString
+     */
+    public String getConstantString(final int index, final byte tag) throws IllegalArgumentException {
+        final int i;
+        /*
+         * This switch() is not that elegant, since the four classes have the same contents, they just differ in the name of the index field variable. But we
+         * want to stick to the JVM naming conventions closely though we could have solved these more elegantly by using the same variable name or by
+         * subclassing.
+         */
+<span class="pc bpc" id="L376" title="2 of 6 branches missed.">        switch (tag) {</span>
+        case Const.CONSTANT_Class:
+<span class="fc" id="L378">            i = getConstant(index, ConstantClass.class).getNameIndex();</span>
+<span class="fc" id="L379">            break;</span>
+        case Const.CONSTANT_String:
+<span class="nc" id="L381">            i = getConstant(index, ConstantString.class).getStringIndex();</span>
+<span class="nc" id="L382">            break;</span>
+        case Const.CONSTANT_Module:
+<span class="fc" id="L384">            i = getConstant(index, ConstantModule.class).getNameIndex();</span>
+<span class="fc" id="L385">            break;</span>
+        case Const.CONSTANT_Package:
+<span class="fc" id="L387">            i = getConstant(index, ConstantPackage.class).getNameIndex();</span>
+<span class="fc" id="L388">            break;</span>
+        case Const.CONSTANT_Utf8:
+<span class="fc" id="L390">            return getConstantUtf8(index).getBytes();</span>
+        default:
+<span class="nc" id="L392">            throw new IllegalArgumentException(&quot;getConstantString called with illegal tag &quot; + tag);</span>
+        }
+        // Finally get the string from the constant pool
+<span class="fc" id="L395">        return getConstantUtf8(i).getBytes();</span>
+    }
+
+    /**
+     * Gets constant from constant pool and check whether it has the expected type.
+     *
+     * @param index Index in constant pool.
+     * @return ConstantUtf8 value.
+     * @throws ClassFormatException if constant type does not match tag.
+     * @see ConstantUtf8
+     */
+    public ConstantUtf8 getConstantUtf8(final int index) throws ClassFormatException {
+<span class="fc" id="L407">        return getConstant(index, Const.CONSTANT_Utf8, ConstantUtf8.class);</span>
+    }
+
+    /**
+     * Gets the length of constant pool.
+     *
+     * @return Length of constant pool.
+     */
+    public int getLength() {
+<span class="fc" id="L416">        return constantPool.length;</span>
+    }
+
+    @Override
+    public Iterator&lt;Constant&gt; iterator() {
+<span class="nc" id="L421">        return Arrays.stream(constantPool).iterator();</span>
+    }
+
+    /**
+     * Sets a constant at the specified index.
+     *
+     * @param index the index in the constant pool.
+     * @param constant Constant to set.
+     */
+    public void setConstant(final int index, final Constant constant) {
+<span class="nc" id="L431">        constantPool[index] = constant;</span>
+<span class="nc" id="L432">    }</span>
+
+    /**
+     * Sets the constant pool.
+     *
+     * @param constantPool the constant pool array.
+     */
+    public void setConstantPool(final Constant[] constantPool) {
+<span class="pc bpc" id="L440" title="1 of 2 branches missed.">        this.constantPool = constantPool != null ? constantPool : Constant.EMPTY_ARRAY;</span>
+<span class="fc" id="L441">    }</span>
+
+    /**
+     * @return String representation.
+     */
+    @Override
+    public String toString() {
+<span class="fc" id="L448">        final StringBuilder buf = new StringBuilder();</span>
+<span class="fc bfc" id="L449" title="All 2 branches covered.">        for (int i = 1; i &lt; constantPool.length; i++) {</span>
+<span class="fc" id="L450">            buf.append(i).append(&quot;)&quot;).append(constantPool[i]).append(&quot;\n&quot;);</span>
+        }
+<span class="fc" id="L452">        return buf.toString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

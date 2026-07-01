@@ -1,0 +1,9 @@
+project,origin,high_cxty_line_cov_pct,high_cxty_mutation_cov_pct,high_cxty_test_strength_pct,n_high_cxty_classes,complexity_threshold
+Commons CLI,Developer,97.76,94.33,95.45,11,32.0
+Commons CLI,GPT-5.1 Codex Max,40.82,30.16,83.0,11,32.0
+Commons CLI,Opus 4.5,87.45,73.1,82.18,11,32.0
+Commons CLI,Sonnet 4.5,74.38,59.23,75.73,11,32.0
+Commons BCEL,Developer,69.09,4.23,79.7,104,14.0
+Commons BCEL,GPT-5.1 Codex Max,19.71,1.93,86.74,104,14.0
+Commons BCEL,Opus 4.5,67.38,7.49,82.78,104,14.0
+Commons BCEL,Sonnet 4.5,4.68,0.03,90.51,104,14.0

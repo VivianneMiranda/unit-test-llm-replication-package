@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ModuleExports.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">ModuleExports.java</span></div><h1>ModuleExports.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.apache.bcel.classfile;
+
+import java.io.DataInput;
+import java.io.DataOutputStream;
+import java.io.IOException;
+
+import org.apache.bcel.Const;
+
+/**
+ * This class represents an entry in the exports table of the Module attribute. Each entry describes a package which may
+ * open the parent module.
+ *
+ * @see Module
+ * @since 6.4.0
+ */
+public final class ModuleExports implements Cloneable, Node {
+
+    private static String getToModuleNameAtIndex(final ConstantPool constantPool, final int index) {
+<span class="nc" id="L38">        return constantPool.getConstantString(index, Const.CONSTANT_Module);</span>
+    }
+    private final int exportsIndex; // points to CONSTANT_Package_info
+    private final int exportsFlags;
+    private final int exportsToCount;
+
+    private final int[] exportsToIndex; // points to CONSTANT_Module_info
+
+    /**
+     * Constructs object from file stream.
+     *
+     * @param dataInput Input stream.
+     * @throws IOException if an I/O Exception occurs in readUnsignedShort.
+     */
+<span class="nc" id="L52">    ModuleExports(final DataInput dataInput) throws IOException {</span>
+<span class="nc" id="L53">        exportsIndex = dataInput.readUnsignedShort();</span>
+<span class="nc" id="L54">        exportsFlags = dataInput.readUnsignedShort();</span>
+<span class="nc" id="L55">        exportsToIndex = ClassParser.readU2U2Table(dataInput);</span>
+<span class="nc" id="L56">        exportsToCount = exportsToIndex.length;</span>
+<span class="nc" id="L57">    }</span>
+
+    /**
+     * Called by objects that are traversing the nodes of the tree implicitly defined by the contents of a Java class.
+     * I.e., the hierarchy of methods, fields, attributes, etc. spawns a tree of objects.
+     *
+     * @param v Visitor object.
+     */
+    @Override
+    public void accept(final Visitor v) {
+<span class="nc" id="L67">        v.visitModuleExports(this);</span>
+<span class="nc" id="L68">    }</span>
+
+    /**
+     * Creates a deep copy of this object.
+     *
+     * @return deep copy of this object.
+     */
+    public ModuleExports copy() {
+        try {
+<span class="nc" id="L77">            return (ModuleExports) clone();</span>
+<span class="nc" id="L78">        } catch (final CloneNotSupportedException e) {</span>
+            // TODO should this throw?
+        }
+<span class="nc" id="L81">        return null;</span>
+    }
+
+    /**
+     * Dumps table entry to file stream in binary format.
+     *
+     * @param file Output file stream.
+     * @throws IOException if an I/O Exception occurs in writeShort.
+     */
+    public void dump(final DataOutputStream file) throws IOException {
+<span class="nc" id="L91">        file.writeShort(exportsIndex);</span>
+<span class="nc" id="L92">        file.writeShort(exportsFlags);</span>
+<span class="nc" id="L93">        file.writeShort(exportsToCount);</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">        for (final int entry : exportsToIndex) {</span>
+<span class="nc" id="L95">            file.writeShort(entry);</span>
+        }
+<span class="nc" id="L97">    }</span>
+
+    /**
+     * Gets the flags for this ModuleExports.
+     *
+     * @return the exportsFlags.
+     * @since 6.10.0
+     */
+    public int getExportsFlags() {
+<span class="nc" id="L106">        return exportsFlags;</span>
+    }
+
+    /**
+     * Gets the exported package name.
+     *
+     * @param constantPool the constant pool from the ClassFile.
+     * @return the exported package name.
+     * @since 6.10.0
+     */
+    public String getPackageName(final ConstantPool constantPool) {
+<span class="nc" id="L117">        return constantPool.constantToString(exportsIndex, Const.CONSTANT_Package);</span>
+    }
+
+    /**
+     * Gets an array of module names for this ModuleExports.
+     *
+     * @param constantPool Array of constants usually obtained from the ClassFile object.
+     * @return array of module names following 'exports to'.
+     * @since 6.10.0
+     */
+    public String[] getToModuleNames(final ConstantPool constantPool) {
+<span class="nc" id="L128">        final String[] toModuleNames = new String[exportsToCount];</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">        for (int i = 0; i &lt; exportsToCount; i++) {</span>
+<span class="nc" id="L130">            toModuleNames[i] = getToModuleNameAtIndex(constantPool, exportsToIndex[i]);</span>
+        }
+<span class="nc" id="L132">        return toModuleNames;</span>
+    }
+
+    /**
+     * @return String representation.
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L140">        return &quot;exports(&quot; + exportsIndex + &quot;, &quot; + exportsFlags + &quot;, &quot; + exportsToCount + &quot;, ...)&quot;;</span>
+    }
+
+    /**
+     * Gets the resolved string representation.
+     *
+     * @param constantPool the constant pool.
+     * @return Resolved string representation.
+     */
+    public String toString(final ConstantPool constantPool) {
+<span class="nc" id="L150">        final StringBuilder buf = new StringBuilder();</span>
+<span class="nc" id="L151">        final String packageName = getPackageName(constantPool);</span>
+<span class="nc" id="L152">        buf.append(packageName);</span>
+<span class="nc" id="L153">        buf.append(&quot;, &quot;).append(String.format(&quot;%04x&quot;, exportsFlags));</span>
+<span class="nc" id="L154">        buf.append(&quot;, to(&quot;).append(exportsToCount).append(&quot;):\n&quot;);</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">        for (final int index : exportsToIndex) {</span>
+<span class="nc" id="L156">            final String moduleName = getToModuleNameAtIndex(constantPool, index);</span>
+<span class="nc" id="L157">            buf.append(&quot;      &quot;).append(moduleName).append(&quot;\n&quot;);</span>
+        }
+<span class="nc" id="L159">        return buf.substring(0, buf.length() - 1); // remove the last newline</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

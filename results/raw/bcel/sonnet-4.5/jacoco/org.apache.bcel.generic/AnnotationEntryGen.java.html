@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AnnotationEntryGen.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">AnnotationEntryGen.java</span></div><h1>AnnotationEntryGen.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.apache.bcel.classfile.AnnotationEntry;
+import org.apache.bcel.classfile.Attribute;
+import org.apache.bcel.classfile.ConstantUtf8;
+import org.apache.bcel.classfile.ElementValuePair;
+import org.apache.bcel.classfile.RuntimeInvisibleAnnotations;
+import org.apache.bcel.classfile.RuntimeInvisibleParameterAnnotations;
+import org.apache.bcel.classfile.RuntimeVisibleAnnotations;
+import org.apache.bcel.classfile.RuntimeVisibleParameterAnnotations;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.stream.Streams;
+
+/**
+ * Generates annotation entries.
+ *
+ * @since 6.0
+ */
+public class AnnotationEntryGen {
+
+<span class="nc" id="L49">    static final AnnotationEntryGen[] EMPTY_ARRAY = {};</span>
+
+    /**
+     * Converts a list of AnnotationGen objects into a set of attributes that can be attached to the class file.
+     *
+     * @param cp The constant pool gen where we can create the necessary name refs.
+     * @param annotationEntryGens An array of AnnotationGen objects.
+     */
+    static Attribute[] getAnnotationAttributes(final ConstantPoolGen cp, final AnnotationEntryGen[] annotationEntryGens) {
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        if (ArrayUtils.isEmpty(annotationEntryGens)) {</span>
+<span class="nc" id="L59">            return Attribute.EMPTY_ARRAY;</span>
+        }
+
+        try {
+<span class="nc" id="L63">            int countVisible = 0;</span>
+<span class="nc" id="L64">            int countInvisible = 0;</span>
+
+            // put the annotations in the right output stream
+<span class="nc bnc" id="L67" title="All 2 branches missed.">            for (final AnnotationEntryGen a : annotationEntryGens) {</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">                if (a.isRuntimeVisible()) {</span>
+<span class="nc" id="L69">                    countVisible++;</span>
+                } else {
+<span class="nc" id="L71">                    countInvisible++;</span>
+                }
+            }
+
+<span class="nc" id="L75">            final ByteArrayOutputStream rvaBytes = new ByteArrayOutputStream();</span>
+<span class="nc" id="L76">            final ByteArrayOutputStream riaBytes = new ByteArrayOutputStream();</span>
+<span class="nc" id="L77">            try (DataOutputStream rvaDos = new DataOutputStream(rvaBytes); DataOutputStream riaDos = new DataOutputStream(riaBytes)) {</span>
+
+<span class="nc" id="L79">                rvaDos.writeShort(countVisible);</span>
+<span class="nc" id="L80">                riaDos.writeShort(countInvisible);</span>
+
+                // put the annotations in the right output stream
+<span class="nc bnc" id="L83" title="All 2 branches missed.">                for (final AnnotationEntryGen a : annotationEntryGens) {</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">                    if (a.isRuntimeVisible()) {</span>
+<span class="nc" id="L85">                        a.dump(rvaDos);</span>
+                    } else {
+<span class="nc" id="L87">                        a.dump(riaDos);</span>
+                    }
+                }
+            }
+
+<span class="nc" id="L92">            final byte[] rvaData = rvaBytes.toByteArray();</span>
+<span class="nc" id="L93">            final byte[] riaData = riaBytes.toByteArray();</span>
+
+<span class="nc" id="L95">            int rvaIndex = -1;</span>
+<span class="nc" id="L96">            int riaIndex = -1;</span>
+
+<span class="nc bnc" id="L98" title="All 2 branches missed.">            if (rvaData.length &gt; 2) {</span>
+<span class="nc" id="L99">                rvaIndex = cp.addUtf8(&quot;RuntimeVisibleAnnotations&quot;);</span>
+            }
+<span class="nc bnc" id="L101" title="All 2 branches missed.">            if (riaData.length &gt; 2) {</span>
+<span class="nc" id="L102">                riaIndex = cp.addUtf8(&quot;RuntimeInvisibleAnnotations&quot;);</span>
+            }
+
+<span class="nc" id="L105">            final List&lt;Attribute&gt; newAttributes = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">            if (rvaData.length &gt; 2) {</span>
+<span class="nc" id="L107">                newAttributes</span>
+<span class="nc" id="L108">                    .add(new RuntimeVisibleAnnotations(rvaIndex, rvaData.length, new DataInputStream(new ByteArrayInputStream(rvaData)), cp.getConstantPool()));</span>
+            }
+<span class="nc bnc" id="L110" title="All 2 branches missed.">            if (riaData.length &gt; 2) {</span>
+<span class="nc" id="L111">                newAttributes.add(</span>
+<span class="nc" id="L112">                    new RuntimeInvisibleAnnotations(riaIndex, riaData.length, new DataInputStream(new ByteArrayInputStream(riaData)), cp.getConstantPool()));</span>
+            }
+
+<span class="nc" id="L115">            return newAttributes.toArray(Attribute.EMPTY_ARRAY);</span>
+<span class="nc" id="L116">        } catch (final IOException e) {</span>
+<span class="nc" id="L117">            System.err.println(&quot;IOException whilst processing annotations&quot;);</span>
+<span class="nc" id="L118">            e.printStackTrace();</span>
+        }
+<span class="nc" id="L120">        return null;</span>
+    }
+
+    /**
+     * Annotations against a class are stored in one of four attribute kinds: - RuntimeVisibleParameterAnnotations -
+     * RuntimeInvisibleParameterAnnotations
+     */
+    static Attribute[] getParameterAnnotationAttributes(final ConstantPoolGen cp,
+        final List&lt;AnnotationEntryGen&gt;[] /* Array of lists, array size depends on #params */ vec) {
+<span class="nc" id="L129">        final int[] visCount = new int[vec.length];</span>
+<span class="nc" id="L130">        int totalVisCount = 0;</span>
+<span class="nc" id="L131">        final int[] invisCount = new int[vec.length];</span>
+<span class="nc" id="L132">        int totalInvisCount = 0;</span>
+        try {
+<span class="nc bnc" id="L134" title="All 2 branches missed.">            for (int i = 0; i &lt; vec.length; i++) {</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">                if (vec[i] != null) {</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">                    for (final AnnotationEntryGen element : vec[i]) {</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">                        if (element.isRuntimeVisible()) {</span>
+<span class="nc" id="L138">                            visCount[i]++;</span>
+<span class="nc" id="L139">                            totalVisCount++;</span>
+                        } else {
+<span class="nc" id="L141">                            invisCount[i]++;</span>
+<span class="nc" id="L142">                            totalInvisCount++;</span>
+                        }
+<span class="nc" id="L144">                    }</span>
+                }
+            }
+            // Lets do the visible ones
+<span class="nc" id="L148">            final ByteArrayOutputStream rvaBytes = new ByteArrayOutputStream();</span>
+<span class="nc" id="L149">            try (DataOutputStream rvaDos = new DataOutputStream(rvaBytes)) {</span>
+<span class="nc" id="L150">                rvaDos.writeByte(vec.length); // First goes number of parameters</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">                for (int i = 0; i &lt; vec.length; i++) {</span>
+<span class="nc" id="L152">                    rvaDos.writeShort(visCount[i]);</span>
+<span class="nc bnc" id="L153" title="All 2 branches missed.">                    if (visCount[i] &gt; 0) {</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">                        for (final AnnotationEntryGen element : vec[i]) {</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">                            if (element.isRuntimeVisible()) {</span>
+<span class="nc" id="L156">                                element.dump(rvaDos);</span>
+                            }
+<span class="nc" id="L158">                        }</span>
+                    }
+                }
+            }
+            // Lets do the invisible ones
+<span class="nc" id="L163">            final ByteArrayOutputStream riaBytes = new ByteArrayOutputStream();</span>
+<span class="nc" id="L164">            try (DataOutputStream riaDos = new DataOutputStream(riaBytes)) {</span>
+<span class="nc" id="L165">                riaDos.writeByte(vec.length); // First goes number of parameters</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">                for (int i = 0; i &lt; vec.length; i++) {</span>
+<span class="nc" id="L167">                    riaDos.writeShort(invisCount[i]);</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">                    if (invisCount[i] &gt; 0) {</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">                        for (final AnnotationEntryGen element : vec[i]) {</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">                            if (!element.isRuntimeVisible()) {</span>
+<span class="nc" id="L171">                                element.dump(riaDos);</span>
+                            }
+<span class="nc" id="L173">                        }</span>
+                    }
+                }
+            }
+<span class="nc" id="L177">            final byte[] rvaData = rvaBytes.toByteArray();</span>
+<span class="nc" id="L178">            final byte[] riaData = riaBytes.toByteArray();</span>
+<span class="nc" id="L179">            int rvaIndex = -1;</span>
+<span class="nc" id="L180">            int riaIndex = -1;</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">            if (totalVisCount &gt; 0) {</span>
+<span class="nc" id="L182">                rvaIndex = cp.addUtf8(&quot;RuntimeVisibleParameterAnnotations&quot;);</span>
+            }
+<span class="nc bnc" id="L184" title="All 2 branches missed.">            if (totalInvisCount &gt; 0) {</span>
+<span class="nc" id="L185">                riaIndex = cp.addUtf8(&quot;RuntimeInvisibleParameterAnnotations&quot;);</span>
+            }
+<span class="nc" id="L187">            final List&lt;Attribute&gt; newAttributes = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">            if (totalVisCount &gt; 0) {</span>
+<span class="nc" id="L189">                newAttributes.add(new RuntimeVisibleParameterAnnotations(rvaIndex, rvaData.length, new DataInputStream(new ByteArrayInputStream(rvaData)),</span>
+<span class="nc" id="L190">                    cp.getConstantPool()));</span>
+            }
+<span class="nc bnc" id="L192" title="All 2 branches missed.">            if (totalInvisCount &gt; 0) {</span>
+<span class="nc" id="L193">                newAttributes.add(new RuntimeInvisibleParameterAnnotations(riaIndex, riaData.length, new DataInputStream(new ByteArrayInputStream(riaData)),</span>
+<span class="nc" id="L194">                    cp.getConstantPool()));</span>
+            }
+<span class="nc" id="L196">            return newAttributes.toArray(Attribute.EMPTY_ARRAY);</span>
+<span class="nc" id="L197">        } catch (final IOException e) {</span>
+<span class="nc" id="L198">            System.err.println(&quot;IOException whilst processing parameter annotations&quot;);</span>
+<span class="nc" id="L199">            e.printStackTrace();</span>
+        }
+<span class="nc" id="L201">        return null;</span>
+    }
+
+    /**
+     * Reads an AnnotationEntryGen from a DataInput.
+     *
+     * @param dis the data input stream.
+     * @param cpool the constant pool generator.
+     * @param b whether the annotation is runtime visible.
+     * @return the annotation entry generator.
+     * @throws IOException if an I/O error occurs.
+     */
+    public static AnnotationEntryGen read(final DataInput dis, final ConstantPoolGen cpool, final boolean b) throws IOException {
+<span class="nc" id="L214">        final AnnotationEntryGen a = new AnnotationEntryGen(cpool);</span>
+<span class="nc" id="L215">        a.typeIndex = dis.readUnsignedShort();</span>
+<span class="nc" id="L216">        final int elemValuePairCount = dis.readUnsignedShort();</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">        for (int i = 0; i &lt; elemValuePairCount; i++) {</span>
+<span class="nc" id="L218">            final int nidx = dis.readUnsignedShort();</span>
+<span class="nc" id="L219">            a.addElementNameValuePair(new ElementValuePairGen(nidx, ElementValueGen.readElementValue(dis, cpool), cpool));</span>
+        }
+<span class="nc" id="L221">        a.isRuntimeVisible(b);</span>
+<span class="nc" id="L222">        return a;</span>
+    }
+
+    private int typeIndex;
+
+    private List&lt;ElementValuePairGen&gt; evs;
+
+    private final ConstantPoolGen cpool;
+
+    private boolean isRuntimeVisible;
+
+    /**
+     * Here we are taking a fixed annotation of type Annotation and building a modifiable AnnotationGen object. If the pool
+     * passed in is for a different class file, then copyPoolEntries should have been passed as true as that will force us
+     * to do a deep copy of the annotation and move the cpool entries across. We need to copy the type and the element name
+     * value pairs and the visibility.
+     *
+     * @param a the annotation entry.
+     * @param cpool the constant pool generator.
+     * @param copyPoolEntries whether to copy pool entries.
+     */
+<span class="nc" id="L243">    public AnnotationEntryGen(final AnnotationEntry a, final ConstantPoolGen cpool, final boolean copyPoolEntries) {</span>
+<span class="nc" id="L244">        this.cpool = cpool;</span>
+<span class="nc bnc" id="L245" title="All 2 branches missed.">        if (copyPoolEntries) {</span>
+<span class="nc" id="L246">            typeIndex = cpool.addUtf8(a.getAnnotationType());</span>
+        } else {
+<span class="nc" id="L248">            typeIndex = a.getAnnotationTypeIndex();</span>
+        }
+<span class="nc" id="L250">        isRuntimeVisible = a.isRuntimeVisible();</span>
+<span class="nc" id="L251">        evs = copyValues(a.getElementValuePairs(), cpool, copyPoolEntries);</span>
+<span class="nc" id="L252">    }</span>
+
+<span class="nc" id="L254">    private AnnotationEntryGen(final ConstantPoolGen cpool) {</span>
+<span class="nc" id="L255">        this.cpool = cpool;</span>
+<span class="nc" id="L256">    }</span>
+
+    /**
+     * Constructs an AnnotationEntryGen.
+     *
+     * @param type the object type.
+     * @param elements the element value pairs.
+     * @param vis whether the annotation is visible.
+     * @param cpool the constant pool generator.
+     */
+<span class="nc" id="L266">    public AnnotationEntryGen(final ObjectType type, final List&lt;ElementValuePairGen&gt; elements, final boolean vis, final ConstantPoolGen cpool) {</span>
+<span class="nc" id="L267">        this.cpool = cpool;</span>
+<span class="nc" id="L268">        this.typeIndex = cpool.addUtf8(type.getSignature());</span>
+<span class="nc" id="L269">        evs = elements;</span>
+<span class="nc" id="L270">        isRuntimeVisible = vis;</span>
+<span class="nc" id="L271">    }</span>
+
+    /**
+     * Adds an element name value pair.
+     *
+     * @param evp the element value pair generator.
+     */
+    public void addElementNameValuePair(final ElementValuePairGen evp) {
+<span class="nc bnc" id="L279" title="All 2 branches missed.">        if (evs == null) {</span>
+<span class="nc" id="L280">            evs = new ArrayList&lt;&gt;();</span>
+        }
+<span class="nc" id="L282">        evs.add(evp);</span>
+<span class="nc" id="L283">    }</span>
+
+    private List&lt;ElementValuePairGen&gt; copyValues(final ElementValuePair[] in, final ConstantPoolGen cpool, final boolean copyPoolEntries) {
+<span class="nc" id="L286">        return Streams.of(in).map(nvp -&gt; new ElementValuePairGen(nvp, cpool, copyPoolEntries)).collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Dumps this annotation entry to a DataOutputStream.
+     *
+     * @param dos the data output stream.
+     * @throws IOException if an I/O error occurs.
+     */
+    public void dump(final DataOutputStream dos) throws IOException {
+<span class="nc" id="L296">        dos.writeShort(typeIndex); // u2 index of type name in cpool</span>
+<span class="nc" id="L297">        dos.writeShort(evs.size()); // u2 element_value pair count</span>
+<span class="nc bnc" id="L298" title="All 2 branches missed.">        for (final ElementValuePairGen envp : evs) {</span>
+<span class="nc" id="L299">            envp.dump(dos);</span>
+<span class="nc" id="L300">        }</span>
+<span class="nc" id="L301">    }</span>
+
+    /**
+     * Retrieves an immutable version of this AnnotationGen.
+     *
+     * @return an immutable version of this AnnotationGen.
+     */
+    public AnnotationEntry getAnnotation() {
+<span class="nc" id="L309">        final AnnotationEntry a = new AnnotationEntry(typeIndex, cpool.getConstantPool(), isRuntimeVisible);</span>
+<span class="nc bnc" id="L310" title="All 2 branches missed.">        for (final ElementValuePairGen element : evs) {</span>
+<span class="nc" id="L311">            a.addElementNameValuePair(element.getElementNameValuePair());</span>
+<span class="nc" id="L312">        }</span>
+<span class="nc" id="L313">        return a;</span>
+    }
+
+    /**
+     * Gets the type index.
+     *
+     * @return the type index.
+     */
+    public int getTypeIndex() {
+<span class="nc" id="L322">        return typeIndex;</span>
+    }
+
+    /**
+     * Gets the type name.
+     *
+     * @return the type name.
+     */
+    public final String getTypeName() {
+<span class="nc" id="L331">        return getTypeSignature(); // BCELBUG: Should I use this instead?</span>
+        // Utility.signatureToString(getTypeSignature());
+    }
+
+    /**
+     * Gets the type signature.
+     *
+     * @return the type signature.
+     */
+    public final String getTypeSignature() {
+        // ConstantClass c = (ConstantClass) cpool.getConstant(typeIndex);
+<span class="nc" id="L342">        final ConstantUtf8 utf8 = (ConstantUtf8) cpool.getConstant(typeIndex/* c.getNameIndex() */);</span>
+<span class="nc" id="L343">        return utf8.getBytes();</span>
+    }
+
+    /**
+     * Returns list of ElementNameValuePair objects.
+     *
+     * @return list of ElementNameValuePair objects.
+     */
+    public List&lt;ElementValuePairGen&gt; getValues() {
+<span class="nc" id="L352">        return evs;</span>
+    }
+
+    /**
+     * Gets whether this annotation is runtime visible.
+     *
+     * @return true if this annotation is runtime visible.
+     */
+    public boolean isRuntimeVisible() {
+<span class="nc" id="L361">        return isRuntimeVisible;</span>
+    }
+
+    private void isRuntimeVisible(final boolean b) {
+<span class="nc" id="L365">        isRuntimeVisible = b;</span>
+<span class="nc" id="L366">    }</span>
+
+    /**
+     * Returns a short string representation of this annotation.
+     *
+     * @return a short string representation of this annotation.
+     */
+    public String toShortString() {
+<span class="nc" id="L374">        final StringBuilder s = new StringBuilder();</span>
+<span class="nc" id="L375">        s.append(&quot;@&quot;).append(getTypeName()).append(&quot;(&quot;);</span>
+<span class="nc bnc" id="L376" title="All 2 branches missed.">        for (int i = 0; i &lt; evs.size(); i++) {</span>
+<span class="nc" id="L377">            s.append(evs.get(i));</span>
+<span class="nc bnc" id="L378" title="All 2 branches missed.">            if (i + 1 &lt; evs.size()) {</span>
+<span class="nc" id="L379">                s.append(&quot;,&quot;);</span>
+            }
+        }
+<span class="nc" id="L382">        s.append(&quot;)&quot;);</span>
+<span class="nc" id="L383">        return s.toString();</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L388">        final StringBuilder s = new StringBuilder(32); // CHECKSTYLE IGNORE MagicNumber</span>
+<span class="nc" id="L389">        s.append(&quot;AnnotationGen:[&quot;).append(getTypeName()).append(&quot; #&quot;).append(evs.size()).append(&quot; {&quot;);</span>
+<span class="nc bnc" id="L390" title="All 2 branches missed.">        for (int i = 0; i &lt; evs.size(); i++) {</span>
+<span class="nc" id="L391">            s.append(evs.get(i));</span>
+<span class="nc bnc" id="L392" title="All 2 branches missed.">            if (i + 1 &lt; evs.size()) {</span>
+<span class="nc" id="L393">                s.append(&quot;,&quot;);</span>
+            }
+        }
+<span class="nc" id="L396">        s.append(&quot;}]&quot;);</span>
+<span class="nc" id="L397">        return s.toString();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

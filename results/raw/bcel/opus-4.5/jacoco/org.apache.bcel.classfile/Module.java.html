@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Module.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">Module.java</span></div><h1>Module.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.apache.bcel.classfile;
+
+import java.io.DataInput;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Arrays;
+
+import org.apache.bcel.Const;
+
+/**
+ * This class is derived from &lt;em&gt;Attribute&lt;/em&gt; and represents the list of modules required, exported, opened or
+ * provided by a module. There may be at most one Module attribute in a ClassFile structure.
+ *
+ * @see Attribute
+ * @since 6.4.0
+ */
+public final class Module extends Attribute {
+
+    /**
+     * The module file name extension.
+     *
+     * @since 6.7.0
+     */
+    public static final String EXTENSION = &quot;.jmod&quot;;
+
+    private static String getClassNameAtIndex(final ConstantPool cp, final int index, final boolean compactClassName) {
+<span class="nc" id="L46">        final String className = cp.getConstantString(index, Const.CONSTANT_Class);</span>
+<span class="nc bnc" id="L47" title="All 2 branches missed.">        if (compactClassName) {</span>
+<span class="nc" id="L48">            return Utility.compactClassName(className, false);</span>
+        }
+<span class="nc" id="L50">        return className;</span>
+    }
+    private final int moduleNameIndex;
+    private final int moduleFlags;
+
+    private final int moduleVersionIndex;
+    private ModuleRequires[] requiresTable;
+    private ModuleExports[] exportsTable;
+    private ModuleOpens[] opensTable;
+    private final int usesCount;
+    private final int[] usesIndex;
+
+    private ModuleProvides[] providesTable;
+
+    /**
+     * Constructs object from input stream.
+     *
+     * @param nameIndex Index in constant pool.
+     * @param length Content length in bytes.
+     * @param dataInput Input stream.
+     * @param constantPool Array of constants.
+     * @throws IOException if an I/O error occurs.
+     */
+    Module(final int nameIndex, final int length, final DataInput dataInput, final ConstantPool constantPool) throws IOException {
+<span class="fc" id="L74">        super(Const.ATTR_MODULE, nameIndex, length, constantPool);</span>
+
+<span class="fc" id="L76">        moduleNameIndex = dataInput.readUnsignedShort();</span>
+<span class="fc" id="L77">        moduleFlags = dataInput.readUnsignedShort();</span>
+<span class="fc" id="L78">        moduleVersionIndex = dataInput.readUnsignedShort();</span>
+
+<span class="fc" id="L80">        final int requiresCount = dataInput.readUnsignedShort();</span>
+<span class="fc" id="L81">        requiresTable = new ModuleRequires[requiresCount];</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        for (int i = 0; i &lt; requiresCount; i++) {</span>
+<span class="fc" id="L83">            requiresTable[i] = new ModuleRequires(dataInput);</span>
+        }
+
+<span class="fc" id="L86">        final int exportsCount = dataInput.readUnsignedShort();</span>
+<span class="fc" id="L87">        exportsTable = new ModuleExports[exportsCount];</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        for (int i = 0; i &lt; exportsCount; i++) {</span>
+<span class="fc" id="L89">            exportsTable[i] = new ModuleExports(dataInput);</span>
+        }
+
+<span class="fc" id="L92">        final int opensCount = dataInput.readUnsignedShort();</span>
+<span class="fc" id="L93">        opensTable = new ModuleOpens[opensCount];</span>
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">        for (int i = 0; i &lt; opensCount; i++) {</span>
+<span class="nc" id="L95">            opensTable[i] = new ModuleOpens(dataInput);</span>
+        }
+
+<span class="fc" id="L98">        usesIndex = ClassParser.readU2U2Table(dataInput);</span>
+<span class="fc" id="L99">        usesCount = usesIndex.length;</span>
+
+<span class="fc" id="L101">        final int providesCount = dataInput.readUnsignedShort();</span>
+<span class="fc" id="L102">        providesTable = new ModuleProvides[providesCount];</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        for (int i = 0; i &lt; providesCount; i++) {</span>
+<span class="fc" id="L104">            providesTable[i] = new ModuleProvides(dataInput);</span>
+        }
+<span class="fc" id="L106">    }</span>
+
+    /**
+     * Called by objects that are traversing the nodes of the tree implicitly defined by the contents of a Java class.
+     * I.e., the hierarchy of methods, fields, attributes, etc. spawns a tree of objects.
+     *
+     * @param v Visitor object.
+     */
+    @Override
+    public void accept(final Visitor v) {
+<span class="fc" id="L116">        v.visitModule(this);</span>
+<span class="fc" id="L117">    }</span>
+
+    /**
+     * @return deep copy of this attribute.
+     */
+    @Override
+    public Attribute copy(final ConstantPool constantPool) {
+<span class="fc" id="L124">        final Module c = (Module) clone();</span>
+
+<span class="fc" id="L126">        c.requiresTable = new ModuleRequires[requiresTable.length];</span>
+<span class="fc" id="L127">        Arrays.setAll(c.requiresTable, i -&gt; requiresTable[i].copy());</span>
+
+<span class="fc" id="L129">        c.exportsTable = new ModuleExports[exportsTable.length];</span>
+<span class="fc" id="L130">        Arrays.setAll(c.exportsTable, i -&gt; exportsTable[i].copy());</span>
+
+<span class="fc" id="L132">        c.opensTable = new ModuleOpens[opensTable.length];</span>
+<span class="pc" id="L133">        Arrays.setAll(c.opensTable, i -&gt; opensTable[i].copy());</span>
+
+<span class="fc" id="L135">        c.providesTable = new ModuleProvides[providesTable.length];</span>
+<span class="fc" id="L136">        Arrays.setAll(c.providesTable, i -&gt; providesTable[i].copy());</span>
+
+<span class="fc" id="L138">        c.setConstantPool(constantPool);</span>
+<span class="fc" id="L139">        return c;</span>
+    }
+
+    /**
+     * Dumps Module attribute to file stream in binary format.
+     *
+     * @param file Output file stream.
+     * @throws IOException if an I/O error occurs.
+     */
+    @Override
+    public void dump(final DataOutputStream file) throws IOException {
+<span class="fc" id="L150">        super.dump(file);</span>
+
+<span class="fc" id="L152">        file.writeShort(moduleNameIndex);</span>
+<span class="fc" id="L153">        file.writeShort(moduleFlags);</span>
+<span class="fc" id="L154">        file.writeShort(moduleVersionIndex);</span>
+
+<span class="fc" id="L156">        file.writeShort(requiresTable.length);</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">        for (final ModuleRequires entry : requiresTable) {</span>
+<span class="fc" id="L158">            entry.dump(file);</span>
+        }
+
+<span class="fc" id="L161">        file.writeShort(exportsTable.length);</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">        for (final ModuleExports entry : exportsTable) {</span>
+<span class="fc" id="L163">            entry.dump(file);</span>
+        }
+
+<span class="fc" id="L166">        file.writeShort(opensTable.length);</span>
+<span class="pc bpc" id="L167" title="1 of 2 branches missed.">        for (final ModuleOpens entry : opensTable) {</span>
+<span class="nc" id="L168">            entry.dump(file);</span>
+        }
+
+<span class="fc" id="L171">        file.writeShort(usesIndex.length);</span>
+<span class="pc bpc" id="L172" title="1 of 2 branches missed.">        for (final int entry : usesIndex) {</span>
+<span class="nc" id="L173">            file.writeShort(entry);</span>
+        }
+
+<span class="fc" id="L176">        file.writeShort(providesTable.length);</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">        for (final ModuleProvides entry : providesTable) {</span>
+<span class="fc" id="L178">            entry.dump(file);</span>
+        }
+<span class="fc" id="L180">    }</span>
+
+    /**
+     * Gets the table of exported interfaces.
+     *
+     * @return table of exported interfaces.
+     * @see ModuleExports
+     */
+    public ModuleExports[] getExportsTable() {
+<span class="fc" id="L189">        return exportsTable;</span>
+    }
+
+    /**
+     * Gets flags for this module.
+     *
+     * @return module flags.
+     * @since 6.10.0
+     */
+    public int getModuleFlags() {
+<span class="fc" id="L199">        return moduleFlags;</span>
+    }
+
+    /**
+     * Gets module name.
+     *
+     * @param cp Array of constants.
+     * @return module name.
+     * @since 6.10.0
+     */
+    public String getModuleName(final ConstantPool cp) {
+<span class="fc" id="L210">        return cp.getConstantString(moduleNameIndex, Const.CONSTANT_Module);</span>
+    }
+
+    /**
+     * Gets the table of open interfaces.
+     *
+     * @return table of provided interfaces.
+     * @see ModuleOpens
+     */
+    public ModuleOpens[] getOpensTable() {
+<span class="fc" id="L220">        return opensTable;</span>
+    }
+
+    /**
+     * Gets the table of provided interfaces.
+     *
+     * @return table of provided interfaces.
+     * @see ModuleProvides
+     */
+    public ModuleProvides[] getProvidesTable() {
+<span class="fc" id="L230">        return providesTable;</span>
+    }
+
+    /**
+     * Gets the table of required modules.
+     *
+     * @return table of required modules.
+     * @see ModuleRequires
+     */
+    public ModuleRequires[] getRequiresTable() {
+<span class="fc" id="L240">        return requiresTable;</span>
+    }
+
+    /**
+     * Gets the array of class names for this module's uses.
+     *
+     * @param constantPool Array of constants usually obtained from the ClassFile object.
+     * @param compactClassName false for original constant pool value, true to replace '/' with '.'.
+     * @return array of used class names.
+     * @since 6.10.0
+     */
+    public String[] getUsedClassNames(final ConstantPool constantPool, final boolean compactClassName) {
+<span class="fc" id="L252">        final String[] usedClassNames = new String[usesCount];</span>
+<span class="pc bpc" id="L253" title="1 of 2 branches missed.">        for (int i = 0; i &lt; usesCount; i++) {</span>
+<span class="nc" id="L254">            usedClassNames[i] = getClassNameAtIndex(constantPool, usesIndex[i], compactClassName);</span>
+        }
+<span class="fc" id="L256">        return usedClassNames;</span>
+    }
+
+    /**
+     * Gets version for this module.
+     *
+     * @param cp Array of constants.
+     * @return version from constant pool, &quot;0&quot; if version index is 0.
+     * @since 6.10.0
+     */
+    public String getVersion(final ConstantPool cp) {
+<span class="pc bpc" id="L267" title="1 of 2 branches missed.">        return moduleVersionIndex == 0 ? &quot;0&quot; : cp.getConstantString(moduleVersionIndex, Const.CONSTANT_Utf8);</span>
+    }
+
+    /**
+     * @return String representation, that is, a list of packages.
+     */
+    @Override
+    public String toString() {
+<span class="fc" id="L275">        final ConstantPool cp = super.getConstantPool();</span>
+<span class="fc" id="L276">        final StringBuilder buf = new StringBuilder();</span>
+<span class="fc" id="L277">        buf.append(&quot;Module:\n&quot;);</span>
+<span class="fc" id="L278">        buf.append(&quot;  name:    &quot;).append(Utility.pathToPackage(getModuleName(cp))).append(&quot;\n&quot;);</span>
+<span class="fc" id="L279">        buf.append(&quot;  flags:   &quot;).append(String.format(&quot;%04x&quot;, moduleFlags)).append(&quot;\n&quot;);</span>
+<span class="fc" id="L280">        final String version = getVersion(cp);</span>
+<span class="fc" id="L281">        buf.append(&quot;  version: &quot;).append(version).append(&quot;\n&quot;);</span>
+
+<span class="fc" id="L283">        buf.append(&quot;  requires(&quot;).append(requiresTable.length).append(&quot;):\n&quot;);</span>
+<span class="fc bfc" id="L284" title="All 2 branches covered.">        for (final ModuleRequires module : requiresTable) {</span>
+<span class="fc" id="L285">            buf.append(&quot;    &quot;).append(module.toString(cp)).append(&quot;\n&quot;);</span>
+        }
+
+<span class="fc" id="L288">        buf.append(&quot;  exports(&quot;).append(exportsTable.length).append(&quot;):\n&quot;);</span>
+<span class="fc bfc" id="L289" title="All 2 branches covered.">        for (final ModuleExports module : exportsTable) {</span>
+<span class="fc" id="L290">            buf.append(&quot;    &quot;).append(module.toString(cp)).append(&quot;\n&quot;);</span>
+        }
+
+<span class="fc" id="L293">        buf.append(&quot;  opens(&quot;).append(opensTable.length).append(&quot;):\n&quot;);</span>
+<span class="pc bpc" id="L294" title="1 of 2 branches missed.">        for (final ModuleOpens module : opensTable) {</span>
+<span class="nc" id="L295">            buf.append(&quot;    &quot;).append(module.toString(cp)).append(&quot;\n&quot;);</span>
+        }
+
+<span class="fc" id="L298">        buf.append(&quot;  uses(&quot;).append(usesIndex.length).append(&quot;):\n&quot;);</span>
+<span class="pc bpc" id="L299" title="1 of 2 branches missed.">        for (final int index : usesIndex) {</span>
+<span class="nc" id="L300">            final String className = getClassNameAtIndex(cp, index, true);</span>
+<span class="nc" id="L301">            buf.append(&quot;    &quot;).append(className).append(&quot;\n&quot;);</span>
+        }
+
+<span class="fc" id="L304">        buf.append(&quot;  provides(&quot;).append(providesTable.length).append(&quot;):\n&quot;);</span>
+<span class="fc bfc" id="L305" title="All 2 branches covered.">        for (final ModuleProvides module : providesTable) {</span>
+<span class="fc" id="L306">            buf.append(&quot;    &quot;).append(module.toString(cp)).append(&quot;\n&quot;);</span>
+        }
+
+<span class="fc" id="L309">        return buf.substring(0, buf.length() - 1); // remove the last newline</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

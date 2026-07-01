@@ -1,0 +1,2 @@
+# Optional dependencies for scripts/05_aggregate_tables.py --figures
+matplotlib>=3.7

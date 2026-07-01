@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Record.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.classfile</a> &gt; <span class="el_source">Record.java</span></div><h1>Record.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.apache.bcel.classfile;
+
+import java.io.DataInput;
+import java.io.DataOutputStream;
+import java.io.IOException;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.util.Args;
+
+/**
+ * Extends {@link Attribute} and records the classes and
+ * interfaces that are authorized to claim membership in the nest hosted by the
+ * current class or interface. There may be at most one Record attribute in a
+ * ClassFile structure.
+ *
+ * @see Attribute
+ * @since 6.9.0
+ */
+public final class Record extends Attribute {
+
+<span class="fc" id="L40">    private static final RecordComponentInfo[] EMPTY_RCI_ARRAY = {};</span>
+
+    private static RecordComponentInfo[] readComponents(final DataInput input, final ConstantPool constantPool)
+            throws IOException {
+<span class="fc" id="L44">        final int classCount = input.readUnsignedShort();</span>
+<span class="fc" id="L45">        final RecordComponentInfo[] components = new RecordComponentInfo[classCount];</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">        for (int i = 0; i &lt; classCount; i++) {</span>
+<span class="fc" id="L47">            components[i] = new RecordComponentInfo(input, constantPool);</span>
+        }
+<span class="fc" id="L49">        return components;</span>
+    }
+
+    private RecordComponentInfo[] components;
+
+    /**
+     * Constructs object from input stream.
+     *
+     * @param nameIndex    Index in constant pool.
+     * @param length       Content length in bytes.
+     * @param input        Input stream.
+     * @param constantPool Array of constants.
+     * @throws IOException if an I/O error occurs.
+     */
+    Record(final int nameIndex, final int length, final DataInput input, final ConstantPool constantPool)
+            throws IOException {
+<span class="fc" id="L65">        this(nameIndex, length, readComponents(input, constantPool), constantPool);</span>
+<span class="fc" id="L66">    }</span>
+
+    /**
+     * Constructs a new instance using components.
+     *
+     * @param nameIndex    Index in constant pool.
+     * @param length       Content length in bytes.
+     * @param classes      Array of Record Component Info elements.
+     * @param constantPool Array of constants.
+     */
+    public Record(final int nameIndex, final int length, final RecordComponentInfo[] classes,
+            final ConstantPool constantPool) {
+<span class="fc" id="L78">        super(Const.ATTR_RECORD, nameIndex, length, constantPool);</span>
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">        this.components = classes != null ? classes : EMPTY_RCI_ARRAY;</span>
+<span class="fc" id="L80">        Args.requireU2(this.components.length, &quot;attributes.length&quot;);</span>
+<span class="fc" id="L81">    }</span>
+
+    /**
+     * Called by objects that are traversing the nodes of the tree implicitly
+     * defined by the contents of a Java class. For example, the hierarchy of methods,
+     * fields, attributes, etc. spawns a tree of objects.
+     *
+     * @param v Visitor object.
+     */
+    @Override
+    public void accept(final Visitor v) {
+<span class="fc" id="L92">        v.visitRecord(this);</span>
+<span class="fc" id="L93">    }</span>
+
+    /**
+     * Copies this instance and its components.
+     *
+     * @return a deep copy of this instance and its components.
+     */
+    @Override
+    public Attribute copy(final ConstantPool constantPool) {
+<span class="fc" id="L102">        final Record c = (Record) clone();</span>
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">        if (components.length &gt; 0) {</span>
+<span class="fc" id="L104">            c.components = components.clone();</span>
+        }
+<span class="fc" id="L106">        c.setConstantPool(constantPool);</span>
+<span class="fc" id="L107">        return c;</span>
+    }
+
+    /**
+     * Dumps this instance into a file stream in binary format.
+     *
+     * @param file output stream.
+     * @throws IOException if an I/O error occurs.
+     */
+    @Override
+    public void dump(final DataOutputStream file) throws IOException {
+<span class="fc" id="L118">        super.dump(file);</span>
+<span class="fc" id="L119">        file.writeShort(components.length);</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">        for (final RecordComponentInfo component : components) {</span>
+<span class="fc" id="L121">            component.dump(file);</span>
+        }
+<span class="fc" id="L123">    }</span>
+
+    /**
+     * Gets all the record components.
+     *
+     * @return array of Record Component Info elements.
+     */
+    public RecordComponentInfo[] getComponents() {
+<span class="fc" id="L131">        return components;</span>
+    }
+
+    /**
+     * Converts this instance to a String suitable for debugging.
+     *
+     * @return String a String suitable for debugging.
+     */
+    @Override
+    public String toString() {
+<span class="fc" id="L141">        final StringBuilder buf = new StringBuilder();</span>
+<span class="fc" id="L142">        buf.append(&quot;Record(&quot;);</span>
+<span class="fc" id="L143">        buf.append(components.length);</span>
+<span class="fc" id="L144">        buf.append(&quot;):\n&quot;);</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">        for (final RecordComponentInfo component : components) {</span>
+<span class="fc" id="L146">            buf.append(&quot;  &quot;).append(component.toString()).append(&quot;\n&quot;);</span>
+        }
+<span class="fc" id="L148">        return buf.substring(0, buf.length() - 1); // remove the last newline</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

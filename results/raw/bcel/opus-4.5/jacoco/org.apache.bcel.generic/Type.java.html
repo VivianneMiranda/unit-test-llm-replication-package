@@ -1,0 +1,464 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Type.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Apache Commons BCEL</a> &gt; <a href="index.source.html" class="el_package">org.apache.bcel.generic</a> &gt; <span class="el_source">Type.java</span></div><h1>Type.java</h1><pre class="source lang-java linenums">/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * &quot;License&quot;); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.bcel.generic;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+
+import org.apache.bcel.Const;
+import org.apache.bcel.classfile.ClassFormatException;
+import org.apache.bcel.classfile.InvalidMethodSignatureException;
+import org.apache.bcel.classfile.Utility;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
+
+/**
+ * Abstract super class for all possible Java types, namely basic types such as int, object types like String and array
+ * types, for example int[]
+ */
+public abstract class Type {
+
+    /**
+     * Predefined constants
+     */
+<span class="fc" id="L42">    public static final BasicType VOID = new BasicType(Const.T_VOID);</span>
+
+    /** Predefined constant for boolean type. */
+<span class="fc" id="L45">    public static final BasicType BOOLEAN = new BasicType(Const.T_BOOLEAN);</span>
+
+    /** Predefined constant for int type. */
+<span class="fc" id="L48">    public static final BasicType INT = new BasicType(Const.T_INT);</span>
+
+    /** Predefined constant for short type. */
+<span class="fc" id="L51">    public static final BasicType SHORT = new BasicType(Const.T_SHORT);</span>
+
+    /** Predefined constant for byte type. */
+<span class="fc" id="L54">    public static final BasicType BYTE = new BasicType(Const.T_BYTE);</span>
+
+    /** Predefined constant for long type. */
+<span class="fc" id="L57">    public static final BasicType LONG = new BasicType(Const.T_LONG);</span>
+
+    /** Predefined constant for double type. */
+<span class="fc" id="L60">    public static final BasicType DOUBLE = new BasicType(Const.T_DOUBLE);</span>
+
+    /** Predefined constant for float type. */
+<span class="fc" id="L63">    public static final BasicType FLOAT = new BasicType(Const.T_FLOAT);</span>
+
+    /** Predefined constant for char type. */
+<span class="fc" id="L66">    public static final BasicType CHAR = new BasicType(Const.T_CHAR);</span>
+
+    /** Predefined constant for Object type. */
+<span class="fc" id="L69">    public static final ObjectType OBJECT = new ObjectType(&quot;java.lang.Object&quot;);</span>
+
+    /** Predefined constant for Class type. */
+<span class="fc" id="L72">    public static final ObjectType CLASS = new ObjectType(&quot;java.lang.Class&quot;);</span>
+
+    /** Predefined constant for String type. */
+<span class="fc" id="L75">    public static final ObjectType STRING = new ObjectType(&quot;java.lang.String&quot;);</span>
+
+    /** Predefined constant for StringBuffer type. */
+<span class="fc" id="L78">    public static final ObjectType STRINGBUFFER = new ObjectType(&quot;java.lang.StringBuffer&quot;);</span>
+
+    /** Predefined constant for Throwable type. */
+<span class="fc" id="L81">    public static final ObjectType THROWABLE = new ObjectType(&quot;java.lang.Throwable&quot;);</span>
+
+    /**
+     * Empty array.
+     */
+<span class="fc" id="L86">    public static final Type[] NO_ARGS = {};</span>
+    /** Predefined constant for null type. */
+<span class="fc" id="L88">    public static final ReferenceType NULL = new ReferenceType() {</span>
+    };
+
+    /** Predefined constant for unknown type. */
+<span class="fc" id="L92">    public static final Type UNKNOWN = new Type(Const.T_UNKNOWN, &quot;&lt;unknown object&gt;&quot;) {</span>
+    };
+
+<span class="pc" id="L95">    private static final ThreadLocal&lt;Integer&gt; CONSUMED_CHARS = ThreadLocal.withInitial(() -&gt; Integer.valueOf(0));</span>
+
+    // int consumed_chars=0; // Remember position in string, see getArgumentTypes
+    static int consumed(final int coded) {
+<span class="fc" id="L99">        return coded &gt;&gt; 2;</span>
+    }
+
+    static int encode(final int size, final int consumed) {
+<span class="fc" id="L103">        return consumed &lt;&lt; 2 | size;</span>
+    }
+
+    /**
+     * Convert arguments of a method (signature) to an array of Type objects.
+     *
+     * @param signature signature string such as (Ljava/lang/String;)V.
+     * @return array of argument types.
+     */
+    public static Type[] getArgumentTypes(final String signature) {
+<span class="fc" id="L113">        final List&lt;Type&gt; vec = new ArrayList&lt;&gt;();</span>
+        int index;
+        try {
+            // Skip any type arguments to read argument declarations between '(' and ')'
+<span class="fc" id="L117">            index = signature.indexOf('(') + 1;</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">            if (index &lt;= 0) {</span>
+<span class="nc" id="L119">                throw new InvalidMethodSignatureException(signature);</span>
+            }
+<span class="fc bfc" id="L121" title="All 2 branches covered.">            while (signature.charAt(index) != ')') {</span>
+<span class="fc" id="L122">                vec.add(getType(signature.substring(index)));</span>
+                // corrected concurrent private static field access
+<span class="fc" id="L124">                index += unwrap(CONSUMED_CHARS); // update position</span>
+            }
+<span class="nc" id="L126">        } catch (final StringIndexOutOfBoundsException e) { // Should never occur</span>
+<span class="nc" id="L127">            throw new InvalidMethodSignatureException(signature, e);</span>
+<span class="fc" id="L128">        }</span>
+<span class="fc" id="L129">        final Type[] types = new Type[vec.size()];</span>
+<span class="fc" id="L130">        vec.toArray(types);</span>
+<span class="fc" id="L131">        return types;</span>
+    }
+
+    static int getArgumentTypesSize(final String signature) {
+<span class="fc" id="L135">        int res = 0;</span>
+        int index;
+        try {
+            // Skip any type arguments to read argument declarations between '(' and ')'
+<span class="fc" id="L139">            index = signature.indexOf('(') + 1;</span>
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">            if (index &lt;= 0) {</span>
+<span class="nc" id="L141">                throw new InvalidMethodSignatureException(signature);</span>
+            }
+<span class="fc bfc" id="L143" title="All 2 branches covered.">            while (signature.charAt(index) != ')') {</span>
+<span class="fc" id="L144">                final int coded = getTypeSize(signature.substring(index));</span>
+<span class="fc" id="L145">                res += size(coded);</span>
+<span class="fc" id="L146">                index += consumed(coded);</span>
+<span class="fc" id="L147">            }</span>
+<span class="nc" id="L148">        } catch (final StringIndexOutOfBoundsException e) { // Should never occur</span>
+<span class="nc" id="L149">            throw new InvalidMethodSignatureException(signature, e);</span>
+<span class="fc" id="L150">        }</span>
+<span class="fc" id="L151">        return res;</span>
+    }
+
+    /**
+     * Convert type to Java method signature, for example int[] f(java.lang.String x) becomes (Ljava/lang/String;)[I
+     *
+     * @param returnType what the method returns.
+     * @param argTypes what are the argument types.
+     * @return method signature for given type(s).
+     */
+    public static String getMethodSignature(final Type returnType, final Type[] argTypes) {
+<span class="fc" id="L162">        final StringBuilder buf = new StringBuilder(&quot;(&quot;);</span>
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">        if (argTypes != null) {</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">            for (final Type argType : argTypes) {</span>
+<span class="fc" id="L165">                buf.append(argType.getSignature());</span>
+            }
+        }
+<span class="fc" id="L168">        buf.append(')');</span>
+<span class="fc" id="L169">        buf.append(returnType.getSignature());</span>
+<span class="fc" id="L170">        return buf.toString();</span>
+    }
+
+    /**
+     * Convert return value of a method (signature) to a Type object.
+     *
+     * @param signature signature string such as (Ljava/lang/String;)V.
+     * @return return type.
+     */
+    public static Type getReturnType(final String signature) {
+        try {
+            // Read return type after ')'
+<span class="fc" id="L182">            final int index = signature.lastIndexOf(')') + 1;</span>
+<span class="fc" id="L183">            return getType(signature.substring(index));</span>
+<span class="nc" id="L184">        } catch (final StringIndexOutOfBoundsException e) { // Should never occur</span>
+<span class="nc" id="L185">            throw new InvalidMethodSignatureException(signature, e);</span>
+        }
+    }
+
+    static int getReturnTypeSize(final String signature) {
+<span class="fc" id="L190">        final int index = signature.lastIndexOf(')') + 1;</span>
+<span class="fc" id="L191">        return size(getTypeSize(signature.substring(index)));</span>
+    }
+
+    /**
+     * Gets the signature for a method.
+     *
+     * @param meth the method.
+     * @return the method signature.
+     */
+    public static String getSignature(final java.lang.reflect.Method meth) {
+<span class="nc" id="L201">        final StringBuilder sb = new StringBuilder(&quot;(&quot;);</span>
+<span class="nc" id="L202">        final Class&lt;?&gt;[] params = meth.getParameterTypes(); // avoid clone</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">        for (final Class&lt;?&gt; param : params) {</span>
+<span class="nc" id="L204">            sb.append(getType(param).getSignature());</span>
+        }
+<span class="nc" id="L206">        sb.append(&quot;)&quot;);</span>
+<span class="nc" id="L207">        sb.append(getType(meth.getReturnType()).getSignature());</span>
+<span class="nc" id="L208">        return sb.toString();</span>
+    }
+
+    /**
+     * Convert runtime {@link Class} to BCEL Type object.
+     *
+     * @param cls Java class.
+     * @return corresponding Type object.
+     */
+    public static Type getType(final Class&lt;?&gt; cls) {
+<span class="nc" id="L218">        Objects.requireNonNull(cls, &quot;cls&quot;);</span>
+        /*
+         * That's an amazingly easy case, because getName() returns the signature. That's what we would have liked anyway.
+         */
+<span class="nc bnc" id="L222" title="All 2 branches missed.">        if (cls.isArray()) {</span>
+<span class="nc" id="L223">            return getType(cls.getName());</span>
+        }
+<span class="nc bnc" id="L225" title="All 2 branches missed.">        if (!cls.isPrimitive()) { // &quot;Real&quot; class</span>
+<span class="nc" id="L226">            return ObjectType.getInstance(cls.getName());</span>
+        }
+<span class="nc bnc" id="L228" title="All 2 branches missed.">        if (cls == Integer.TYPE) {</span>
+<span class="nc" id="L229">            return INT;</span>
+        }
+<span class="nc bnc" id="L231" title="All 2 branches missed.">        if (cls == Void.TYPE) {</span>
+<span class="nc" id="L232">            return VOID;</span>
+        }
+<span class="nc bnc" id="L234" title="All 2 branches missed.">        if (cls == Double.TYPE) {</span>
+<span class="nc" id="L235">            return DOUBLE;</span>
+        }
+<span class="nc bnc" id="L237" title="All 2 branches missed.">        if (cls == Float.TYPE) {</span>
+<span class="nc" id="L238">            return FLOAT;</span>
+        }
+<span class="nc bnc" id="L240" title="All 2 branches missed.">        if (cls == Boolean.TYPE) {</span>
+<span class="nc" id="L241">            return BOOLEAN;</span>
+        }
+<span class="nc bnc" id="L243" title="All 2 branches missed.">        if (cls == Byte.TYPE) {</span>
+<span class="nc" id="L244">            return BYTE;</span>
+        }
+<span class="nc bnc" id="L246" title="All 2 branches missed.">        if (cls == Short.TYPE) {</span>
+<span class="nc" id="L247">            return SHORT;</span>
+        }
+<span class="nc bnc" id="L249" title="All 2 branches missed.">        if (cls == Long.TYPE) {</span>
+<span class="nc" id="L250">            return LONG;</span>
+        }
+<span class="nc bnc" id="L252" title="All 2 branches missed.">        if (cls == Character.TYPE) {</span>
+<span class="nc" id="L253">            return CHAR;</span>
+        }
+<span class="nc" id="L255">        throw new IllegalStateException(&quot;Unknown primitive type &quot; + cls);</span>
+    }
+
+    /**
+     * Convert signature to a Type object.
+     *
+     * @param signature signature string such as Ljava/lang/String;.
+     * @return type object.
+     */
+    public static Type getType(final String signature) throws StringIndexOutOfBoundsException {
+<span class="fc" id="L265">        final byte type = Utility.typeOfSignature(signature);</span>
+<span class="fc bfc" id="L266" title="All 2 branches covered.">        if (type &lt;= Const.T_VOID) {</span>
+            // corrected concurrent private static field access
+<span class="fc" id="L268">            wrap(CONSUMED_CHARS, 1);</span>
+<span class="fc" id="L269">            return BasicType.getType(type);</span>
+        }
+<span class="fc bfc" id="L271" title="All 2 branches covered.">        if (type != Const.T_ARRAY) { // type == T_REFERENCE</span>
+            // Utility.typeSignatureToString understands how to parse generic types.
+<span class="fc" id="L273">            final String parsedSignature = Utility.typeSignatureToString(signature, false);</span>
+<span class="fc" id="L274">            wrap(CONSUMED_CHARS, parsedSignature.length() + 2); // &quot;Lblabla;&quot; 'L' and ';' are removed</span>
+<span class="fc" id="L275">            return ObjectType.getInstance(Utility.pathToPackage(parsedSignature));</span>
+        }
+<span class="fc" id="L277">        int dim = 0;</span>
+        do { // Count dimensions
+<span class="fc" id="L279">            dim++;</span>
+<span class="pc bpc" id="L280" title="1 of 2 branches missed.">        } while (signature.charAt(dim) == '[');</span>
+        // Recurse, but just once, if the signature is ok
+<span class="fc" id="L282">        final Type t = getType(signature.substring(dim));</span>
+        // corrected concurrent private static field access
+        // consumed_chars += dim; // update counter - is replaced by
+<span class="fc" id="L285">        final int temp = unwrap(CONSUMED_CHARS) + dim;</span>
+<span class="fc" id="L286">        wrap(CONSUMED_CHARS, temp);</span>
+<span class="fc" id="L287">        return new ArrayType(t, dim);</span>
+    }
+
+    /**
+     * Convert runtime {@code java.lang.Class[]} to BCEL Type objects.
+     *
+     * @param classes an array of runtime class objects.
+     * @return array of corresponding Type objects.
+     */
+    public static Type[] getTypes(final Class&lt;?&gt;[] classes) {
+<span class="nc" id="L297">        final Type[] ret = new Type[classes.length];</span>
+<span class="nc" id="L298">        Arrays.setAll(ret, i -&gt; getType(classes[i]));</span>
+<span class="nc" id="L299">        return ret;</span>
+    }
+
+    static int getTypeSize(final String signature) throws StringIndexOutOfBoundsException {
+<span class="fc" id="L303">        final byte type = Utility.typeOfSignature(signature);</span>
+<span class="fc bfc" id="L304" title="All 2 branches covered.">        if (type &lt;= Const.T_VOID) {</span>
+<span class="fc" id="L305">            return encode(BasicType.getType(type).getSize(), 1);</span>
+        }
+<span class="pc bpc" id="L307" title="1 of 2 branches missed.">        if (type == Const.T_ARRAY) {</span>
+<span class="fc" id="L308">            int dim = 0;</span>
+            do { // Count dimensions
+<span class="fc" id="L310">                dim++;</span>
+<span class="pc bpc" id="L311" title="1 of 2 branches missed.">            } while (signature.charAt(dim) == '[');</span>
+            // Recurse, but just once, if the signature is ok
+<span class="fc" id="L313">            final int consumed = consumed(getTypeSize(signature.substring(dim)));</span>
+<span class="fc" id="L314">            return encode(1, dim + consumed);</span>
+        }
+<span class="nc" id="L316">        final int index = signature.indexOf(';'); // Look for closing ';'</span>
+<span class="nc bnc" id="L317" title="All 2 branches missed.">        if (index &lt; 0) {</span>
+<span class="nc" id="L318">            throw new ClassFormatException(&quot;Invalid signature: &quot; + signature);</span>
+        }
+<span class="nc" id="L320">        return encode(1, index + 1);</span>
+    }
+
+    static String internalTypeNameToSignature(final String internalTypeName) {
+<span class="nc bnc" id="L324" title="All 4 branches missed.">        if (StringUtils.isEmpty(internalTypeName) || Strings.CS.equalsAny(internalTypeName, Const.SHORT_TYPE_NAMES)) {</span>
+<span class="nc" id="L325">            return internalTypeName;</span>
+        }
+<span class="nc bnc" id="L327" title="All 3 branches missed.">        switch (internalTypeName.charAt(0)) {</span>
+            case '[':
+<span class="nc" id="L329">                return internalTypeName;</span>
+            case 'L':
+            case 'T':
+<span class="nc bnc" id="L332" title="All 2 branches missed.">                if (internalTypeName.charAt(internalTypeName.length() - 1) == ';') {</span>
+<span class="nc" id="L333">                    return internalTypeName;</span>
+                }
+<span class="nc" id="L335">                return 'L' + internalTypeName + ';';</span>
+            default:
+<span class="nc" id="L337">                return 'L' + internalTypeName + ';';</span>
+        }
+    }
+
+    static int size(final int coded) {
+<span class="fc" id="L342">        return coded &amp; 3;</span>
+    }
+
+    private static int unwrap(final ThreadLocal&lt;Integer&gt; tl) {
+<span class="fc" id="L346">        return tl.get().intValue();</span>
+    }
+
+    private static void wrap(final ThreadLocal&lt;Integer&gt; tl, final int value) {
+<span class="fc" id="L350">        tl.set(Integer.valueOf(value));</span>
+<span class="fc" id="L351">    }</span>
+
+    /**
+     * @deprecated (since 6.0) will be made private; do not access directly, use getter/setter
+     */
+    @Deprecated
+    protected byte type; // TODO should be final (and private)
+
+    /**
+     * @deprecated (since 6.0) will be made private; do not access directly, use getter/setter
+     */
+    @Deprecated
+    protected String signature; // signature for the type TODO should be private
+
+    /**
+     * Constructs a Type.
+     *
+     * @param type the type constant.
+     * @param signature the type signature.
+     */
+<span class="fc" id="L371">    protected Type(final byte type, final String signature) {</span>
+<span class="fc" id="L372">        this.type = type;</span>
+<span class="fc" id="L373">        this.signature = signature;</span>
+<span class="fc" id="L374">    }</span>
+
+    /**
+     * @return whether the Types are equal.
+     */
+    @Override
+    public boolean equals(final Object o) {
+<span class="pc bpc" id="L381" title="1 of 2 branches missed.">        if (o instanceof Type) {</span>
+<span class="fc" id="L382">            final Type t = (Type) o;</span>
+<span class="pc bpc" id="L383" title="1 of 4 branches missed.">            return type == t.type &amp;&amp; signature.equals(t.signature);</span>
+        }
+<span class="nc" id="L385">        return false;</span>
+    }
+
+    /**
+     * Gets the class name.
+     *
+     * @return the class name.
+     */
+    public String getClassName() {
+<span class="nc" id="L394">        return toString();</span>
+    }
+
+    /**
+     * Gets the signature for this type.
+     *
+     * @return signature for given type.
+     */
+    public String getSignature() {
+<span class="fc" id="L403">        return signature;</span>
+    }
+
+    /**
+     * Gets the stack size of this type.
+     *
+     * @return stack size of this type (2 for long and double, 0 for void, 1 otherwise).
+     */
+    public int getSize() {
+<span class="fc bfc" id="L412" title="All 3 branches covered.">        switch (type) {</span>
+        case Const.T_DOUBLE:
+        case Const.T_LONG:
+<span class="fc" id="L415">            return 2;</span>
+        case Const.T_VOID:
+<span class="fc" id="L417">            return 0;</span>
+        default:
+<span class="fc" id="L419">            return 1;</span>
+        }
+    }
+
+    /**
+     * Gets the type as defined in Constants.
+     *
+     * @return type as defined in Constants.
+     */
+    public byte getType() {
+<span class="fc" id="L429">        return type;</span>
+    }
+
+    /**
+     * Gets the hash code of this Type.
+     *
+     * @return hash code of Type.
+     */
+    @Override
+    public int hashCode() {
+<span class="nc" id="L439">        return type ^ signature.hashCode();</span>
+    }
+
+    /**
+     * boolean, short and char variable are considered as int in the stack or local variable area. Returns {@link #INT}
+     * for {@link #BOOLEAN}, {@link #SHORT} or {@link #CHAR}, otherwise returns the given type.
+     *
+     * @return the normalized type.
+     * @since 6.0
+     */
+    public Type normalizeForStackOrLocal() {
+<span class="pc bpc" id="L450" title="4 of 8 branches missed.">        if (this == BOOLEAN || this == BYTE || this == SHORT || this == CHAR) {</span>
+<span class="nc" id="L451">            return INT;</span>
+        }
+<span class="fc" id="L453">        return this;</span>
+    }
+
+    /**
+     * @return Type string, for example 'int[]'.
+     */
+    @Override
+    public String toString() {
+<span class="pc bpc" id="L461" title="1 of 4 branches missed.">        return equals(NULL) || type &gt;= Const.T_UNKNOWN ? signature : Utility.signatureToString(signature, false);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
