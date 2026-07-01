@@ -56,7 +56,7 @@ def read_published_metrics() -> dict[str, dict[str, list[dict]]]:
     if not PER_CLASS_DIR.exists():
         raise SystemExit(
             f"No published metrics in {PER_CLASS_DIR}. "
-            "Run scripts/organize_published_metrics.py first."
+            "Ensure results/per-class/*.csv are present."
         )
 
     for csv_path in sorted(PER_CLASS_DIR.glob("*.csv")):

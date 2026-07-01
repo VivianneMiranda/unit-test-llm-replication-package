@@ -16,13 +16,13 @@ All LLM-generated suites depend on the standardized prompt (Appendix A). Differe
 
 LLMs may produce different outputs across runs even with the same prompt. The study performed **one generation per model–project pair**.
 
-**Mitigation in package:** `results/STATUS.md` records which runs exist; future work may add multiple seeds.
+**Mitigation in package:** Published metrics in `results/per-class/` cover all project–model pairs from the study.
 
 ### Failing-test filtering
 
 Tests that fail compilation or execution were removed before PIT analysis. This may discard tests that exercised relevant behavior.
 
-**Mitigation in package:** Log removals in `logs/removed-tests.csv`.
+**Mitigation in package:** Document removed tests during local reproduction if re-running the protocol.
 
 ## External validity
 

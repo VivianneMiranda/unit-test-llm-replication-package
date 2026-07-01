@@ -48,7 +48,7 @@ Clone checkouts live under `projects/` (gitignored). See [`projects/README.md`](
 
 ```
 ├── config/                # projects.json, package-scope.json
-├── docs/                  # protocol, scope, Anonymous GitHub guide
+├── docs/                  # protocol, scope, paper mapping
 ├── prompts/               # Appendix A prompt
 ├── scripts/               # setup, metrics, aggregation
 ├── projects/              # populated locally by 00_setup (not in git)

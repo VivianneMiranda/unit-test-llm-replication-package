@@ -1,8 +1,6 @@
 # Published Study Results
 
 Per-class JaCoCo and PIT metrics for all five Apache Commons projects in the paper.
-Source files were normalized from `metricas_commons-*.csv` using
-`scripts/organize_published_metrics.py`.
 
 ## Per-class CSVs (`per-class/`)
 

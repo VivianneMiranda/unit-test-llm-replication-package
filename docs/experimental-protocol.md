@@ -52,7 +52,7 @@ flowchart TD
 1. Checkout project at exact version (`scripts/00_setup.ps1`).
 2. Run the original developer-written test suite.
 3. **Filter failing tests:** remove tests that fail compilation or execution, one at a time or in batches, until all remaining tests pass. PIT requires a green suite.
-4. Log removed tests in `logs/removed-tests.csv`.
+4. Log removed tests during local reproduction (optional).
 5. Collect metrics:
    ```bash
    mvn clean test jacoco:report

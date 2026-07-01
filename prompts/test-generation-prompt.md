@@ -41,7 +41,7 @@ Important constraints:
 4. Allow the model to generate tests for all eligible production classes.
 5. Do **not** modify production code under `src/main/java`.
 6. Compile and run tests; remove failing tests iteratively until the suite is green (required for PIT).
-7. Record removed tests in `logs/removed-tests.csv`.
+7. Record removed tests during local reproduction if needed.
 
 ## Notes
 

@@ -36,7 +36,6 @@ logs/maven/
 
 # Secrets and local config
 .env
-config/anonymization-terms.txt
 **/api-keys*
 
 # Python

@@ -9,7 +9,7 @@ Documented environment for the SAST 2026 empirical study (Paper Section 4.5).
 | Java JDK | 21 | Required for compilation and test execution |
 | Apache Maven | 3.8+ | Build, JaCoCo, PIT integration |
 | Cursor | Pro 2.1.39 | LLM test generation with project context |
-| Python | 3.9+ | For `scripts/organize_published_metrics.py` and `scripts/05_aggregate_tables.py` |
+| Python | 3.9+ | For `scripts/05_aggregate_tables.py` |
 
 ## LLM models (via Cursor)
 
