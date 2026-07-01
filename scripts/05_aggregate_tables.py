@@ -13,12 +13,12 @@ import argparse
 import csv
 import json
 import statistics
+from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH = ROOT / "config" / "projects.json"
-SCOPE_PATH = ROOT / "config" / "package-scope.json"
-CLASSES_DIR = ROOT / "results" / "processed" / "classes"
+PER_CLASS_DIR = ROOT / "results" / "per-class"
 OUT_DIR = ROOT / "results" / "processed"
 
 ORIGIN_LABELS = {
@@ -36,30 +36,37 @@ PROJECT_LABELS = {
     "lang": "Commons Lang",
 }
 
+PROJECT_ORDER = ["collections", "compress", "lang", "cli", "bcel"]
+ORIGIN_ORDER = ["developer", "opus-4.5", "gpt-5.1-codex-max", "sonnet-4.5"]
+
 
 def load_config() -> dict:
     with open(CONFIG_PATH, encoding="utf-8") as f:
         return json.load(f)
 
 
-def load_included_project_ids() -> list[str]:
-    if SCOPE_PATH.exists():
-        with open(SCOPE_PATH, encoding="utf-8") as f:
-            scope = json.load(f)
-        return scope.get("included_project_ids", [])
-    return [p["id"] for p in load_config()["projects"]]
+def project_ids_from_config(config: dict) -> list[str]:
+    return [p["id"] for p in config["projects"]]
 
 
-def included_projects(config: dict) -> list[dict]:
-    ids = set(load_included_project_ids())
-    return [p for p in config["projects"] if p["id"] in ids]
+def read_published_metrics() -> dict[str, dict[str, list[dict]]]:
+    """Return {project_id: {origin_id: [rows]}} from results/per-class/*.csv."""
+    grouped: dict[str, dict[str, list[dict]]] = defaultdict(lambda: defaultdict(list))
 
+    if not PER_CLASS_DIR.exists():
+        raise SystemExit(
+            f"No published metrics in {PER_CLASS_DIR}. "
+            "Run scripts/organize_published_metrics.py first."
+        )
 
-def read_class_csv(path: Path) -> list[dict]:
-    if not path.exists():
-        return []
-    with open(path, newline="", encoding="utf-8") as f:
-        return list(csv.DictReader(f))
+    for csv_path in sorted(PER_CLASS_DIR.glob("*.csv")):
+        with open(csv_path, newline="", encoding="utf-8") as handle:
+            for row in csv.DictReader(handle):
+                project_id = row["project_id"]
+                origin_id = row["origin_id"]
+                grouped[project_id][origin_id].append(row)
+
+    return grouped
 
 
 def stats(values: list[float]) -> tuple[float, float, float]:
@@ -71,25 +78,34 @@ def stats(values: list[float]) -> tuple[float, float, float]:
     return round(mean, 2), round(median, 2), round(stdev, 2)
 
 
-def aggregate_table2() -> Path:
-    """Table 2: JaCoCo line coverage descriptive statistics."""
-    rows = []
-    config = load_config()
+def float_field(row: dict, key: str) -> float:
+    value = row.get(key, "")
+    if value in ("", None):
+        return 0.0
+    return float(value)
 
-    for proj in included_projects(config):
-        pid = proj["id"]
-        project_dir = CLASSES_DIR / pid
-        if not project_dir.exists():
-            continue
-        for origin_file in sorted(project_dir.glob("*.csv")):
-            origin = origin_file.stem
-            data = read_class_csv(origin_file)
-            values = [float(r["line_coverage_pct"]) for r in data if r.get("line_coverage_pct")]
+
+def int_field(row: dict, key: str) -> int:
+    value = row.get(key, "")
+    if value in ("", None):
+        return 0
+    return int(float(value))
+
+
+def aggregate_table2(grouped: dict[str, dict[str, list[dict]]]) -> Path:
+    rows = []
+    for project_id in PROJECT_ORDER:
+        origins = grouped.get(project_id, {})
+        for origin_id in ORIGIN_ORDER:
+            data = origins.get(origin_id, [])
+            if not data:
+                continue
+            values = [float_field(r, "line_coverage_pct") for r in data]
             mean, median, stdev = stats(values)
             rows.append(
                 {
-                    "project": PROJECT_LABELS.get(pid, pid),
-                    "test_suite_origin": ORIGIN_LABELS.get(origin, origin),
+                    "project": PROJECT_LABELS.get(project_id, project_id),
+                    "test_suite_origin": ORIGIN_LABELS.get(origin_id, origin_id),
                     "mean_pct": mean,
                     "median_pct": median,
                     "std_dev_pct": stdev,
@@ -107,8 +123,8 @@ def aggregate_table2() -> Path:
         "std_dev_pct",
         "n_classes",
     ]
-    with open(out_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+    with open(out_path, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
 
@@ -116,28 +132,25 @@ def aggregate_table2() -> Path:
     return out_path
 
 
-def aggregate_table4() -> Path:
-    """Table 4: LLM ranking by project (line, mutation, test strength)."""
+def aggregate_table4(grouped: dict[str, dict[str, list[dict]]], config: dict) -> Path:
     rows = []
-    config = load_config()
     llm_origins = [m["id"] for m in config["llm_models"]]
 
-    for proj in included_projects(config):
-        pid = proj["id"]
-        for origin in llm_origins:
-            csv_path = CLASSES_DIR / pid / f"{origin}.csv"
-            data = read_class_csv(csv_path)
+    for project_id in PROJECT_ORDER:
+        origins = grouped.get(project_id, {})
+        for origin_id in llm_origins:
+            data = origins.get(origin_id, [])
             if not data:
                 continue
-            line_vals = [float(r["line_coverage_pct"]) for r in data]
-            mut_vals = [float(r["mutation_coverage_pct"]) for r in data]
-            ts_vals = [float(r["test_strength_pct"]) for r in data]
-            total_mut = sum(int(r.get("mutants_total") or 0) for r in data)
-            killed_mut = sum(int(r.get("mutants_killed") or 0) for r in data)
+            line_vals = [float_field(r, "line_coverage_pct") for r in data]
+            mut_vals = [float_field(r, "mutation_coverage_pct") for r in data]
+            ts_vals = [float_field(r, "test_strength_pct") for r in data]
+            total_mut = sum(int_field(r, "mutants_total") for r in data)
+            killed_mut = sum(int_field(r, "mutants_killed") for r in data)
             rows.append(
                 {
-                    "project": PROJECT_LABELS.get(pid, pid),
-                    "llm": ORIGIN_LABELS.get(origin, origin),
+                    "project": PROJECT_LABELS.get(project_id, project_id),
+                    "llm": ORIGIN_LABELS.get(origin_id, origin_id),
                     "line_coverage_mean_pct": stats(line_vals)[0],
                     "mutation_coverage_mean_pct": (
                         round(100.0 * killed_mut / total_mut, 2) if total_mut else stats(mut_vals)[0]
@@ -154,8 +167,8 @@ def aggregate_table4() -> Path:
         "mutation_coverage_mean_pct",
         "test_strength_mean_pct",
     ]
-    with open(out_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+    with open(out_path, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
 
@@ -163,23 +176,22 @@ def aggregate_table4() -> Path:
     return out_path
 
 
-def aggregate_table3(high_complexity_percentile: float = 75.0) -> Path:
-    """Table 3: High-complexity class metrics (top percentile by complexity)."""
+def aggregate_table3(
+    grouped: dict[str, dict[str, list[dict]]],
+    high_complexity_percentile: float = 75.0,
+) -> Path:
     rows = []
-    config = load_config()
     threshold_doc = OUT_DIR / "high-complexity-threshold.md"
 
-    for proj in included_projects(config):
-        pid = proj["id"]
-        project_dir = CLASSES_DIR / pid
-        if not project_dir.exists():
+    for project_id in PROJECT_ORDER:
+        origins = grouped.get(project_id, {})
+        if not origins:
             continue
 
-        # Compute complexity threshold across all origins for this project
         all_complexity: list[float] = []
-        for origin_file in project_dir.glob("*.csv"):
-            for r in read_class_csv(origin_file):
-                all_complexity.append(float(r.get("cyclomatic_complexity", 0)))
+        for origin_rows in origins.values():
+            for row in origin_rows:
+                all_complexity.append(float_field(row, "cyclomatic_complexity"))
 
         if not all_complexity:
             continue
@@ -189,24 +201,25 @@ def aggregate_table3(high_complexity_percentile: float = 75.0) -> Path:
         idx = min(idx, len(sorted_cx) - 1)
         threshold = sorted_cx[idx]
 
-        for origin_file in sorted(project_dir.glob("*.csv")):
-            origin = origin_file.stem
-            data = read_class_csv(origin_file)
+        for origin_id in ORIGIN_ORDER:
+            data = origins.get(origin_id, [])
+            if not data:
+                continue
             high = [
-                r
-                for r in data
-                if float(r.get("cyclomatic_complexity", 0)) >= threshold
+                row
+                for row in data
+                if float_field(row, "cyclomatic_complexity") >= threshold
             ]
             if not high:
                 continue
 
-            line_vals = [float(r["line_coverage_pct"]) for r in high]
-            mut_vals = [float(r["mutation_coverage_pct"]) for r in high]
-            ts_vals = [float(r["test_strength_pct"]) for r in high]
+            line_vals = [float_field(r, "line_coverage_pct") for r in high]
+            mut_vals = [float_field(r, "mutation_coverage_pct") for r in high]
+            ts_vals = [float_field(r, "test_strength_pct") for r in high]
             rows.append(
                 {
-                    "project": PROJECT_LABELS.get(pid, pid),
-                    "origin": ORIGIN_LABELS.get(origin, origin),
+                    "project": PROJECT_LABELS.get(project_id, project_id),
+                    "origin": ORIGIN_LABELS.get(origin_id, origin_id),
                     "high_cxty_line_cov_pct": stats(line_vals)[0],
                     "high_cxty_mutation_cov_pct": stats(mut_vals)[0],
                     "high_cxty_test_strength_pct": stats(ts_vals)[0],
@@ -232,8 +245,8 @@ def aggregate_table3(high_complexity_percentile: float = 75.0) -> Path:
         "n_high_cxty_classes",
         "complexity_threshold",
     ]
-    with open(out_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+    with open(out_path, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
 
@@ -241,8 +254,7 @@ def aggregate_table3(high_complexity_percentile: float = 75.0) -> Path:
     return out_path
 
 
-def generate_figures() -> None:
-    """Generate Figures 2-5 when matplotlib is available and data exists."""
+def generate_figures(grouped: dict[str, dict[str, list[dict]]]) -> None:
     try:
         import matplotlib.pyplot as plt
     except ImportError:
@@ -251,39 +263,30 @@ def generate_figures() -> None:
 
     fig_dir = OUT_DIR / "figures"
     fig_dir.mkdir(parents=True, exist_ok=True)
-    config = load_config()
-    projects = included_projects(config)
+    project_ids = [pid for pid in PROJECT_ORDER if pid in grouped]
 
-    # Figure 2: line coverage boxplot by project and origin
     for fig_name, metric, ylabel in [
         ("fig2_line_coverage", "line_coverage_pct", "JaCoCo Line Coverage (%)"),
         ("fig4_test_strength", "test_strength_pct", "PIT Test Strength (%)"),
     ]:
-        if not projects:
+        if not project_ids:
             continue
-        fig, axes = plt.subplots(1, len(projects), figsize=(8 * len(projects), 4), sharey=True)
-        if len(projects) == 1:
+        fig, axes = plt.subplots(1, len(project_ids), figsize=(4 * len(project_ids), 4), sharey=True)
+        if len(project_ids) == 1:
             axes = [axes]
-        for ax, proj in zip(axes, projects):
-            pid = proj["id"]
-            project_dir = CLASSES_DIR / pid
-            if not project_dir.exists():
-                continue
+        for ax, project_id in zip(axes, project_ids):
+            origins = grouped[project_id]
             data_by_origin = []
             labels = []
-            for origin_file in sorted(project_dir.glob("*.csv")):
-                origin = origin_file.stem
-                vals = [
-                    float(r[metric])
-                    for r in read_class_csv(origin_file)
-                    if r.get(metric)
-                ]
+            for origin_id in ORIGIN_ORDER:
+                rows = origins.get(origin_id, [])
+                vals = [float_field(r, metric) for r in rows if float_field(r, metric) or metric == "line_coverage_pct"]
                 if vals:
                     data_by_origin.append(vals)
-                    labels.append(ORIGIN_LABELS.get(origin, origin))
+                    labels.append(ORIGIN_LABELS.get(origin_id, origin_id))
             if data_by_origin:
                 ax.boxplot(data_by_origin, tick_labels=labels)
-                ax.set_title(PROJECT_LABELS.get(pid, pid))
+                ax.set_title(PROJECT_LABELS.get(project_id, project_id))
                 ax.tick_params(axis="x", rotation=45)
         fig.supylabel(ylabel)
         fig.tight_layout()
@@ -291,8 +294,6 @@ def generate_figures() -> None:
         fig.savefig(out, dpi=150)
         plt.close(fig)
         print(f"[figures] Wrote {out}")
-
-    print("[figures] Figure 3 and 5 require scatter plots; run after all class CSVs exist.")
 
 
 def main() -> None:
@@ -306,13 +307,19 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    config = load_config()
+    grouped = read_published_metrics()
+    missing = [pid for pid in project_ids_from_config(config) if pid not in grouped]
+    if missing:
+        print(f"[warn] Missing published metrics for: {', '.join(missing)}")
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    aggregate_table2()
-    aggregate_table3(args.high_complexity_percentile)
-    aggregate_table4()
+    aggregate_table2(grouped)
+    aggregate_table3(grouped, args.high_complexity_percentile)
+    aggregate_table4(grouped, config)
 
     if args.figures:
-        generate_figures()
+        generate_figures(grouped)
 
 
 if __name__ == "__main__":

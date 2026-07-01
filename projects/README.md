@@ -1,12 +1,21 @@
-# Optional checkout directory (not used by this artifact)
+# Local project checkout directory
 
-This replication package **does not require** any project under `projects/`.
+This directory is **empty in the git repository**. It is populated locally when reproducing the study:
 
-Included study artifacts live at the repository root:
+```powershell
+.\scripts\00_setup.ps1
+```
 
-- [`commons-bcel/`](../commons-bcel/README.md)
-- [`commons-cli/`](../commons-cli/README.md)
+Each subdirectory matches `config/projects.json`:
 
-Collections, Compress, and Lang from the paper are documented in [`config/projects.json`](../config/projects.json) for reference only. See [`docs/package-scope.md`](../docs/package-scope.md).
+| Directory | Paper version |
+|-----------|---------------|
+| `projects/commons-collections` | 4.6.0 |
+| `projects/commons-compress` | 1.29.0 |
+| `projects/commons-lang` | 3.20.1 |
+| `projects/commons-cli` | 1.11.0 |
+| `projects/commons-bcel` | 6.13.0 |
 
-The script `scripts/00_setup.ps1` can still clone all five paper projects if you extend the study locally; it is **not** part of the reviewer workflow for this package.
+Published study metrics are in [`results/per-class/`](../results/README.md). You do not need to clone these projects to review the paper results.
+
+See [`docs/package-scope.md`](../docs/package-scope.md) and [`docs/experimental-protocol.md`](../docs/experimental-protocol.md).

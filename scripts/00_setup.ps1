@@ -1,10 +1,10 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Clone Apache Commons projects at exact study versions.
+    Clone all five Apache Commons projects at exact study versions.
 .DESCRIPTION
-    Optional: clones all five paper projects. This artifact only requires
-    commons-bcel/ and commons-cli/ at the repo root. See docs/package-scope.md.
+    Populates projects/ locally for reproduction. Source code is not bundled in
+    the replication package; see docs/package-scope.md.
 #>
 param(
     [string]$ConfigPath = "$PSScriptRoot\..\config\projects.json"

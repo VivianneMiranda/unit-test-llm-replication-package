@@ -1,13 +1,23 @@
 # Duplicate paper at repo root (canonical copy is paper/paper.pdf)
 _SAST26___Submission__Unit_Test_and_LLM*.pdf
 
-# Build outputs
+# Author source CSVs (optional; canonical copy is results/per-class/)
+metricas_commons-*.csv
+
+# Local project checkouts (populated by 00_setup)
 projects/*/
 !projects/README.md
-commons-bcel/**/target/
-commons-cli/**/target/
-target/
+
+# Legacy bundled project folders (not shipped)
+commons-bcel/
+commons-cli/
+
+# Build outputs
+**/target/
 *.class
+
+# Optional local reproduction outputs
+results/raw/
 
 # IDE
 .idea/
@@ -32,6 +42,3 @@ config/anonymization-terms.txt
 __pycache__/
 *.pyc
 .venv/
-
-# Large raw outputs (optional: uncomment if storing locally only)
-# results/raw/**

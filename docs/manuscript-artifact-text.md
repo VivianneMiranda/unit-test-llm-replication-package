@@ -1,4 +1,4 @@
-# Manuscript snippet — Artifact availability (subset package)
+# Manuscript snippet — Artifact availability
 
 Insert the following in the paper (Section 4 or footnote) after configuring Anonymous GitHub:
 
@@ -6,7 +6,7 @@ Insert the following in the paper (Section 4 or footnote) after configuring Anon
 
 **Replication package (anonymized for review):** https://anonymous.4open.science/r/SAST26-UnitTest-LLM/
 
-The package documents the full experimental protocol and standardized LLM prompt (Appendix A), and provides complete reproducible artifacts for **Apache Commons BCEL** and **Apache Commons CLI** (developer-written and LLM-generated test suites, with scripts to collect and analyze JaCoCo and PIT metrics). Aggregated results for Commons Collections, Commons Compress, and Commons Lang appear in the manuscript only; those project artifacts were not retained for distribution.
+The package documents the full experimental protocol and standardized LLM prompt (Appendix A), and publishes per-class JaCoCo and PIT metrics for all five Apache Commons projects studied (Collections, Compress, Lang, CLI, and BCEL). Project source code and test suites are not bundled; reviewers can inspect the published results directly or reproduce the pipeline locally using the provided setup and metrics scripts.
 
 ---
 

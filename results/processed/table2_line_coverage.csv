@@ -1,9 +1,21 @@
 project,test_suite_origin,mean_pct,median_pct,std_dev_pct,n_classes
-Commons CLI,Developer,98.35,100.0,3.81,42
-Commons CLI,GPT-5.1 Codex Max,57.71,67.24,39.71,42
-Commons CLI,Opus 4.5,94.69,100.0,8.22,42
-Commons CLI,Sonnet 4.5,86.73,95.26,16.6,42
-Commons BCEL,Developer,73.48,82.64,30.88,406
-Commons BCEL,GPT-5.1 Codex Max,19.49,17.43,24.21,406
-Commons BCEL,Opus 4.5,80.24,95.06,28.0,406
-Commons BCEL,Sonnet 4.5,17.61,0.36,25.7,406
+Commons Collections,Developer,88.36,94.84,14.28,231
+Commons Collections,Opus 4.5,74.46,76.18,18.94,231
+Commons Collections,GPT-5.1 Codex Max,36.93,34.28,29.01,231
+Commons Collections,Sonnet 4.5,54.54,60.92,25.24,231
+Commons Compress,Developer,59.24,60.31,29.48,136
+Commons Compress,Opus 4.5,73.74,78.7,22.22,136
+Commons Compress,GPT-5.1 Codex Max,57.42,56.55,26.96,136
+Commons Compress,Sonnet 4.5,69.51,73.08,22.98,136
+Commons Lang,Developer,96.24,100.0,8.1,116
+Commons Lang,Opus 4.5,84.36,88.94,13.75,116
+Commons Lang,GPT-5.1 Codex Max,41.77,32.93,27.21,116
+Commons Lang,Sonnet 4.5,52.06,58.26,26.19,116
+Commons CLI,Developer,98.47,100.0,3.68,45
+Commons CLI,Opus 4.5,94.69,100.0,8.23,45
+Commons CLI,GPT-5.1 Codex Max,54.71,61.0,40.16,38
+Commons CLI,Sonnet 4.5,86.4,94.0,16.48,45
+Commons BCEL,Developer,75.27,87.0,30.58,409
+Commons BCEL,Opus 4.5,80.11,95.0,28.05,409
+Commons BCEL,GPT-5.1 Codex Max,19.24,16.0,23.9,406
+Commons BCEL,Sonnet 4.5,17.49,0.0,25.66,409

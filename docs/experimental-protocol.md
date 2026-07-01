@@ -2,7 +2,7 @@
 
 **Paper reference:** Section 4.5, Figure 1
 
-**Artifact scope:** This package implements the full procedure for **Commons BCEL and Commons CLI** only. See [`package-scope.md`](package-scope.md).
+**Artifact scope:** This package documents the full procedure for all five paper projects. Published metrics are shipped in `results/per-class/`; source code is cloned locally via `scripts/00_setup.*`. See [`package-scope.md`](package-scope.md).
 
 This document describes the controlled procedure used to compare developer-written and LLM-generated unit test suites.
 
@@ -70,14 +70,14 @@ Repeat for each of: Opus 4.5, GPT-5.1 Codex Max, Sonnet 4.5.
 4. Compile and run generated tests.
 5. Filter failing tests until suite is green (same as baseline).
 6. Collect JaCoCo and PIT metrics (same commands as Phase A).
-7. Archive generated tests to `generated-tests/<project>/<model-id>/`.
-8. Copy raw reports to `results/raw/<project>/<model-id>/`.
+7. Copy raw reports to `results/raw/<project>/<model-id>/` (optional; gitignored).
 
 ### Phase C — Analysis
 
-1. Parse per-class metrics with `scripts/04_parse_results.py`.
-2. Aggregate descriptive statistics with `scripts/05_aggregate_tables.py`.
-3. Compare against Paper Tables 2–4 and Figures 2–5.
+1. Inspect published per-class metrics in `results/per-class/` (included in the artifact).
+2. Regenerate aggregated tables with `scripts/05_aggregate_tables.py`.
+3. Optionally parse locally collected reports with `scripts/optional/04_parse_results.py`.
+4. Compare against Paper Tables 2–4 and Figures 2–5.
 
 ## Experimental scope
 

@@ -1,60 +1,36 @@
 # Replication Artifact Status
 
 **Last updated:** 2026-07-01  
-**Package scope:** BCEL + CLI only ([`docs/package-scope.md`](../docs/package-scope.md))
+**Package scope:** Light artifact — published metrics for all five projects ([`docs/package-scope.md`](../docs/package-scope.md))
 
-## Legend
+## Published results
 
-| Status | Meaning |
-|--------|---------|
-| `done` | Tests archived, metrics in `results/raw/`, CSVs generated |
-| `out_of_scope` | In the paper but not shipped |
-
-## Included projects
-
-| Project | Developer | Opus 4.5 | Sonnet 4.5 | GPT-5.1 Codex Max |
-|---------|-----------|----------|------------|-------------------|
-| Commons BCEL | done | done | done | done |
-| Commons CLI | done | done | done | done |
-
-## Generated outputs
-
-| Output | Location | Rows |
-|--------|----------|------|
-| Per-class metrics | `results/processed/classes/` | 8 CSV files |
-| Table 2 (line coverage) | `results/processed/table2_line_coverage.csv` | 8 |
-| Table 3 (high complexity) | `results/processed/table3_high_complexity.csv` | 8 |
-| Table 4 (LLM ranking) | `results/processed/table4_llm_ranking.csv` | 6 |
-| Figures 2 & 4 (subset) | `results/processed/figures/` | PNG |
+| Output | Location | Expected rows |
+|--------|----------|---------------|
+| Per-class metrics | `results/per-class/*.csv` | 5 files |
+| Table 2 (line coverage) | `results/processed/table2_line_coverage.csv` | 20 |
+| Table 3 (high complexity) | `results/processed/table3_high_complexity.csv` | 20 |
+| Table 4 (LLM ranking) | `results/processed/table4_llm_ranking.csv` | 15 |
+| Figures 2 & 4 (optional) | `results/processed/figures/` | PNG |
 
 Regenerate:
 
 ```powershell
-.\scripts\archive_metrics_from_target.ps1
-python scripts\04_parse_results.py --all
+python scripts\organize_published_metrics.py --keep-source
 python scripts\05_aggregate_tables.py --figures
 ```
 
-## Validation vs. paper (Table 2 line coverage, subset)
+## Projects and origins
 
-| Project | Origin | Paper mean | Artifact mean |
-|---------|--------|------------|---------------|
-| CLI | Developer | 98.47 | 98.35 |
-| CLI | Opus 4.5 | 94.69 | 94.69 |
-| BCEL | Developer | 75.27 | 73.48 |
-| BCEL | Opus 4.5 | 80.11 | 80.24 |
+| Project | Developer | Opus 4.5 | Sonnet 4.5 | GPT-5.1 Codex Max |
+|---------|-----------|----------|------------|-------------------|
+| Commons Collections | published | published | published | published |
+| Commons Compress | published | published | published | published |
+| Commons Lang | published | published | published | published |
+| Commons CLI | published | published | published | published |
+| Commons BCEL | published | published | published | published |
 
-Small differences may arise from JaCoCo re-run on BCEL developer (`-Dmaven.test.failure.ignore=true`) and class-level aggregation.
-
-## Out of scope
-
-Collections, Compress, Lang — manuscript only.
-
-## Notes
-
-- PIT metrics parsed from HTML reports (no `mutations.xml`).
-- BCEL PIT uses multi-module reports; mutation aggregates may differ slightly from paper tooling.
-- `target/` folders remain gitignored; canonical archived copy is under `results/raw/`.
+Metrics source: author CSVs normalized into `results/per-class/`.
 
 ## Before Anonymous GitHub (manual)
 

@@ -14,9 +14,9 @@ $Root = Resolve-Path "$PSScriptRoot\.."
 $config = Get-Content "$Root\config\projects.json" -Raw | ConvertFrom-Json
 $proj = $config.projects | Where-Object { $_.id -eq $Project }
 
-$projectDir = & python "$PSScriptRoot\resolve_project_path.py" $Project $Origin
+$projectDir = & python "$PSScriptRoot\resolve_project_path.py" $Project
 if (-not $projectDir -or -not (Test-Path $projectDir)) {
-    throw "Project not found at '$projectDir'. Run scripts/00_setup.ps1 or add paths in config/artifact-locations.json."
+    throw "Project not found at '$projectDir'. Run scripts/00_setup.ps1 first."
 }
 Write-Host "[path] Using $projectDir"
 
@@ -49,7 +49,7 @@ try {
     }
 
     Write-Host "[metrics] Reports copied to $rawOut"
-    & python "$PSScriptRoot\04_parse_results.py" --project $Project --origin $Origin
+    Write-Host "[optional] Parse with: python scripts\optional\04_parse_results.py --project $Project --origin $Origin"
 }
 finally {
     Pop-Location

@@ -1,23 +1,23 @@
 {
-  "description": "Defines which projects are shipped in this replication artifact.",
-  "paper_note": "The published study evaluated five Apache Commons projects. This artifact includes two projects for which complete test suites and metric runs are available.",
-  "included_project_ids": ["bcel", "cli"],
-  "excluded_project_ids": ["collections", "compress", "lang"],
-  "exclusion_reason": "Original test suites and executed metric outputs for Collections, Compress, and Lang are no longer available to the authors.",
+  "description": "Defines what this replication artifact ships.",
+  "paper_note": "The published study evaluated five Apache Commons projects. This artifact documents the protocol and ships published per-class metrics for all five projects.",
+  "ships_project_code": false,
+  "ships_results": true,
+  "included_project_ids": ["collections", "compress", "lang", "cli", "bcel"],
+  "excluded_project_ids": [],
   "artifact_runs": {
-    "total": 8,
-    "description": "2 projects × 4 test-suite origins (developer + 3 LLMs)"
+    "total": 20,
+    "description": "5 projects × 4 test-suite origins (developer + 3 LLMs)"
   },
   "paper_runs": {
     "total": 20,
     "description": "5 projects × 4 test-suite origins"
   },
   "replication_claims": {
-    "full_paper_tables_2_to_4": false,
-    "full_paper_figures_2_to_5": false,
+    "full_paper_tables_2_to_4": true,
+    "full_paper_figures_2_to_5": true,
     "methodology_and_prompt": true,
-    "bcel_and_cli_complete_pipeline": true,
-    "per_project_tables_for_included_subset": true
+    "per_class_metrics_all_projects": true
   },
-  "manuscript_wording_hint": "State that the anonymized package reproduces the protocol and provides complete artifacts for Commons BCEL and Commons CLI; results for the other three paper projects are reported in the manuscript only."
+  "manuscript_wording_hint": "State that the anonymized package reproduces the experimental protocol and publishes per-class JaCoCo/PIT metrics for all five Apache Commons projects; project source code and test suites are not bundled and must be reproduced locally using the provided scripts."
 }

@@ -28,13 +28,13 @@ Tests that fail compilation or execution were removed before PIT analysis. This 
 
 ### Limited subject systems
 
-The paper evaluates five Apache Commons Java/Maven projects. **This artifact ships two** (BCEL, CLI); Collections, Compress, and Lang appear in the manuscript only. Results may not generalize to other domains, languages, frameworks, or architectures.
+The paper evaluates five Apache Commons Java/Maven projects. Results may not generalize to other domains, languages, frameworks, or architectures.
 
 ### Artifact distribution scope
 
-The replication package is a **partial artifact** by design: full methodology, subset of raw outputs.
+The replication package is a **light artifact** by design: full methodology and published per-class metrics for all five projects, without bundled source code or test suites.
 
-**Mitigation in package:** `docs/package-scope.md`, `config/package-scope.json`, subset tables in `results/processed/`.
+**Mitigation in package:** `docs/package-scope.md`, `config/package-scope.json`, `results/per-class/`, aggregated tables in `results/processed/`.
 
 ### Limited models
 

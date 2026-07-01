@@ -1,9 +1,21 @@
 project,origin,high_cxty_line_cov_pct,high_cxty_mutation_cov_pct,high_cxty_test_strength_pct,n_high_cxty_classes,complexity_threshold
-Commons CLI,Developer,97.76,94.33,95.45,11,32.0
-Commons CLI,GPT-5.1 Codex Max,40.82,30.16,83.0,11,32.0
-Commons CLI,Opus 4.5,87.45,73.1,82.18,11,32.0
-Commons CLI,Sonnet 4.5,74.38,59.23,75.73,11,32.0
-Commons BCEL,Developer,69.09,4.23,79.7,104,14.0
-Commons BCEL,GPT-5.1 Codex Max,19.71,1.93,86.74,104,14.0
-Commons BCEL,Opus 4.5,67.38,7.49,82.78,104,14.0
-Commons BCEL,Sonnet 4.5,4.68,0.03,90.51,104,14.0
+Commons Collections,Developer,85.06,72.09,81.54,56,21.0
+Commons Collections,Opus 4.5,67.11,56.62,78.73,55,21.0
+Commons Collections,GPT-5.1 Codex Max,30.56,24.56,76.69,60,21.0
+Commons Collections,Sonnet 4.5,45.32,50.57,78.94,63,21.0
+Commons Compress,Developer,59.07,41.18,58.67,32,18.0
+Commons Compress,Opus 4.5,66.69,43.42,55.85,37,18.0
+Commons Compress,GPT-5.1 Codex Max,59.5,26.47,44.71,35,18.0
+Commons Compress,Sonnet 4.5,66.74,45.04,62.65,35,18.0
+Commons Lang,Developer,91.64,48.57,79.48,28,20.0
+Commons Lang,Opus 4.5,80.94,52.21,77.84,32,20.0
+Commons Lang,GPT-5.1 Codex Max,36.69,24.49,62.08,33,20.0
+Commons Lang,Sonnet 4.5,49.89,30.32,62.94,31,20.0
+Commons CLI,Developer,97.73,94.45,95.64,11,32.0
+Commons CLI,Opus 4.5,87.36,69.64,79.36,11,32.0
+Commons CLI,GPT-5.1 Codex Max,40.91,31.91,78.64,11,32.0
+Commons CLI,Sonnet 4.5,74.18,55.36,73.45,11,32.0
+Commons BCEL,Developer,71.23,11.8,75.1,105,14.0
+Commons BCEL,Opus 4.5,66.95,19.63,75.44,105,14.0
+Commons BCEL,GPT-5.1 Codex Max,19.49,3.45,81.37,105,14.0
+Commons BCEL,Sonnet 4.5,4.65,0.04,79.81,105,14.0

@@ -15,11 +15,11 @@ ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 CONFIG="$ROOT/config/projects.json"
 
 name=$(jq -r --arg id "$PROJECT" '.projects[] | select(.id==$id) | .name' "$CONFIG")
-abs_project=$(python3 "$SCRIPT_DIR/resolve_project_path.py" "$PROJECT" "$ORIGIN")
+abs_project=$(python3 "$SCRIPT_DIR/resolve_project_path.py" "$PROJECT")
 raw_out="$ROOT/results/raw/$PROJECT/$ORIGIN"
 
 if [[ ! -d "$abs_project" ]]; then
-  echo "Project not found at '$abs_project'. Run scripts/00_setup.sh or add paths in config/artifact-locations.json."
+  echo "Project not found at '$abs_project'. Run scripts/00_setup.sh first."
   exit 1
 fi
 echo "[path] Using $abs_project"
@@ -47,4 +47,4 @@ if [[ -d target/pit-reports ]]; then
 fi
 
 echo "[metrics] Reports copied to $raw_out"
-python3 "$SCRIPT_DIR/04_parse_results.py" --project "$PROJECT" --origin "$ORIGIN"
+echo "[optional] Parse with: python3 scripts/optional/04_parse_results.py --project $PROJECT --origin $ORIGIN"

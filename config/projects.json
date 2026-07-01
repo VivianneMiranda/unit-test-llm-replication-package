@@ -1,7 +1,7 @@
 {
   "description": "Apache Commons projects in the SAST 2026 empirical study.",
   "table_reference": "Paper Table 1",
-  "artifact_scope": "See config/package-scope.json — this package ships BCEL and CLI only.",
+  "artifact_scope": "See config/package-scope.json — published metrics for all five projects; source code is not bundled.",
   "projects": [
     {
       "id": "collections",
@@ -10,7 +10,7 @@
       "version": "4.6.0",
       "classes": 429,
       "loc": 29954,
-      "included_in_artifact": false,
+      "included_in_artifact": true,
       "git_url": "https://github.com/apache/commons-collections.git",
       "git_tag": "rel/commons-collections-4.6.0",
       "directory": "projects/commons-collections"
@@ -22,7 +22,7 @@
       "version": "1.29.0",
       "classes": 501,
       "loc": 23475,
-      "included_in_artifact": false,
+      "included_in_artifact": true,
       "git_url": "https://github.com/apache/commons-compress.git",
       "git_tag": "rel/commons-compress-1.29.0",
       "directory": "projects/commons-compress"
@@ -34,7 +34,7 @@
       "version": "3.20.1",
       "classes": 278,
       "loc": 53835,
-      "included_in_artifact": false,
+      "included_in_artifact": true,
       "git_url": "https://github.com/apache/commons-lang.git",
       "git_tag": "rel/commons-lang-3.20.1",
       "directory": "projects/commons-lang"
@@ -47,7 +47,6 @@
       "classes": 87,
       "loc": 11243,
       "included_in_artifact": true,
-      "artifact_directory": "commons-cli",
       "git_url": "https://github.com/apache/commons-cli.git",
       "git_tag": "rel/commons-cli-1.11.0",
       "directory": "projects/commons-cli"
@@ -60,7 +59,6 @@
       "classes": 672,
       "loc": 48150,
       "included_in_artifact": true,
-      "artifact_directory": "commons-bcel",
       "git_url": "https://github.com/apache/commons-bcel.git",
       "git_tag": "rel/commons-bcel-6.13.0",
       "directory": "projects/commons-bcel"

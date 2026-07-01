@@ -9,7 +9,7 @@ Documented environment for the SAST 2026 empirical study (Paper Section 4.5).
 | Java JDK | 21 | Required for compilation and test execution |
 | Apache Maven | 3.8+ | Build, JaCoCo, PIT integration |
 | Cursor | Pro 2.1.39 | LLM test generation with project context |
-| Python | 3.9+ | Optional; for `scripts/04_parse_results.py` and `05_aggregate_tables.py` |
+| Python | 3.9+ | For `scripts/organize_published_metrics.py` and `scripts/05_aggregate_tables.py` |
 
 ## LLM models (via Cursor)
 
@@ -58,7 +58,7 @@ PIT on Commons BCEL and Lang is the slowest due to project size.
 LLM-generated suites cannot be fully reproduced without access to the same models and IDE integration. The package includes:
 
 - The exact prompt (`prompts/test-generation-prompt.md`)
-- Any pre-generated tests in `generated-tests/`
-- Scripts to re-run metrics on existing test suites
+- Published per-class metrics in `results/per-class/`
+- Scripts to clone projects and re-run metrics locally (`scripts/00_setup.*`, `scripts/03_collect_metrics.*`)
 
-Baseline (developer-written) suites and metric collection are fully reproducible via Maven.
+Baseline (developer-written) suites and metric collection are fully reproducible via Maven after checkout.
