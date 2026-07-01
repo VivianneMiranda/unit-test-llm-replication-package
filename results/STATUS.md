@@ -31,10 +31,8 @@ python scripts\05_aggregate_tables.py --figures
 
 Metrics source: author CSVs normalized into `results/per-class/`.
 
-## Before Anonymous GitHub (manual)
+## Anonymous GitHub validation
 
-- [ ] Review `docs/ANONYMIZATION_CHECKLIST.md`
-- [ ] Push to private GitHub repo
-- [ ] Configure https://anonymous.4open.science/
-- [ ] Update README with the anonymous link (replace "to be added after anonymization")
-- [ ] Insert link in paper using `docs/manuscript-artifact-text.md`
+- [x] Repository anonymized
+- [x] Anonymous link generated
+- [x] Anonymous link manually checked in private/incognito window

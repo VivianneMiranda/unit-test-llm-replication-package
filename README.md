@@ -2,7 +2,7 @@
 
 Replication package for the SAST 2026 paper *Studying the Effectiveness of Human-Written versus LLM-Generated Unit Test Suites*.
 
-**Anonymous review link:** to be added after anonymization.
+**Anonymized artifact:** https://anonymous.4open.science/r/SAST26-UnitTest-LLM/
 
 ## What this package contains
 
