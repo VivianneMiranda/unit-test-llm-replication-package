@@ -25,7 +25,6 @@ Source files were normalized from `metricas_commons-*.csv` using
 Regenerate aggregated tables:
 
 ```powershell
-python scripts\organize_published_metrics.py
 python scripts\05_aggregate_tables.py
 ```
 

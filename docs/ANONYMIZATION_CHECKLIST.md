@@ -36,11 +36,13 @@ Complete before pushing to GitHub and configuring Anonymous GitHub.
 
 ## Manuscript text (before anonymization)
 
-Replace real GitHub URLs with:
+Use a placeholder in the README until the mirror is configured. After Anonymous GitHub setup, add the link to the README and paper using:
 
 ```
 https://anonymous.4open.science/r/SAST26-UnitTest-LLM/
 ```
+
+See `docs/manuscript-artifact-text.md` for the full snippet.
 
 ## Post-review
 

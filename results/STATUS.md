@@ -1,7 +1,7 @@
 # Replication Artifact Status
 
 **Last updated:** 2026-07-01  
-**Package scope:** Light artifact — published metrics for all five projects ([`docs/package-scope.md`](../docs/package-scope.md))
+**Package scope:** Published per-class metrics for **all five Apache Commons projects** (Collections, Compress, Lang, CLI, BCEL). Source code and test suites are not bundled. See [`docs/package-scope.md`](../docs/package-scope.md).
 
 ## Published results
 
@@ -16,7 +16,6 @@
 Regenerate:
 
 ```powershell
-python scripts\organize_published_metrics.py --keep-source
 python scripts\05_aggregate_tables.py --figures
 ```
 
@@ -37,4 +36,5 @@ Metrics source: author CSVs normalized into `results/per-class/`.
 - [ ] Review `docs/ANONYMIZATION_CHECKLIST.md`
 - [ ] Push to private GitHub repo
 - [ ] Configure https://anonymous.4open.science/
-- [ ] Insert link using `docs/manuscript-artifact-text.md`
+- [ ] Update README with the anonymous link (replace "to be added after anonymization")
+- [ ] Insert link in paper using `docs/manuscript-artifact-text.md`

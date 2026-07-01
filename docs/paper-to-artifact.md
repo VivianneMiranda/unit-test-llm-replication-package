@@ -16,7 +16,6 @@ Scope: [`docs/package-scope.md`](package-scope.md)
 Regenerate aggregated tables:
 
 ```powershell
-python scripts\organize_published_metrics.py --keep-source
 python scripts\05_aggregate_tables.py
 ```
 

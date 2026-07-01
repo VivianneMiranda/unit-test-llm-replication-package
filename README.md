@@ -2,11 +2,11 @@
 
 Replication package for the SAST 2026 paper *Studying the Effectiveness of Human-Written versus LLM-Generated Unit Test Suites*.
 
-**Anonymous review link (fill after setup):** `https://anonymous.4open.science/r/SAST26-UnitTest-LLM/`
+**Anonymous review link:** to be added after anonymization.
 
 ## What this package contains
 
-This is a **light replication artifact**: it ships the experimental protocol, the Appendix A prompt, **published per-class metrics for all five Apache Commons projects**, and scripts to reproduce the study locally. It does **not** bundle project source code or test suites.
+This artifact provides the **published per-class JaCoCo and PIT metrics for all five Apache Commons projects** studied in the paper (Collections, Compress, Lang, CLI, and BCEL), together with the experimental protocol and Appendix A prompt. **Project source code and LLM-generated test suites are not bundled**; they can be reproduced locally using the provided scripts (`scripts/00_setup.*`, `scripts/03_collect_metrics.*`).
 
 | Included | Not bundled |
 |----------|-------------|
@@ -28,10 +28,9 @@ Java 21, Maven 3.8+, Python 3.9+. Details: [`config/environment.md`](config/envi
 - Per-class metrics: [`results/per-class/`](results/README.md)
 - Aggregated tables: [`results/processed/table2_line_coverage.csv`](results/processed/table2_line_coverage.csv) (20 rows)
 
-Regenerate from the author CSVs:
+Regenerate aggregated tables:
 
 ```powershell
-python scripts\organize_published_metrics.py --keep-source
 python scripts\05_aggregate_tables.py
 ```
 

@@ -1,6 +1,6 @@
 # Replication Package Scope
 
-This artifact is a **light replication package** for the full SAST 2026 empirical study.
+This artifact provides the **published per-class metrics for all five Apache Commons projects** studied in the SAST 2026 paper (Collections, Compress, Lang, CLI, and BCEL). **Project source code and LLM-generated test suites are not bundled**; they can be reproduced locally using the provided scripts.
 
 ## Included in this package
 
