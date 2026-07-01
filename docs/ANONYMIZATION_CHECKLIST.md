@@ -25,7 +25,7 @@ Complete before pushing to GitHub and configuring Anonymous GitHub.
 - [x] Apache Commons project versions (public)
 - [x] Standardized prompt (Appendix A)
 - [x] Maven scripts without local paths
-- [x] Anonymized paper PDF (if venue allows)
+- [ ] Paper manuscript PDF (not included in replication package)
 
 ## Anonymous GitHub terms file
 

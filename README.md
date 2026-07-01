@@ -56,7 +56,6 @@ Clone checkouts live under `projects/` (gitignored). See [`projects/README.md`](
 │   ├── per-class/         # published per-class metrics (5 CSVs)
 │   ├── processed/         # Tables 2–4
 │   └── README.md
-└── paper/paper.pdf
 ```
 
 ## Paper mapping
@@ -78,4 +77,4 @@ Details: [`docs/paper-to-artifact.md`](docs/paper-to-artifact.md).
 
 ## Citation and license
 
-See [`LICENSE`](LICENSE) and the paper PDF in [`paper/`](paper/).
+See [`LICENSE`](LICENSE).

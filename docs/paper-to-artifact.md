@@ -60,4 +60,4 @@ Optional local reproduction output: `results/raw/<project>/<origin>/` after runn
 | BCEL | Opus 4.5 | 80.11 | 95.00 | 28.05 |
 | CLI | Developer | 98.47 | 100.00 | 3.68 |
 
-Compare against `results/processed/table2_line_coverage.csv`. Full values: `paper/paper.pdf`.
+Compare against `results/processed/table2_line_coverage.csv`.
